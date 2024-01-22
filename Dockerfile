@@ -4,17 +4,27 @@ FROM alpine:latest
 RUN apk update && apk add \
     build-base \
     gcc-arm-none-eabi \
-    newlib-arm-none-eabi \
     gdb-multiarch \
     qemu-system-arm \
-    git
+    git \
+    vim \
+    openssh
 
-# Clone FreeRTOS source code (modify the branch/tag as needed)
+# Create a user for SSH login
+RUN adduser -D username && \
+    echo "username:password" | chpasswd
+
+# Generate host keys (required for SSHD to run)
+RUN ssh-keygen -A
+
+# Clone FreeRTOS source code
 RUN git clone https://github.com/FreeRTOS/FreeRTOS.git --recurse-submodules /FreeRTOS
 
 # Set the working directory
 WORKDIR /FreeRTOS
 
-# Any additional setup or scripts can be added here
+# Expose port 22 for SSH
+EXPOSE 22
 
-CMD ["/bin/sh"]
+# Start SSH server when container launches
+CMD ["/usr/sbin/sshd", "-D"]

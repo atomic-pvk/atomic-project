@@ -1,35 +1,114 @@
-# ATOMIC
+# ATOMIC Project Documentation
 
-Hello World!
+Welcome to ATOMIC! This guide will assist you in setting up and using the FreeRTOS environment for your development needs.
 
-## Using the docker image
+## Quick Start Guide
 
-First build the docker image:
-```bash
-docker build -t freertos-qemu .
-```
+### Setting Up FreeRTOS
 
-Then run the docker image:
-```bash
-docker run -it --rm freertos-qemu
-```
+1. **Download FreeRTOS Source Code**: Start by downloading the FreeRTOS source code from the official site. Use this [link](https://www.freertos.org/a00104.html) for direct access. After downloading, extract the files and place the `FreeRTOS` folder at the root of the ATOMIC project.
 
-You then follow the steps under the [
-Building and executing the demo application - GCC Makefile](https://www.freertos.org/freertos-on-qemu-mps2-an385-model.html) section of the FreeRTOS website.
+    _Alternatively_, you can clone the FreeRTOS repository using the following Git command:
 
-Alternatively follow the steps below:
+    ```bash
+    git clone https://github.com/FreeRTOS/FreeRTOS.git --recurse-submodules ./FreeRTOS
+    ```
 
-```bash
-cd FreeRTOS/Demo/CORTEX_MPS2_QEMU_IAR_GCC/build/gcc
-```
+2. **Install Docker**: Docker is required for containerization. Follow the installation guide available [here](https://docs.docker.com/get-docker/) to set it up on your system.
 
-```bash
-make -j4
-```
+### Docker Image Management
+
+#### Building the Docker Image
+
+Build the Docker image using the following command:
 
 ```bash
-qemu-system-arm -machine mps2-an385 -cpu cortex-m3 -kernel ./output/RTOSDemo.out -monitor none -nographic -serial stdio
+docker build -t freertos .
 ```
 
-This will run the simple blicky demo. You can run the full demo by modifying the mainCREATE_SIMPLE_BLINKY_DEMO_ONLY variable in the main.c file in the FreeRTOS/Demo/CORTEX_MPS2_QEMU_IAR_GCC folder.
+#### Running the Docker Image
 
+To run the Docker image, use:
+
+```bash
+docker run -d -p 2222:22 freertos
+```
+
+#### Stopping the Docker Image
+
+To stop the running Docker image, execute:
+
+```bash
+docker stop freertos
+```
+
+#### Removing the Docker Image
+
+For removing the Docker image, enter:
+
+```bash
+docker rmi freertos
+```
+
+### Developing with Docker
+
+1. **Accessing the Docker Image via SSH**:
+   Connect to the Docker image with SSH using:
+
+   ```bash
+   ssh username@localhost -p 2222
+   ```
+
+2. **Using VSCode for Development**:
+   Enhance your development experience with the `Remote Explorer` and `Remote - SSH` extensions in VSCode. This setup allows you to edit files directly in the Docker environment. Connect to the Docker image via VSCode by selecting Remote-SSH: Connect to Host, then add:
+
+   ```bash
+   ssh username@localhost -p 2222
+   ```
+
+   Choose the 'freertos' container to open a VSCode window linked to the Docker image files.
+
+### Building and Running the Project
+
+1. **Preparing the Build**:
+   Navigate to the build directory:
+
+   ```bash
+   cd FreeRTOS/Demo/CORTEX_MPS2_QEMU_IAR_GCC/build/gcc
+   ```
+
+2. **Build Commands**:
+   Clean the build environment:
+
+   ```bash
+   make clean
+   ```
+
+   Compile the project (use `-j[coreCount]` for parallel compilation, e.g., `make -j4` for a quad-core machine):
+
+   ```bash
+   make -j[coreCount]
+   ```
+
+3. **Running the Demo**:
+   Execute the demo with:
+
+   ```bash
+   qemu-system-arm -machine mps2-an385 -cpu cortex-m3 -kernel ./output/RTOSDemo.out -monitor none -nographic -serial stdio
+   ```
+
+   For debug mode, use:
+
+   ```bash
+   qemu-system-arm -machine mps2-an385 -cpu cortex-m3 -kernel ./output/RTOSDemo.out -monitor none -nographic -serial stdio -s -S
+   ```
+
+   Modify `mainCREATE_SIMPLE_BLINKY_DEMO_ONLY` in `main.c` under `FreeRTOS/Demo/CORTEX_MPS2_QEMU_IAR_GCC` to run the full demo.
+
+### Additional Resources
+
+- [FreeRTOS on QEMU MPS2 AN385 Model](https://www.freertos.org/freertos-on-qemu-mps2-an385-model.html)
+- [FreeRTOS Demo Applications](https://www.freertos.org/a00102.html#comprehensive_demo)
+- [FreeRTOS API Reference](https://www.freertos.org/a00106.html)
+- [FreeRTOS Kernel Quick Start Guide](https://www.freertos.org/FreeRTOS-quick-start-guide.html)
+- [Understanding the FreeRTOS Directory Structure](https://www.freertos.org/a00017.html)
