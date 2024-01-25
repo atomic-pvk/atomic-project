@@ -4,17 +4,21 @@ Welcome to ATOMIC! This guide will assist you in setting up and using the FreeRT
 
 ## Quick Start Guide
 
-### Setting Up FreeRTOS
 
-1. **Download FreeRTOS Source Code**: Start by downloading the FreeRTOS source code from the official site. Use this [link](https://www.freertos.org/a00104.html) for direct access. After downloading, extract the files and place the `FreeRTOS` folder at the root of the ATOMIC project.
+### Install Docker: 
+ Docker is required for containerization. Follow the installation guide available [here](https://docs.docker.com/get-docker/) to set it up on your system.
 
-    _Alternatively_, you can clone the FreeRTOS repository using the following Git command:
+### (Optional) Download FreeRTOS Source Code
 
-    ```bash
-    git clone https://github.com/FreeRTOS/FreeRTOS.git --recurse-submodules ./FreeRTOS
-    ```
+If you want direct access to the source code and libraries, download the FreeRTOS source code from the official site. Use this [link](https://www.freertos.org/a00104.html) for direct access.
 
-2. **Install Docker**: Docker is required for containerization. Follow the installation guide available [here](https://docs.docker.com/get-docker/) to set it up on your system.
+_Alternatively_, you can clone the FreeRTOS repository using the following Git command:
+
+```bash
+git clone https://github.com/FreeRTOS/FreeRTOS.git --recurse-submodules ./FreeRTOS
+```
+
+---
 
 ### Docker Image Management
 
@@ -50,6 +54,8 @@ For removing the Docker image, enter:
 docker rmi freertos
 ```
 
+---
+
 ### Developing with Docker
 
 1. **Accessing the Docker Image via SSH**:
@@ -68,7 +74,21 @@ docker rmi freertos
 
    Choose the 'freertos' container to open a VSCode window linked to the Docker image files.
 
+---
+
 ### Building and Running the Project
+
+#### Automatic
+
+The container includes a file named `autoRunDemo.sh`. Running this ash script automatically runs the demo in its standard configuration. To run it in debug mode, refer to the FreeRTOS documentation or follow the manual instructions below.
+
+Command to run:
+
+```bash
+ash ./autoRunDemo.sh
+```
+
+#### Manual
 
 1. **Preparing the Build**:
    Navigate to the build directory:
@@ -84,10 +104,10 @@ docker rmi freertos
    make clean
    ```
 
-   Compile the project (use `-j[coreCount]` for parallel compilation, e.g., `make -j4` for a quad-core machine):
+   Compile the project (use `-j` for parallel compilation):
 
    ```bash
-   make -j[coreCount]
+   make -j
    ```
 
 3. **Running the Demo**:
@@ -103,7 +123,11 @@ docker rmi freertos
    qemu-system-arm -machine mps2-an385 -cpu cortex-m3 -kernel ./output/RTOSDemo.out -monitor none -nographic -serial stdio -s -S
    ```
 
-   Modify `mainCREATE_SIMPLE_BLINKY_DEMO_ONLY` in `main.c` under `FreeRTOS/Demo/CORTEX_MPS2_QEMU_IAR_GCC` to run the full demo.
+#### Modifying the Demo
+
+   To run the full demo, modify the `mainCREATE_SIMPLE_BLINKY_DEMO_ONLY` variable in `main.c` located at `FreeRTOS/Demo/CORTEX_MPS2_QEMU_IAR_GCC` to a value other than `1`.
+
+---
 
 ### Additional Resources
 
