@@ -4,9 +4,19 @@ Welcome to ATOMIC! This guide will assist you in setting up and using the FreeRT
 
 ## Quick Start Guide
 
+### Install Docker
 
-### Install Docker: 
- Docker is required for containerization. Follow the installation guide available [here](https://docs.docker.com/get-docker/) to set it up on your system.
+Docker is required for containerization. Follow the installation guide available [here](https://docs.docker.com/get-docker/) to set it up on your system.
+
+### Quick Setup
+
+Easiest way to get started is to use `docker compose`. Clone the project to your local machine and run:
+
+```bash
+docker compose up -d --build
+```
+
+This will build and run the Docker container. You can now proceed from the [Developing with Docker](#developing-with-docker) section.
 
 ### (Optional) Download FreeRTOS Source Code
 
@@ -64,6 +74,8 @@ docker rmi freertos
    ```bash
    ssh username@localhost -p 2222
    ```
+
+   Default password is `password`.
 
 2. **Using VSCode for Development**:
    Enhance your development experience with the `Remote Explorer` and `Remote - SSH` extensions in VSCode. This setup allows you to edit files directly in the Docker environment. Connect to the Docker image via VSCode by selecting Remote-SSH: Connect to Host, then add:
@@ -125,7 +137,7 @@ ash ./autoRunDemo.sh
 
 #### Modifying the Demo
 
-   To run the full demo, modify the `mainCREATE_SIMPLE_BLINKY_DEMO_ONLY` variable in `main.c` located at `FreeRTOS/Demo/CORTEX_MPS2_QEMU_IAR_GCC` to a value other than `1`.
+To run the full demo, modify the `mainCREATE_SIMPLE_BLINKY_DEMO_ONLY` variable in `main.c` located at `FreeRTOS/Demo/CORTEX_MPS2_QEMU_IAR_GCC` to a value other than `1`.
 
 ---
 
