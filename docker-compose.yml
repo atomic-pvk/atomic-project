@@ -5,3 +5,5 @@ services:
     ports:
       - "2222:22"
     restart: unless-stopped
+    volumes:
+      - ./:/FreeRTOS/app
