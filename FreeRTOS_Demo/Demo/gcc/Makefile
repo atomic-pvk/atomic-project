@@ -81,11 +81,9 @@ SOURCE_FILES += ./printf-stdarg.c
 
 # TCP
 TCP_DIR = $(FREERTOS_ROOT)/Source/tcp 
-NCLUDE_DIRS += -I$(TCP_DIR)/include \
-                -I$(TCP_DIR)/portable/Compiler/GCC
-
-# FreeRTOS+TCP
-INCLUDE_DIRS += -I${TCP_DIR}/include/
+INCLUDE_DIRS += -I$(TCP_DIR)/include \
+                -I$(TCP_DIR)/portable/Compiler/GCC \
+                -I${TCP_DIR}/portable/NetworkInterface/MPS2_AN385/ether_lan9118
 
 SOURCE_FILES += ${TCP_DIR}/FreeRTOS_ARP.c
 SOURCE_FILES += ${TCP_DIR}/FreeRTOS_DHCP.c
@@ -108,10 +106,6 @@ SOURCE_FILES += ${TCP_DIR}/FreeRTOS_TCP_Utils.c
 SOURCE_FILES += ${TCP_DIR}/FreeRTOS_TCP_WIN.c
 SOURCE_FILES += ${TCP_DIR}/FreeRTOS_Tiny_TCP.c
 SOURCE_FILES += ${TCP_DIR}/FreeRTOS_UDP_IP.c
-
-# FreeRTOS+TCP Port for ARM MPS2 SoC
-INCLUDE_DIRS += -I${TCP_DIR}/portable/NetworkInterface/MPS2_AN385/ether_lan9118
-INCLUDE_DIRS += -I${TCP_DIR}/portable/Compiler/GCC
 
 SOURCE_FILES += ${TCP_DIR}/portable/BufferManagement/BufferAllocation_2.c
 SOURCE_FILES += ${TCP_DIR}/portable/NetworkInterface/MPS2_AN385/NetworkInterface.c
