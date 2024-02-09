@@ -1,4 +1,5 @@
 #!bin/ash
+
 cd FreeRTOS_Demo/Demo/gcc
 make clean
 make -j
