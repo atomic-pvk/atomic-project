@@ -1,27 +1,28 @@
-# Compiler and Tool Definitions
+OUTPUT_DIR := ./output
+IMAGE := RTOSDemo.out
+SUB_MAKEFILE_DIR = ./library-makefiles
+
+# The directory that contains the /source and /demo sub directories.
+FREERTOS_ROOT = ./../../
+
 CC = arm-none-eabi-gcc
 LD = arm-none-eabi-gcc
 SIZE = arm-none-eabi-size
 MAKE = make
 
-# Output Directory
-OUTPUT_DIR := ./output
 
-# FreeRTOS Directories
-FREERTOS_ROOT = ./../../
+CFLAGS += $(INCLUDE_DIRS) -nostartfiles -ffreestanding -mthumb -mcpu=cortex-m3 \
+		  -Wall -Wextra -g3 -O0 -ffunction-sections -fdata-sections \
+		  -MMD -MP -MF"$(@:%.o=%.d)" -MT $@
+
+#
+# Kernel build.
+#
 KERNEL_DIR = $(FREERTOS_ROOT)/Source/kernel
-TCP_DIR = $(FREERTOS_ROOT)/Source/tcp 
-DEMO_ROOT = $(FREERTOS_ROOT)
-DEMO_PROJECT = $(DEMO_ROOT)/Demo
-
-# Include Paths
+KERNEL_PORT_DIR += $(KERNEL_DIR)/portable/GCC/ARM_CM3
 INCLUDE_DIRS += -I$(KERNEL_DIR)/include \
-                -I$(TCP_DIR)/include \
-                -I$(DEMO_PROJECT) -I$(DEMO_PROJECT)/CMSIS \
-                -ICMSIS
-
-# Source Files
-PATH += $(KERNEL_DIR) $(KERNEL_PORT_DIR) $(KERNEL_DIR)/portable/MemMang
+				-I$(KERNEL_PORT_DIR)
+VPATH += $(KERNEL_DIR) $(KERNEL_PORT_DIR) $(KERNEL_DIR)/portable/MemMang
 SOURCE_FILES += $(KERNEL_DIR)/tasks.c
 SOURCE_FILES += $(KERNEL_DIR)/list.c
 SOURCE_FILES += $(KERNEL_DIR)/queue.c
@@ -35,33 +36,33 @@ DEMO_ROOT = $(FREERTOS_ROOT)
 DEMO_KERNEL = $(DEMO_ROOT)/Source/kernel
 INCLUDE_DIRS += -I$(DEMO_KERNEL)
 VPATH += $(DEMO_KERNEL)
-SOURCE_FILES += (DEMO_KERNEL)/AbortDelay.c
-SOURCE_FILES += (DEMO_KERNEL)/BlockQ.c
-SOURCE_FILES += (DEMO_KERNEL)/blocktim.c
-SOURCE_FILES += (DEMO_KERNEL)/countsem.c
-SOURCE_FILES += (DEMO_KERNEL)/death.c
-SOURCE_FILES += (DEMO_KERNEL)/dynamic.c
-SOURCE_FILES += (DEMO_KERNEL)/EventGroupsDemo.c
-SOURCE_FILES += (DEMO_KERNEL)/GenQTest.c
-SOURCE_FILES += (DEMO_KERNEL)/integer.c
-SOURCE_FILES += (DEMO_KERNEL)/IntQueue.c
-SOURCE_FILES += (DEMO_KERNEL)/IntQueueTimer.c
-SOURCE_FILES += (DEMO_KERNEL)/IntSemTest.c
-SOURCE_FILES += (DEMO_KERNEL)/MessageBufferAMP.c
-SOURCE_FILES += (DEMO_KERNEL)/MessageBufferDemo.c
-SOURCE_FILES += (DEMO_KERNEL)/PollQ.c
-SOURCE_FILES += (DEMO_KERNEL)/QPeek.c
-SOURCE_FILES += (DEMO_KERNEL)/QueueOverwrite.c
-SOURCE_FILES += (DEMO_KERNEL)/QueueSet.c
-SOURCE_FILES += (DEMO_KERNEL)/QueueSetPolling.c
-SOURCE_FILES += (DEMO_KERNEL)/recmutex.c
-SOURCE_FILES += (DEMO_KERNEL)/semtest.c
-SOURCE_FILES += (DEMO_KERNEL)/StaticAllocation.c
-SOURCE_FILES += (DEMO_KERNEL)/StreamBufferDemo.c
-SOURCE_FILES += (DEMO_KERNEL)/StreamBufferInterrupt.c
-SOURCE_FILES += (DEMO_KERNEL)/TaskNotify.c
-SOURCE_FILES += (DEMO_KERNEL)/TaskNotifyArray.c
-SOURCE_FILES += (DEMO_KERNEL)/TimerDemo.c
+SOURCE_FILES += $(DEMO_KERNEL)/AbortDelay.c
+SOURCE_FILES += $(DEMO_KERNEL)/BlockQ.c
+SOURCE_FILES += $(DEMO_KERNEL)/blocktim.c
+SOURCE_FILES += $(DEMO_KERNEL)/countsem.c
+SOURCE_FILES += $(DEMO_KERNEL)/death.c
+SOURCE_FILES += $(DEMO_KERNEL)/dynamic.c
+SOURCE_FILES += $(DEMO_KERNEL)/EventGroupsDemo.c
+SOURCE_FILES += $(DEMO_KERNEL)/GenQTest.c
+SOURCE_FILES += $(DEMO_KERNEL)/integer.c
+SOURCE_FILES += $(DEMO_KERNEL)/IntQueue.c
+SOURCE_FILES += $(DEMO_KERNEL)/IntQueueTimer.c
+SOURCE_FILES += $(DEMO_KERNEL)/IntSemTest.c
+SOURCE_FILES += $(DEMO_KERNEL)/MessageBufferAMP.c
+SOURCE_FILES += $(DEMO_KERNEL)/MessageBufferDemo.c
+SOURCE_FILES += $(DEMO_KERNEL)/PollQ.c
+SOURCE_FILES += $(DEMO_KERNEL)/QPeek.c
+SOURCE_FILES += $(DEMO_KERNEL)/QueueOverwrite.c
+SOURCE_FILES += $(DEMO_KERNEL)/QueueSet.c
+SOURCE_FILES += $(DEMO_KERNEL)/QueueSetPolling.c
+SOURCE_FILES += $(DEMO_KERNEL)/recmutex.c
+SOURCE_FILES += $(DEMO_KERNEL)/semtest.c
+SOURCE_FILES += $(DEMO_KERNEL)/StaticAllocation.c
+SOURCE_FILES += $(DEMO_KERNEL)/StreamBufferDemo.c
+SOURCE_FILES += $(DEMO_KERNEL)/StreamBufferInterrupt.c
+SOURCE_FILES += $(DEMO_KERNEL)/TaskNotify.c
+SOURCE_FILES += $(DEMO_KERNEL)/TaskNotifyArray.c
+SOURCE_FILES += $(DEMO_KERNEL)/TimerDemo.c
 
 #
 # Application entry point.  main_blinky is self contained.  main_full builds
@@ -70,26 +71,18 @@ SOURCE_FILES += (DEMO_KERNEL)/TimerDemo.c
 DEMO_PROJECT = $(DEMO_ROOT)/Demo
 VPATH += $(DEMO_PROJECT)
 INCLUDE_DIRS += -I$(DEMO_PROJECT) -I$(DEMO_PROJECT)/CMSIS
-SOURCE_FILES += $(DEMO_PROJECT)/main.c
-SOURCE_FILES += $(DEMO_PROJECT)/main_blinky.c
-SOURCE_FILES += $(DEMO_PROJECT)/main_full.c
+SOURCE_FILES += (DEMO_PROJECT)/main.c
+SOURCE_FILES += (DEMO_PROJECT)/main_blinky.c
+SOURCE_FILES += (DEMO_PROJECT)/main_full.c
 SOURCE_FILES += ./startup_gcc.c
 # Lightweight print formatting to use in place of the heavier GCC equivalent.
 SOURCE_FILES += ./printf-stdarg.c
 
-INCLUDE_DIRS += -I.
 
-# Demo Source Files
-SOURCE_FILES += $(DEMO_PROJECT)/startup.c
-SOURCE_FILES += $(DEMO_PROJECT)/syscalls.c
-SOURCE_FILES += $(DEMO_PROJECT)/main.c
-SOURCE_FILES += $(DEMO_PROJECT)/main_networking.c
-SOURCE_FILES += $(DEMO_PROJECT)/TCPEchoClient_SingleTasks.c
-
-INCLUDE_DIRS += -ICMSIS
-
-# FreeRTOS Kernel ARM Cortex-M3 Port
-INCLUDE_DIRS += -I$(KERNEL_DIR)/portable/GCC/ARM_CM3
+# TCP
+TCP_DIR = $(FREERTOS_ROOT)/Source/tcp 
+NCLUDE_DIRS += -I$(TCP_DIR)/include \
+                -I$(TCP_DIR)/portable/Compiler/GCC
 
 # FreeRTOS+TCP
 INCLUDE_DIRS += -I${TCP_DIR}/include/
@@ -136,29 +129,45 @@ OBJS_NO_PATH = $(notdir $(OBJS))
 OBJS_OUTPUT = $(OBJS_NO_PATH:%.o=$(OUTPUT_DIR)/%.o)
 DEP_FILES := $(SOURCE_FILES:%.c=$(OUTPUT_DIR)/%.d)
 DEP_FILES_NO_PATH = $(notdir $(DEP_FILES))
+DEP_OUTPUT = $(DEP_FILES
+
+
+#Create a list of object files with the desired output directory path.
+OBJS = $(SOURCE_FILES:%.c=%.o)
+OBJS_NO_PATH = $(notdir $(OBJS))
+OBJS_OUTPUT = $(OBJS_NO_PATH:%.o=$(OUTPUT_DIR)/%.o)
+
+#Create a list of dependency files with the desired output directory path.
+DEP_FILES := $(SOURCE_FILES:%.c=$(OUTPUT_DIR)/%.d)
+DEP_FILES_NO_PATH = $(notdir $(DEP_FILES))
 DEP_OUTPUT = $(DEP_FILES_NO_PATH:%.d=$(OUTPUT_DIR)/%.d)
 
-# Linker Flags and Rules
-LDFLAGS = -T mps2_m3.ld -specs=nano.specs --specs=rdimon.specs -lc -lrdimon \
-          -Xlinker --gc-sections -Xlinker -T ./mps2_m3.ld \
-          -Xlinker -Map=$(OUTPUT_DIR)/RTOSDemo.map
-
-# Targets
 all: $(OUTPUT_DIR)/$(IMAGE)
 
+%.o : %.c
 $(OUTPUT_DIR)/%.o : %.c $(OUTPUT_DIR)/%.d Makefile
-    $(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OUTPUT_DIR)/$(IMAGE): ./mps2_m3.ld $(OBJS_OUTPUT) Makefile
-    $(LD) $(OBJS_OUTPUT) $(CFLAGS) $(LDFLAGS) -o $(OUTPUT_DIR)/$(IMAGE)
-    $(SIZE) $(OUTPUT_DIR)/$(IMAGE) 
+	@echo ""
+	@echo ""
+	@echo "--- Final linking ---"
+	@echo ""
+	$(LD) $(OBJS_OUTPUT) $(CFLAGS) -Xlinker --gc-sections -Xlinker -T ./mps2_m3.ld \
+		-Xlinker -Map=$(OUTPUT_DIR)/RTOSDemo.map -specs=nano.specs \
+		-specs=nosys.specs -specs=rdimon.specs -o $(OUTPUT_DIR)/$(IMAGE)
+	$(SIZE) $(OUTPUT_DIR)/$(IMAGE)		
 
 $(DEP_OUTPUT):
 include $(wildcard $(DEP_OUTPUT))
 
 clean:
-    rm -f $(OUTPUT_DIR)/$(IMAGE) $(OUTPUT_DIR)/*.o $(OUTPUT_DIR)/*.d
+	rm -f $(OUTPUT_DIR)/$(IMAGE) $(OUTPUT_DIR)/*.o $(OUTPUT_DIR)/*.d
 
-# Misc
+#use "make print-[VARIABLE_NAME] to print the value of a variable generated by
+#this makefile.
 print-%  : ; @echo $* = $($*)
+
 .PHONY: all clean
+
+
