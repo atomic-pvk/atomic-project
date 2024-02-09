@@ -1,11 +1,4 @@
 #!bin/ash
-
-folder="./FreeRTOS_Demo"
-
-if [ ! -d "$folder" ]; then
-  unzip FreeRTOS_Demo.zip
-fi
-
 cd FreeRTOS_Demo/Demo/gcc
 make clean
 make -j
