@@ -4,6 +4,8 @@ Welcome to ATOMIC! This guide will assist you in setting up and using the FreeRT
 
 ## Quick Start Guide
 
+![General Overview of Development Setup](docs/img/development-setup-technical-overview.png)
+
 ### Install Docker
 
 Docker is required for containerization. Follow the installation guide available [here](https://docs.docker.com/get-docker/) to set it up on your system.
