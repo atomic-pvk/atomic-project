@@ -113,8 +113,8 @@ void main(void)
     {
         main_full();
     }
-    main_tcp_echo_client_tasks();
 #endif
+    // main_tcp_echo_client_tasks();
 }
 /*-----------------------------------------------------------*/
 

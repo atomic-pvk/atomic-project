@@ -79,38 +79,6 @@ SOURCE_FILES += ./startup_gcc.c
 SOURCE_FILES += ./printf-stdarg.c
 
 
-# TCP
-TCP_DIR = $(FREERTOS_ROOT)/Source/tcp 
-INCLUDE_DIRS += -I$(TCP_DIR)/include \
-                -I$(TCP_DIR)/portable/Compiler/GCC \
-                -I${TCP_DIR}/portable/NetworkInterface/MPS2_AN385/ether_lan9118
-
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_ARP.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_DHCP.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_DNS.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_DNS_Cache.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_DNS_Callback.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_DNS_Networking.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_DNS_Parser.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_ICMP.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_IP.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_IP_Timers.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_IP_Utils.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_Sockets.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_Stream_Buffer.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_TCP_IP.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_TCP_Reception.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_TCP_State_Handling.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_TCP_Transmission.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_TCP_Utils.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_TCP_WIN.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_Tiny_TCP.c
-SOURCE_FILES += ${TCP_DIR}/FreeRTOS_UDP_IP.c
-
-SOURCE_FILES += ${TCP_DIR}/portable/BufferManagement/BufferAllocation_2.c
-SOURCE_FILES += ${TCP_DIR}/portable/NetworkInterface/MPS2_AN385/NetworkInterface.c
-SOURCE_FILES += ${TCP_DIR}/portable/NetworkInterface/MPS2_AN385/ether_lan9118/smsc9220_eth_drv.c
-
 # Compile Flags
 CFLAGS += -nostartfiles -mthumb -mcpu=cortex-m3 -Wno-error=implicit-function-declaration \
           -Wno-builtin-declaration-mismatch -Werror -ffreestanding \
