@@ -1,6 +1,6 @@
 ## information
 
-The following docuemnt summarizes section 1-6 in RFC 5905, NTPv4 Specification [page 3-15]. The document is linked as a bookmark in our Slack channel `chupa-chups`.
+The following docuemnt summarizes section 1-6 in RFC 5905, NTPv4 Specification [page 3-15].
 
 link to the [RFC 5905](https://datatracker.ietf.org/doc/html/rfc5905#ref-ref9)
 link to the [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
