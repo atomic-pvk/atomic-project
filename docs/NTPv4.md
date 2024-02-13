@@ -49,10 +49,37 @@ link to the [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)
 8. The persistent manycast client sends client (mode 3) packets to a designated IPv4 or IPv6 broadcast or multicast group address.
 
 ## 4. Definitions
+1. A timescale: is a continuous and monotonically increasing time scale. Meaning that time is always moving forward and never backward.
+2. Coordinated Universal Time  (UTC): It represents mean solar time as disseminated by national standards laboratories.
+3. Mean solar time: is the time that is based on the mean solar day, which is the average length of a solar day over a year.
+4. `Timestamp`, T(t):
+   - Represents either UTC date or time offset from UTC at running time t.
+  
+5. `Frequency offset`, R(t):
+   - The offset, or how much the local time differs from the UTC per second.
+   - Defined in the unit s/s, or more usefully, ppm (10e-6s/s.)
+6. `Aging rate, D(t)`
+   - The rate of the the absolute time offset from UTC grows.
+   - The first derivative of the frequency offset with respect to time (dR/dt).
+7. T(t) = T(t_0) + R(t_0)(t-t_0) + 1/2 * D(t_0)(t-t_0)^2 + e(e is an error term)
 
 ## 5. Implementation Model
+1. Implementation model: Architecture of how NTP's can be implemented, see chapter for visua lrepresentation.
+2. Example implementation: Example shown is a typical, multithreaded implementation. Each peer in the system sends and receive packets from a remote server while also sending in a directional pattern to other peers. The system process selection and cluster algorithms for the system process before doing a combine algorithm. To better find the "truechimers" and not the "falsetickers", a loop filter is used in the clock disciple process. This is later sent to the VFO that is part of the clock-adjust process. In this process, the time is changed and the offset frequency managed with previous and current data/information. The frequency of clients sending to servers is done by the time between messages to be 2^tau seconds. Client/servers have the server answer immediate but with client to client must their tau intervals fit each other using the NTP protocl.
+Truechimers  - A clock system that fits a previously done standard for time accuracy and timekeeping.
+Falsetickers - A clock system that does not hold time accuracy or shows inconcistent time.
+VFO - Stands for variable frequency oscillator, the part of the process that controls the time and frequency of system clock.
+tau - A number each client sets to determine the polling interval for NTP protocols. The value of tau is needed to be common between clients in client to client implementations to make reqeusting and sending packets consistent.
 
 ## 6. Data Types
+1. All NTP time values are represented in twos-complement format, with bits numbered in big-endian. 
+2. There are three NTP time formats:
+   - a 128-bit date format,
+   - a 64-bit timestamp format and
+   - a 32-bit short format.
+3. The 128-bit date format is used to represent the current date and time.
+4. The 64-bit timestamp format is used in packet headers and other places with limited word size.
+5. The 32-bit short format is used in delay and dispersion header fields where the full resolution and range of the other formats are not justified.
 
 ### Recap of the RFC 2119 section 1-6
 
