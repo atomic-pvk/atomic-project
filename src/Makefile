@@ -3,11 +3,11 @@ BIN := freertos_tcp_mps2_demo.axf
 
 BUILD_DIR := build
 
-FREERTOS_DIR_REL := ../FreeRTOS
+FREERTOS_DIR_REL := FreeRTOS/FreeRTOS
 FREERTOS_DIR := $(abspath $(FREERTOS_DIR_REL))
 KERNEL_DIR := $(FREERTOS_DIR)/Source
 
-FREERTOS_PLUS_DIR_REL := ../../../FreeRTOS-Plus
+FREERTOS_PLUS_DIR_REL := FreeRTOS/FreeRTOS-Plus
 FREERTOS_PLUS_DIR := $(abspath $(FREERTOS_PLUS_DIR_REL))
 
 INCLUDE_DIRS += -I.
