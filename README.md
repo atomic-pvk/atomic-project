@@ -12,6 +12,12 @@ Docker is required for containerization. Follow the installation guide available
 
 ### Quick Setup
 
+Get all submodules.
+
+```bash
+git submodule update --init --recursive
+```
+
 Easiest way to get started is to use `docker compose`. Clone the project to your local machine and run:
 
 ```bash
@@ -150,3 +156,4 @@ To run the full demo, modify the `mainCREATE_SIMPLE_BLINKY_DEMO_ONLY` variable i
 - [FreeRTOS API Reference](https://www.freertos.org/a00106.html)
 - [FreeRTOS Kernel Quick Start Guide](https://www.freertos.org/FreeRTOS-quick-start-guide.html)
 - [Understanding the FreeRTOS Directory Structure](https://www.freertos.org/a00017.html)
+- [Demo we based this on](https://github.com/FreeRTOS/FreeRTOS/tree/main/FreeRTOS-Plus/Demo/FreeRTOS_Plus_TCP_Echo_Qemu_mps2)
