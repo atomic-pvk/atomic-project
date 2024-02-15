@@ -98,9 +98,9 @@ extern void vAssertCalled( void );
  * http://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_TCP/UDP_Echo_Clients.html */
 
 #define configECHO_SERVER_ADDR0    10
-#define configECHO_SERVER_ADDR1    136
-#define configECHO_SERVER_ADDR2    206
-#define configECHO_SERVER_ADDR3    133
+#define configECHO_SERVER_ADDR1    0
+#define configECHO_SERVER_ADDR2    1
+#define configECHO_SERVER_ADDR3    237
 
 /* Default MAC address configuration.  The demo creates a virtual network
  * connection that uses this MAC address by accessing the raw Ethernet/WiFi data
@@ -118,33 +118,33 @@ extern void vAssertCalled( void );
 /* Default IP address configuration.  Used in ipconfigUSE_DNS is set to 0, or
  * ipconfigUSE_DNS is set to 1 but a DNS server cannot be contacted. */
 
-#define configIP_ADDR0    10
-#define configIP_ADDR1    211
-#define configIP_ADDR2    55
-#define configIP_ADDR3    5
+#define configIP_ADDR0    172
+#define configIP_ADDR1    21
+#define configIP_ADDR2    0
+#define configIP_ADDR3    3
 
 /* Default gateway IP address configuration.  Used in ipconfigUSE_DNS is set to
  * 0, or ipconfigUSE_DNS is set to 1 but a DNS server cannot be contacted. */
 
-#define configGATEWAY_ADDR0    10
-#define configGATEWAY_ADDR1    211
-#define configGATEWAY_ADDR2    55
+#define configGATEWAY_ADDR0    172
+#define configGATEWAY_ADDR1    21
+#define configGATEWAY_ADDR2    0
 #define configGATEWAY_ADDR3    1
 
 /* Default DNS server configuration.  OpenDNS addresses are 208.67.222.222 and
  * 208.67.220.220.  Used in ipconfigUSE_DNS is set to 0, or ipconfigUSE_DNS is set
  * to 1 but a DNS server cannot be contacted.*/
 
-#define configDNS_SERVER_ADDR0    127
-#define configDNS_SERVER_ADDR1    0
-#define configDNS_SERVER_ADDR2    0
-#define configDNS_SERVER_ADDR3    53
+#define configDNS_SERVER_ADDR0    1
+#define configDNS_SERVER_ADDR1    1
+#define configDNS_SERVER_ADDR2    1
+#define configDNS_SERVER_ADDR3    1
 
 /* Default netmask configuration.  Used in ipconfigUSE_DNS is set to 0, or
  * ipconfigUSE_DNS is set to 1 but a DNS server cannot be contacted. */
 #define configNET_MASK0           255
 #define configNET_MASK1           255
-#define configNET_MASK2           255
+#define configNET_MASK2           0
 #define configNET_MASK3           0
 
 /* The UDP port to which print messages are sent. */

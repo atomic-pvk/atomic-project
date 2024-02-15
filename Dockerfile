@@ -9,6 +9,7 @@ RUN apk update && apk add \
     qemu-system-arm \
     git \
     vim \
+    iproute2 \
     openssh
 
 # Create a user for SSH login
