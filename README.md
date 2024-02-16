@@ -61,6 +61,13 @@ The container includes a file named `autoRunDemo.sh`. Running this ash script au
 
 **Note**: this is for the demo only, we will adjust when we have our own application.
 
+Setup networking by running setup script, once.
+
+```bash
+cd /FreeRTOS
+./setup_network.sh
+```
+
 Make sure you have a `nc` server running on port 7 on your local network.
 
 Change these four lines in [src/FreeRTOSConfig.h](src/FreeRTOSConfig.h) (will be mounted in container as `/FreeRTOS/src/FreeRTOSConfig.h`) to the IP of the `nc` server.
