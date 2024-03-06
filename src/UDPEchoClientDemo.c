@@ -27,7 +27,7 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
     const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
 
     /* Send strings to port 10000 on IP address 192.168.0.50. */
-    xDestinationAddress.sin_addr = FreeRTOS_inet_addr("192.168.0.50");
+    xDestinationAddress.sin_address = FreeRTOS_inet_addr("192.168.0.50");
     xDestinationAddress.sin_port = FreeRTOS_htons(10000);
 
     /* Create the socket. */
