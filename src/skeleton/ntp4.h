@@ -1,4 +1,3 @@
-
 // 1.1 DEFINITIONS, CONSTANTS AND PARAMETERS
 
 #include <math.h>           /* avoids complaints about sqrt() */
@@ -274,3 +273,110 @@ struct m {                          /* m is for Marzullo */
         int         type;           /* high +1, mid 0, low -1 */
         double      edge;           /* correctness interval edge */
 } m;
+
+/*
+* Survivor list. This is used by the clustering algorithm.
+*/
+struct v {
+        struct p    *p;             /* peer structure pointer */
+        double      metric;         /* sort metric */
+} v;
+
+/*
+* System structure
+*/
+struct s {
+        tstamp      t;              /* update time */
+        char        leap;           /* leap indicator */
+        char        stratum;        /* stratum */
+        char        poll;           /* poll interval */
+        char        precision;      /* precision */
+        double      rootdelay;      /* root delay */
+        double      rootdisp;       /* root dispersion */
+        char        refid;          /* reference ID */
+        tstamp      reftime;        /* reference time */
+        struct m    m[NMAX];        /* chime list */
+        struct v    v[NMAX];        /* survivor list */
+        struct p    *p;             /* association ID */
+        double      offset;         /* combined offset */
+        double      jitter;         /* combined jitter */
+        int         flags;          /* option flags */
+} s;
+
+// 1.5 LOCAL CLOCK DATA STRUCTURE
+
+/*
+* Local clock structure
+*/
+struct c {
+        tstamp      t;              /* update time */
+        int         state;          /* current state */
+        double      offset;         /* current offset */
+        double      base;           /* base offset */
+        double      last;           /* previous offset */
+        int         count;          /* jiggle counter */
+        double      freq;           /* frequency */
+        double      jitter;         /* RMS jitter */
+        double      wander;         /* RMS wander */
+} c;
+
+
+  
+// 1.6 FUNCTION PROTOYPES
+/*
+ * Peer process
+ */
+void        receive(struct r *);                                /* recieve packet */
+void        fast_xmit(struct r *, int, int);                    /* transmit a reply packet */
+struct p    *find_assoc(struct r *);                            /* search the association table */
+void        packet(struct p *, struct r *);                     /* process packet */
+void        clock_filter(struct p *, double, double, double);   /* filter */
+int         accept(struct p *);                                 /* determine fitness of server */
+int         access(struct r *);                                 /* determine access restrictions */
+
+/*
+ * System process
+ */
+void    clock_select();                                         /* find the best clocks */
+void    clock_update(struct p *);                               /* update the system clock */
+void    clock_combine();                                        /* combine the offsets */
+double  root_dist(struct p *);                                  /* calculate root distance */
+
+/*
+ * Clock discipline process
+ */
+int     local_clock(struct p *, double);                        /* clock discipline */
+void    rstclock(int, double, double);                          /* clock state transition */
+
+/*
+ * Clock adjust process
+ */
+void    clock_adjust();                                         /* one-second timer process */
+
+/*
+ * Poll process
+ */
+void    poll(struct p *);           /* poll process */
+void    poll_update(struct p *, int); /* update the poll interval */
+void    peer_xmit(struct p *);      /* transmit a packet */
+
+/*
+ * Main program and utility routines 
+ */
+int     main();                     /* main program */
+struct p *mobilize(ipaddr, ipaddr, int, int, int, int); /* mobilize */
+void    clear(struct p *, int);     /* clear association */
+digest  md5(int);                   /* generate a message digest */
+
+/*
+ * Kernel I/O Interface 
+ */
+struct r *recv_packet();            /* wait for packet */
+void    xmit_packet(struct x *);    /* send packet */
+
+/*
+ * Kernel system clock interface 
+ */
+void    step_time(double);          /* step time */
+void    adjust_time(double);        /* adjust (slew) time */
+tstamp  get_time();                 /* read time */
