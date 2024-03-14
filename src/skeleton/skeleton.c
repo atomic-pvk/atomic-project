@@ -1,7 +1,7 @@
 // @author Hugo Larsson Wilhelmsson and Jack Gugolz
 
 // 2. MAIN PROGRAM AND UTILITY ROUTINES
-#include “ntp4.h”
+#include "ntp4.h"
 /*
  * Definitions
  */
@@ -98,6 +98,14 @@ struct p *mobilize(
         p->flags == flags;
         return (p);
 }
+
+/*
+ * These are used by the clear() routine
+ */
+#define BEGIN_CLEAR(p) ((char *)&((p)->begin_clear))
+#define END_CLEAR(p) ((char *)&((p)->end_clear))
+#define LEN_CLEAR (END_CLEAR((struct p *)0) - \
+                   BEGIN_CLEAR((struct p *)0))
 
 /*
  * clear() - reinitialize for persistent association, demobilize
@@ -268,7 +276,7 @@ void adjust_time(
 
 // 5 Peer Process
 
-#include “ntp4.h”
+#include "ntp4.h"
 /*
  * A crypto-NAK packet includes the NTP header followed by a MAC
  * consisting only of the key identifier with value zero. It tells the
@@ -322,13 +330,6 @@ int table[7][5] = {
  */
 
 #define AUTH(x, y) ((x) ? (y) == A_OK : (y) == A_OK || (y) == A_NONE)
-/*
- * These are used by the clear() routine
- */
-#define BEGIN_CLEAR(p) ((char *)&((p)->begin_clear))
-#define END_CLEAR(p) ((char *)&((p)->end_clear))
-#define LEN_CLEAR (END_CLEAR((struct p *)0) - \
-                   BEGIN_CLEAR((struct p *)0))
 
 // 5.1 Recieve
 
@@ -572,7 +573,7 @@ void receive(
             packet(
                 struct p * p, /* peer structure pointer */
                 struct r * r  /* receive packet pointer */
-            )
+            );
         {
                 double offset; /* sample offsset */
                 double delay;  /* sample delay */
@@ -659,7 +660,7 @@ void receive(
             double offset, /* clock offset */
             double delay,  /* roundtrip delay */
             double disp    /* dispersion */
-        )
+        );
         {
                 struct f f[NSTAGE]; /* sorted list */
                 double dtemp;
@@ -731,7 +732,7 @@ void receive(
             struct r * r, /* receive packet pointer */
             int mode,     /* association mode */
             int auth      /* authentication code */
-        )
+        );
         {
                 struct x x;
                 /*
@@ -786,7 +787,7 @@ void receive(
         int
             access(
                 struct r * r /* receive packet pointer */
-            )
+            );
         {
                 /*
                  * The access control list is an ordered set of tuples
@@ -800,7 +801,7 @@ void receive(
 
         // 6. System Process
 
-#include “ntp4.h”
+#include "ntp4.h"
 
         // 6.1 clock_select()
 
@@ -808,7 +809,7 @@ void receive(
          * clock_select() - find the best clocks
          */
         void
-        clock_select()
+        clock_select();
         {
                 struct p *p, *osys;      /* peer structure pointers */
                 double low, high;        /* correctness interval extents */
@@ -994,7 +995,7 @@ void receive(
         double
             root_dist(
                 struct p * p /* peer structure pointer */
-            )
+            );
         {
                 /*
                  * The root synchronization distance is the maximum error due to
@@ -1014,7 +1015,7 @@ void receive(
         int
             accept(
                 struct p * p /* peer structure pointer */
-            )
+            );
         {
                 /*
                  * A stratum error occurs if (1) the server has never been
@@ -1053,7 +1054,7 @@ void receive(
         void
             clock_update(
                 struct p * p /* peer structure pointer */
-            )
+            );
         {
                 double dtemp;
                 /*
@@ -1131,7 +1132,7 @@ return;
          * clock_combine() - combine offsets
          */
         void
-        clock_combine()
+        clock_combine();
         {
                 struct p *p; /* peer structure pointer */
                 double x, y, z, w;
@@ -1162,7 +1163,7 @@ return;
 
         // 6.6 local_clock()
 
-#include “ntp4.h”
+#include "ntp4.h"
         /*
          * Constants
          */
@@ -1183,7 +1184,7 @@ return;
         local_clock(
             struct p * p, /* peer structure pointer */
             double offset /* clock offset from combine() */
-        )
+        );
         {
                 int state;   /* clock discipline state */
                 double freq; /* frequency */
@@ -1411,7 +1412,7 @@ return;
             int state,     /* new state */
             double offset, /* new offset */
             double t       /* new update time */
-        )
+        );
         {
                 /*
                  * Enter new state and set state variables. Note we use the time
@@ -1432,7 +1433,7 @@ return;
          * clock_adjust() - runs at one-second intervals
          */
         void
-        clock_adjust()
+        clock_adjust();
         {
                 double dtemp;
                 /*
@@ -1478,7 +1479,7 @@ return;
 
         // 8. Poll Process
 
-#include “ntp4.h”
+#include "ntp4.h"
 /*
  * Constants
  */
@@ -1494,7 +1495,7 @@ return;
         void
             poll(
                 struct p * p /* peer structure pointer */
-            )
+            );
         {
                 int hpoll;
                 int oreach;
@@ -1594,7 +1595,7 @@ return;
         void poll_update(
             struct p * p, /* peer structure pointer */
             int hpoll     /* poll interval (log2 s) */
-        )
+        );
         {
                 int poll;
                 /*
