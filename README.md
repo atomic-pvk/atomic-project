@@ -94,3 +94,4 @@ cd /FreeRTOS
 - [FreeRTOS Kernel Quick Start Guide](https://www.freertos.org/FreeRTOS-quick-start-guide.html)
 - [Understanding the FreeRTOS Directory Structure](https://www.freertos.org/a00017.html)
 - [Demo we based this on](https://github.com/FreeRTOS/FreeRTOS/tree/main/FreeRTOS-Plus/Demo/FreeRTOS_Plus_TCP_Echo_Qemu_mps2)
+- [Echo server](https://github.com/FreeRTOS/FreeRTOS-Libraries-Integration-Tests/tree/main/tools/echo_server)
