@@ -27,11 +27,11 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
     const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
 
     /* Send strings to port 10000 on IP address 192.168.0.50. */
-    memset( &xDestinationAddress, 0, sizeof( xDestinationAddress ) );
-    xDestinationAddress.sin_family = FREERTOS_AF_INET4; //or FREERTOS_AF_INET6 if the destination's IP is IPv6.
-    xDestinationAddress.sin_address.ulIP_IPv4 = FreeRTOS_inet_addr("192.168.0.50");
-    xDestinationAddress.sin_port = FreeRTOS_htons(10000);
-    xDestinationAddress.sin_len = ( uint8_t ) sizeof( xDestinationAddress );
+    memset(&xDestinationAddress, 0, sizeof(xDestinationAddress));
+    xDestinationAddress.sin_family = FREERTOS_AF_INET4; // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
+    xDestinationAddress.sin_address.ulIP_IPv4 = FreeRTOS_inet_addr("10.0.0.62");
+    xDestinationAddress.sin_port = FreeRTOS_htons(9000); // outgoing port
+    xDestinationAddress.sin_len = (uint8_t)sizeof(xDestinationAddress);
 
     /* Create the socket. */
     xSocket = FreeRTOS_socket(FREERTOS_AF_INET4,   /* Used for IPv4 UDP socket. */
