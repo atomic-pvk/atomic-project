@@ -120,7 +120,7 @@ void receive(
         }
         else
         {                                    // See NTPv4 reference and implementation guide for MAC
-                if (r->mac != md5(r->keyid)) // Need to be solved. Mac is combination of keyid and digest field in r
+                if (r->mac != md5(r->keyid)) // Need to be solved. Mac is combination of keyid and digest field in r structure
                         auth = A_ERROR;      /* auth error */
                 else
                         auth = A_OK; /* auth OK */
