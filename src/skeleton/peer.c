@@ -119,9 +119,9 @@ void receive(
                 auth == A_CRYPTO; /* crypto-NAK */
         }
         else
-        {
-                if (r->mac != md5(r->keyid))
-                        auth = A_ERROR; /* auth error */
+        {                                    // See NTPv4 reference and implementation guide for MAC
+                if (r->mac != md5(r->keyid)) // Need to be solved. Mac is combination of keyid and digest field in r
+                        auth = A_ERROR;      /* auth error */
                 else
                         auth = A_OK; /* auth OK */
         }
@@ -265,260 +265,257 @@ void receive(
                  */
                 packet(p, r);
         }
-
+}
+/*
+ * find_assoc() - find a matching association
+ */
+struct p /* peer structure pointer or NULL */
+    *
+    find_assoc(
+        struct r *r /* receive packet pointer */
+    )
+{
+        struct p *p; /* dummy peer structure pointer */
         /*
-         * find_assoc() - find a matching association
+         * Search association table for matching source
+         * address and source port.
          */
-        struct p /* peer structure pointer or NULL */
-            *find_assoc(
-                struct r * r /* receive packet pointer */
-            );
+        while (/* all associations */ 0)
         {
-                struct p *p; /* dummy peer structure pointer */
-                /*
-                 * Search association table for matching source
-                 * address and source port.
-                 */
-                while (/* all associations */ 0)
-                {
-                        if (r->srcaddr == p->srcaddr && r->port == p->port)
-                                return (p);
-                }
-                return (NULL);
+                if (r->srcaddr == p->srcaddr && r->port == p->port) // Need to be solved
+                        return (p);
         }
+        return (NULL);
+}
 
-        // 5.2 packet()
+// 5.2 packet()
+
+/*
+ * packet() - process packet and compute offset, delay and
+ * dispersion.
+ */
+void packet(
+    struct p *p, /* peer structure pointer */
+    struct r *r  /* receive packet pointer */
+)
+{
+        double offset; /* sample offsset */
+        double delay;  /* sample delay */
+        double disp;   /* sample dispersion */
 
         /*
-         * packet() - process packet and compute offset, delay and
-         * dispersion.
+         * By golly the packet is valid. Light up the remaining header
+         * fields. Note that we map stratum 0 (unspecified) to MAXSTRAT
+         * to make stratum comparisons simpler and to provide a natural
+         * interface for radio clock drivers that operate for
+         * convenience at stratum 0.
          */
-        void
-            packet(
-                struct p * p, /* peer structure pointer */
-                struct r * r  /* receive packet pointer */
-            );
+        p->leap = r->leap;
+        if (r->stratum == 0)
+                p->stratum = MAXSTRAT;
+        else
+                p->stratum = r->stratum;
+        p->mode = r->mode;
+        p->ppoll = r->poll;
+        p->rootdelay = FP2D(r->rootdelay);
+        p->rootdisp = FP2D(r->rootdisp);
+        p->refid = r->refid;
+        p->reftime = r->reftime;
+
+        /*
+         * Verify the server is synchronized with valid stratum and
+         * reference time not later than the transmit time.
+         */
+        if (p->leap == NOSYNC || p->stratum >= MAXSTRAT)
+                return; /* unsynchronized */
+
+        /*
+         * Verify valid root distance.
+         */
+        if (r->rootdelay / 2 + r->rootdisp >= MAXDISP || p->reftime >
+                                                             r->xmt)
+                return; /* invalid header values */
+        poll_update(p, p->hpoll);
+        p->reach |= 1;
+
+        /*
+         * Calculate offset, delay and dispersion, then pass to the
+         * clock filter. Note carefully the implied processing. The
+         * first-order difference is done directly in 64-bit arithmetic,
+         * then the result is converted to floating double. All further
+         * processing is in floating double arithmetic with rounding
+         * done by the hardware. This is necessary in order to avoid
+         * overflow and preseve precision.
+         *
+         * The delay calculation is a special case. In cases where the
+         * server and client clocks are running at different rates and
+         * with very fast networks, the delay can appear negative. In
+         * order to avoid violating the Principle of Least Astonishment,
+         * the delay is clamped not less than the system precision.
+         */
+        if (p->mode == M_BCST)
         {
-                double offset; /* sample offsset */
-                double delay;  /* sample delay */
-                double disp;   /* sample dispersion */
-
-                /*
-                 * By golly the packet is valid. Light up the remaining header
-                 * fields. Note that we map stratum 0 (unspecified) to MAXSTRAT
-                 * to make stratum comparisons simpler and to provide a natural
-                 * interface for radio clock drivers that operate for
-                 * convenience at stratum 0.
-                 */
-                p->leap = r->leap;
-                if (r->stratum == 0)
-                        p->stratum = MAXSTRAT;
-                else
-                        p->stratum = r->stratum;
-                p->mode = r->mode;
-                p->ppoll = r->poll;
-                p->rootdelay = FP2D(r->rootdelay);
-                p->rootdisp = FP2D(r->rootdisp);
-                p->refid = r->refid;
-                p->reftime = r->reftime;
-
-                /*
-                 * Verify the server is synchronized with valid stratum and
-                 * reference time not later than the transmit time.
-                 */
-                if (p->leap == NOSYNC || p->stratum >= MAXSTRAT)
-                        return; /* unsynchronized */
-
-                /*
-                 * Verify valid root distance.
-                 */
-                if (r->rootdelay / 2 + r->rootdisp >= MAXDISP || p->reftime >
-                                                                     r->xmt)
-                        return; /* invalid header values */
-                poll_update(p, p->hpoll);
-                p->reach |= 1;
-
-                /*
-                 * Calculate offset, delay and dispersion, then pass to the
-                 * clock filter. Note carefully the implied processing. The
-                 * first-order difference is done directly in 64-bit arithmetic,
-                 * then the result is converted to floating double. All further
-                 * processing is in floating double arithmetic with rounding
-                 * done by the hardware. This is necessary in order to avoid
-                 * overflow and preseve precision.
-                 *
-                 * The delay calculation is a special case. In cases where the
-                 * server and client clocks are running at different rates and
-                 * with very fast networks, the delay can appear negative. In
-                 * order to avoid violating the Principle of Least Astonishment,
-                 * the delay is clamped not less than the system precision.
-                 */
-                if (p->mode == M_BCST)
-                {
-                        offset = LFP2D(r->xmt - r->dst);
-                        delay = BDELAY;
-                        disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * 2 * BDELAY;
-                }
-                else
-                {
-                        offset = (LFP2D(r->rec - r->org) + LFP2D(r->dst -
-                                                                 r->xmt)) /
-                                 2;
-                        delay = max(LFP2D(r->dst - r->org) - LFP2D(r->rec -
-                                                                   r->xmt),
-                                    LOG2D(s.precision));
-                        disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
-                }
-                clock_filter(p, offset, delay, disp);
+                offset = LFP2D(r->xmt - r->dst);
+                delay = BDELAY;
+                disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * 2 * BDELAY;
         }
-
-        // 5.3 clock_filter()
-
-        /*
-         * clock_filter(p, offset, delay, dispersion) - select the best from the
-         * latest eight delay/offset samples.
-         */
-        void
-        clock_filter(
-            struct p * p,  /* peer structure pointer */
-            double offset, /* clock offset */
-            double delay,  /* roundtrip delay */
-            double disp    /* dispersion */
-        );
+        else
         {
-                struct f f[NSTAGE]; /* sorted list */
-                double dtemp;
-                int i;
-                /*
-                 * The clock filter contents consist of eight tuples (offset,
-                 * delay, dispersion, time). Shift each tuple to the left,
-                 * discarding the leftmost one. As each tuple is shifted,
-                 * increase the dispersion since the last filter update. At the
-                 * same time, copy each tuple to a temporary list. After this,
-                 * place the (offset, delay, disp, time) in the vacated
-                 * rightmost tuple.
-                 */
-                for (i = 1; i < NSTAGE; i++)
-                {
-                        p->f[i] = p->f[i - 1];
-                        p->f[i].disp += PHI * (c.t - p->t);
-                        f[i] = p->f[i];
-                }
-                p->f[0].t = c.t;
-                p->f[0].offset = offset;
-                p->f[0].delay = delay;
-                p->f[0].disp = disp;
-                f[0] = p->f[0];
-                /*
-                 * Sort the temporary list of tuples by increasing f[].delay.
-                 * The first entry on the sorted list represents the best
-                 * sample, but it might be old.
-                 */
-                dtemp = p->offset;
-                p->offset = f[0].offset;
-                p->delay = f[0].delay;
-                for (i = 0; i < NSTAGE; i++)
-                {
-                        p->disp += f[i].disp / (2 ^ (i + 1));
-                        p->jitter += SQUARE(f[i].offset - f[0].offset);
-                }
-                p->jitter = max(SQRT(p->jitter), LOG2D(s.precision));
-                /*
-                 * Prime directive: use a sample only once and never a sample
-                 * older than the latest one, but anything goes before first
-                 * synchronized.
-                 */
-                if (f[0].t - p->t <= 0 && s.leap != NOSYNC)
-                        return;
-                /*
-                 * Popcorn spike suppressor. Compare the difference between the
-                 * last and current offsets to the current jitter. If greater
-                 * than SGATE (3) and if the interval since the last offset is
-                 * less than twice the system poll interval, dump the spike.
-                 * Otherwise, and if not in a burst, shake out the truechimers.
-                 */
-                if (fabs(p->offset - dtemp) > SGATE * p->jitter && (f[0].t -
-                                                                    p->t) < 2 * s.poll)
-                        return;
-                p->t = f[0].t;
-                if (p->burst == 0)
-                        clock_select();
+                offset = (LFP2D(r->rec - r->org) + LFP2D(r->dst -
+                                                         r->xmt)) /
+                         2;
+                delay = max(LFP2D(r->dst - r->org) - LFP2D(r->rec -
+                                                           r->xmt),
+                            LOG2D(s.precision));
+                disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
+        }
+        clock_filter(p, offset, delay, disp);
+}
+
+// 5.3 clock_filter()
+
+/*
+ * clock_filter(p, offset, delay, dispersion) - select the best from the
+ * latest eight delay/offset samples.
+ */
+void clock_filter(
+    struct p *p,   /* peer structure pointer */
+    double offset, /* clock offset */
+    double delay,  /* roundtrip delay */
+    double disp    /* dispersion */
+)
+{
+        struct f f[NSTAGE]; /* sorted list */
+        double dtemp;
+        int i;
+        /*
+         * The clock filter contents consist of eight tuples (offset,
+         * delay, dispersion, time). Shift each tuple to the left,
+         * discarding the leftmost one. As each tuple is shifted,
+         * increase the dispersion since the last filter update. At the
+         * same time, copy each tuple to a temporary list. After this,
+         * place the (offset, delay, disp, time) in the vacated
+         * rightmost tuple.
+         */
+        for (i = 1; i < NSTAGE; i++)
+        {
+                p->f[i] = p->f[i - 1];
+                p->f[i].disp += PHI * (c.t - p->t);
+                f[i] = p->f[i];
+        }
+        p->f[0].t = c.t;
+        p->f[0].offset = offset;
+        p->f[0].delay = delay;
+        p->f[0].disp = disp;
+        f[0] = p->f[0];
+        /*
+         * Sort the temporary list of tuples by increasing f[].delay.
+         * The first entry on the sorted list represents the best
+         * sample, but it might be old.
+         */
+        dtemp = p->offset;
+        p->offset = f[0].offset;
+        p->delay = f[0].delay;
+        for (i = 0; i < NSTAGE; i++)
+        {
+                p->disp += f[i].disp / (2 ^ (i + 1));
+                p->jitter += SQUARE(f[i].offset - f[0].offset);
+        }
+        p->jitter = max(SQRT(p->jitter), LOG2D(s.precision));
+        /*
+         * Prime directive: use a sample only once and never a sample
+         * older than the latest one, but anything goes before first
+         * synchronized.
+         */
+        if (f[0].t - p->t <= 0 && s.leap != NOSYNC)
                 return;
-        }
-
-        // 5.4 fast_xmit()
-
         /*
-         * fast_xmit() - transmit a reply packet for receive packet r
+         * Popcorn spike suppressor. Compare the difference between the
+         * last and current offsets to the current jitter. If greater
+         * than SGATE (3) and if the interval since the last offset is
+         * less than twice the system poll interval, dump the spike.
+         * Otherwise, and if not in a burst, shake out the truechimers.
          */
-        void
-        fast_xmit(
-            struct r * r, /* receive packet pointer */
-            int mode,     /* association mode */
-            int auth      /* authentication code */
-        );
+        if (fabs(p->offset - dtemp) > SGATE * p->jitter && (f[0].t -
+                                                            p->t) < 2 * s.poll)
+                return;
+        p->t = f[0].t;
+        if (p->burst == 0)
+                clock_select();
+        return;
+}
+
+// 5.4 fast_xmit()
+
+/*
+ * fast_xmit() - transmit a reply packet for receive packet r
+ */
+void fast_xmit(
+    struct r *r, /* receive packet pointer */
+    int mode,    /* association mode */
+    int auth     /* authentication code */
+)
+{
+        struct x x;
+        /*
+         * Initialize header and transmit timestamp. Note that the
+         * transmit version is copied from the receive version. This is
+         * for backward compatibility.
+         */
+        x.version = r->version;
+        x.srcaddr = r->dstaddr;
+        x.dstaddr = r->srcaddr;
+        x.leap = s.leap;
+        x.mode = mode;
+        if (s.stratum == MAXSTRAT)
+                x.stratum = 0;
+        else
+                x.stratum = s.stratum;
+        x.poll = r->poll;
+        x.precision = s.precision;
+        x.rootdelay = D2FP(s.rootdelay);
+        x.rootdisp = D2FP(s.rootdisp);
+        x.refid = s.refid;
+        x.reftime = s.reftime;
+        x.org = r->xmt;
+        x.rec = r->dst;
+        x.xmt = get_time();
+        /*
+         * If the authentication code is A.NONE, include only the
+         * header; if A.CRYPTO, send a crypto-NAK; if A.OK, send a valid
+         * MAC. Use the key ID in the received packet and the key in the
+         * local key cache.
+         */
+        if (auth != A_NONE)
         {
-                struct x x;
-                /*
-                 * Initialize header and transmit timestamp. Note that the
-                 * transmit version is copied from the receive version. This is
-                 * for backward compatibility.
-                 */
-                x.version = r->version;
-                x.srcaddr = r->dstaddr;
-                x.dstaddr = r->srcaddr;
-                x.leap = s.leap;
-                x.mode = mode;
-                if (s.stratum == MAXSTRAT)
-                        x.stratum = 0;
-                else
-                        x.stratum = s.stratum;
-                x.poll = r->poll;
-                x.precision = s.precision;
-                x.rootdelay = D2FP(s.rootdelay);
-                x.rootdisp = D2FP(s.rootdisp);
-                x.refid = s.refid;
-                x.reftime = s.reftime;
-                x.org = r->xmt;
-                x.rec = r->dst;
-                x.xmt = get_time();
-                /*
-                 * If the authentication code is A.NONE, include only the
-                 * header; if A.CRYPTO, send a crypto-NAK; if A.OK, send a valid
-                 * MAC. Use the key ID in the received packet and the key in the
-                 * local key cache.
-                 */
-                if (auth != A_NONE)
+                if (auth == A_CRYPTO)
                 {
-                        if (auth == A_CRYPTO)
-                        {
-                                x.keyid = 0;
-                        }
-                        else
-                        {
-                                x.keyid = r->keyid;
-                                x.digest = md5(x.keyid);
-                        }
+                        x.keyid = 0;
                 }
-                xmit_packet(&x);
+                else
+                {
+                        x.keyid = r->keyid;
+                        x.digest = md5(x.keyid);
+                }
         }
+        xmit_packet(&x);
+}
 
-        // 5.5 access()
+// 5.5 access()
 
+/*
+ * access() - determine access restrictions
+ */
+int access(
+    struct r *r /* receive packet pointer */
+)
+{
         /*
-         * access() - determine access restrictions
+         * The access control list is an ordered set of tuples
+         * consisting of an address, mask and restrict word containing
+         * defined bits. The list is searched for the first match on the
+         * source address (r->srcaddr) and the associated restrict word
+         * is returned.
          */
-        int
-            access(
-                struct r * r /* receive packet pointer */
-            );
-        {
-                /*
-                 * The access control list is an ordered set of tuples
-                 * consisting of an address, mask and restrict word containing
-                 * defined bits. The list is searched for the first match on the
-                 * source address (r->srcaddr) and the associated restrict word
-                 * is returned.
-                 */
-                return (/* access bits */ 0);
-        }
+        return (/* access bits */ 0);
+}
