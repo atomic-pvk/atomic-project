@@ -506,7 +506,7 @@ void fast_xmit(
 /*
  * access() - determine access restrictions
  */
-int access(
+int access(     // Needs to be finished
     struct r *r /* receive packet pointer */
 )
 {

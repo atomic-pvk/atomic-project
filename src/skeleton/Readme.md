@@ -5,3 +5,4 @@
 * Loop filter exists within `vfo.c`. The changing of the local clock exists there as well. 
 * Peer and poll functions are split into `peer.c` and `poll.c` respectively.
 * `main_and_utility.c` has 3 functions `recv_packet`, `xmit_packet`, and `md5` that are completely empty.
+* `peer.c` has the function `access` that is completely empty.

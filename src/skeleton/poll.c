@@ -136,7 +136,7 @@ void poll_update(
     }
     else
     {
-        poll = min(p->hpoll, max(MINPOLL, ppoll)); // ppoll is found by received packet's ppoll variable
+        poll = min(p->hpoll, max(MINPOLL, ppoll)); // Need to be solved. ppoll is found by received packet's ppoll variable
     }                                              // Solved with p->ppoll with correct recieved packet pointer?
     /*
      * While not shown here, the reference implementation
