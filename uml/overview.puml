@@ -1,0 +1,17 @@
+@startuml uml
+node "Host Operating System (Linux/MacOS/Windows)" as HostOS {
+  artifact Docker {
+    node "Docker Container (Alpine Linux)" as DockerContainer {
+      artifact "QEMU Arm Emulator" as QEMU {
+        component "FreeRTOS task" as FreeRTOS
+      }
+    }
+  }
+}
+
+HostOS .down.> Docker : runs on
+Docker .down.> DockerContainer : encapsulates
+DockerContainer .down.> QEMU : includes
+QEMU .down.> FreeRTOS : simulates
+
+@enduml
