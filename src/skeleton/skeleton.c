@@ -274,8 +274,6 @@ void adjust_time(
         adjtime(&unix_time, NULL);
 }
 
-
-
 // 6. System Process
 
 #include "ntp4.h"
@@ -910,7 +908,7 @@ return;
          * clock_adjust() - runs at one-second intervals
          */
         void
-        clock_adjust();
+        clock_adjust()
         {
                 double dtemp;
                 /*

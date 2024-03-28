@@ -1,5 +1,3 @@
-// 6.6 local_clock()
-
 #include "ntp4.h"
 /*
  * Constants
