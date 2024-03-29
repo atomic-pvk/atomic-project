@@ -1,0 +1,14 @@
+@startuml uml
+participant "NTP Client" as Client
+participant "NTP Server" as Server
+Client -> Server: 1. NTP Request
+note right of Server: The server receives\nthe request and processes\nthe current time information.
+activate Server
+Server -> Server: Calculate accurate\ntime based on\ninternal clock and\nreference sources.
+deactivate Server
+Server -> Client: 2. NTP Response
+note left of Client: The client receives\nthe response and\nadjusts its clock\naccordingly.
+activate Client
+Client -> Client: Adjust internal clock\nto align with\nserver's time.
+deactivate Client
+@enduml
