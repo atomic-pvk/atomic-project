@@ -1,0 +1,44 @@
+@startuml uml
+class main.c {
+    + main()
+}
+class utilityFunctions.c {
+    + struct p* mobilize(ipaddr, ipaddr, int, int, int, int)
+    + void clear(struct p*, int)
+    + digest md5(int)
+    + tstamp get_time()
+    + void step_time(double)
+    + void adjust_time(double)
+}
+class networkCommunication.c {
+    + void receive(struct r*)
+    + struct p* find_assoc(struct r*)
+    + void packet(struct p*, struct r*)
+    + void clock_filter(struct p*, double, double, double)
+    + void fast_xmit(struct r*, int, int)
+    + struct r* recv_packet()
+    + void xmit_packet(struct x*)
+}
+class systemProcesses.c {
+    + void clock_select()
+    + double root_dist(struct p*)
+    + int accept(struct p*)
+    + void clock_update(struct p*)
+    + void clock_combine()
+}
+class pollManager.c {
+    + void poll(struct p*)
+    + void poll_update(struct p*, int)
+    + void peer_xmit(struct p*)
+}
+class timeManagement.c {
+    + int local_clock(struct p*, double)
+    + void rstclock(int, double, double)
+    + void clock_adjust()
+}
+main.c ..> utilityFunctions.c : <<use>>
+utilityFunctions.c ..> networkCommunication.c : <<use>>
+utilityFunctions.c ..> systemProcesses.c : <<use>>
+utilityFunctions.c ..> pollManager.c : <<use>>
+systemProcesses.c ..> timeManagement.c : <<use>>
+@enduml
