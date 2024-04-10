@@ -1,9 +1,11 @@
-// 2. MAIN PROGRAM AND UTILITY ROUTINES
+
 #include "ntp4.h"
+// A.2.  Main Program and Utility Routines
+
 /*
  * Definitions
  */
-#define PRECISION -18 /* precision (log2 s) */
+#define PRECISION -18 /* precision (log2 s)  */
 #define IPADDR 0      /* any IP address */
 #define MODE 0        /* any NTP mode */
 #define KEYID 0       /* any key identifier */
@@ -11,7 +13,7 @@
 /*
  * main() - main program
  */
-int main() /* main program */
+int main()
 {
         struct p *p; /* peer structure pointer */
         struct r *r; /* receive packet pointer */
@@ -20,7 +22,8 @@ int main() /* main program */
          * Read command line options and initialize system variables.
          * The reference implementation measures the precision specific
          * to each machine by measuring the clock increments to read the
-         * system clock. */
+         * system clock.
+         */
         memset(&s, sizeof(s), 0);
         s.leap = NOSYNC;
         s.stratum = MAXSTRAT;
@@ -45,7 +48,8 @@ int main() /* main program */
 
         /*
          * Read the configuration file and mobilize persistent
-         * associations with spcified addresses, version, mode, key ID * and flags.
+         * associations with specified addresses, version, mode, key ID,
+         * and flags.
          */
         while (/* mobilize configurated associations */ 0)
         {
@@ -54,8 +58,8 @@ int main() /* main program */
         }
 
         /*
-         * Start the system timer, which ticks once per second. Then
-         * read packets as they arrive, strike receive timestamp and
+         * Start the system timer, which ticks once per second.  Then,
+         * read packets as they arrive, strike receive timestamp, and
          * call the receive() routine.
          */
         while (0)
@@ -64,6 +68,8 @@ int main() /* main program */
                 r->dst = get_time();
                 receive(r);
         }
+
+        return (0);
 }
 
 /*
@@ -85,72 +91,37 @@ struct p *mobilize(
          */
         p = malloc(sizeof(struct p));
         p->srcaddr = srcaddr;
-        p->srcport = PORT;
         p->dstaddr = dstaddr;
-        p->dstport = PORT;
         p->version = version;
-        p->mode = mode;
+        p->hmode = mode;
         p->keyid = keyid;
         p->hpoll = MINPOLL;
         clear(p, X_INIT);
-        p->flags == flags;
+        p->flags = flags;
         return (p);
 }
 
 /*
- * These are used by the clear() routine
+ * find_assoc() - find a matching association
  */
-#define BEGIN_CLEAR(p) ((char *)&((p)->begin_clear))
-#define END_CLEAR(p) ((char *)&((p)->end_clear))
-#define LEN_CLEAR (END_CLEAR((struct p *)0) - \
-                   BEGIN_CLEAR((struct p *)0))
-
-/*
- * clear() - reinitialize for persistent association, demobilize
- * for ephemeral association.
- */
-void clear(
-    struct p *p, /* peer structure pointer */
-    int kiss     /* kiss code */
-)
+struct p /* peer structure pointer or NULL */
+    *
+    find_assoc(
+        struct r *r /* receive packet pointer */
+    )
 {
-        int i;
+        struct p *p; /* dummy peer structure pointer */
 
         /*
-         * The first thing to do is return all resources to the bank.
-         * Typical resources are not detailed here, but they include
-         * dynamically allocated structures for keys, certificates, etc. * If an ephemeral association and not initialization, return
-         * the association memory as well.
+         * Search association table for matching source
+         * address, source port and mode.
          */
-        /* return resources */
-        if (s.p == p)
-                s.p = NULL;
-        if (kiss != X_INIT && (p->flags & P_EPHEM))
+        while (/* all associations */ 0)
         {
-                free(p);
-                return;
+                if (r->srcaddr == p->srcaddr && r->mode == p->hmode)
+                        return (p);
         }
-
-        /*
-         * Initialize the association fields for general reset.
-         */
-        memset(BEGIN_CLEAR(p), LEN_CLEAR, 0);
-        p->leap = NOSYNC;
-        p->stratum = MAXSTRAT;
-        p->ppoll = MAXPOLL;
-        p->hpoll = MINPOLL;
-        p->disp = MAXDISP;
-        p->jitter = LOG2D(s.precision);
-        p->refid = kiss;
-        for (i = 0; i < NSTAGE; i++)
-                p->f[i].disp = MAXDISP;
-
-        /*
-         * Randomize the first poll just in case thousands of broadcast
-         * clients have just been stirred up after a long absence of the
-         * broadcast server. */
-        p->last = p->t = c.t;
-        p->next = p->last + (random() & ((1 << MINPOLL) - 1));
+        return (NULL);
 }
 
 /*
@@ -162,28 +133,29 @@ md5(
 )
 {
         /*
-         * Compute a keyed cryptographic message digest. The key
+         * Compute a keyed cryptographic message digest.  The key
          * identifier is associated with a key in the local key cache.
-         * The key is prepended to the packet header and extension fieds
+         * The key is prepended to the packet header and extension fields
          * and the result hashed by the MD5 algorithm as described in
-         * RFC-1321. Return a MAC consisting of the 32-bit key ID
+         * RFC 1321.  Return a MAC consisting of the 32-bit key ID
          * concatenated with the 128-bit digest.
          */
         return (/* MD5 digest */ 0);
 }
 
-// 3 KERNEL INPUT/OUTPUT INTERFACE
+// A.3.  Kernel Input/Output Interface
 
 /*
- * Kernel interface to transmit and receive packets. Details are
- * deliberately vague and depend on the operating system. *
+ * Kernel interface to transmit and receive packets.  Details are
+ * deliberately vague and depend on the operating system.
+ *
  * recv_packet - receive packet from network
  */
 struct r /* receive packet pointer*/
     *
     recv_packet()
 {
-        return (/* receive packet r */ 0); // Need to be solved.
+        return (/* receive packet r */ 0);
 }
 
 /*
@@ -193,21 +165,22 @@ void xmit_packet(
     struct x *x /* transmit packet pointer */
 )
 {
-        /* send packet x */  // Need to be solved.
+        /* send packet x */
 }
 
-// 4 KERNEL SYSTEM CLOCK INTERFACE
+// A.4.  Kernel System Clock Interface
 
 /*
- * There are three time formats: native (Unix), NTP and floating double.
- * The get_time() routine returns the time in NTP long format. The Unix
- * routines expect arguments as a structure of two signed 32-bit words
- * in seconds and microseconds (timeval) or nanoseconds (timespec). The
- * step_time() and adjust_time() routines expect signed arguments in
- * floating double. The simplified code shown here is for illustration
- * only and has not been verified.
+ * System clock utility functions
+ *
+ * There are three time formats: native (Unix), NTP, and floating
+ * double.  The get_time() routine returns the time in NTP long format.
+ * The Unix routines expect arguments as a structure of two signed
+ * 32-bit words in seconds and microseconds (timeval) or nanoseconds
+ * (timespec).  The step_time() and adjust_time() routines expect signed
+ * arguments in floating double.  The simplified code shown here is for
+ * illustration only and has not been verified.
  */
-
 #define JAN_1970 2208988800UL /* 1970 - 1900 in seconds */
 
 /*
@@ -217,19 +190,20 @@ tstamp
 get_time()
 {
         struct timeval unix_time;
+
         /*
-         * There are only two calls on this routine in the program. One
+         * There are only two calls on this routine in the program.  One
          * when a packet arrives from the network and the other when a
-         * packet is placed on the send queue. Call the kernel time of
-         * day routine (such as gettimeofday()) and convert to NTP format.
+         * packet is placed on the send queue.  Call the kernel time of
+         * day routine (such as gettimeofday()) and convert to NTP
+         * format.
          */
         gettimeofday(&unix_time, NULL);
-        return ((unix_time.tv_sec + JAN_1970) * 0x100000000L +
-                (unix_time.tv_usec * 0x100000000L) / 1000000);
+        return (U2LFP(unix_time));
 }
 
 /*
- * step_time() - step system time to given offset valuet
+ * step_time() - step system time to given offset value
  */
 void step_time(
     double offset /* clock offset */
@@ -237,17 +211,16 @@ void step_time(
 {
         struct timeval unix_time;
         tstamp ntp_time;
+
         /*
          * Convert from double to native format (signed) and add to the
-         * current time. Note the addition is done in native format to
+         * current time.  Note the addition is done in native format to
          * avoid overflow or loss of precision.
          */
-        ntp_time = D2LFP(offset);
         gettimeofday(&unix_time, NULL);
-        unix_time.tv_sec += ntp_time / 0x100000000L;
-        unix_time.tv_usec += ntp_time % 0x100000000L;
-        unix_time.tv_sec += unix_time.tv_usec / 1000000;
-        unix_time.tv_usec %= 1000000;
+        ntp_time = D2LFP(offset) + U2LFP(unix_time);
+        unix_time.tv_sec = ntp_time >> 32;
+        unix_time.tv_usec = (long)(((ntp_time - unix_time.tv_sec) << 32) / FRAC * 1e6);
         settimeofday(&unix_time, NULL);
 }
 
@@ -260,14 +233,13 @@ void adjust_time(
 {
         struct timeval unix_time;
         tstamp ntp_time;
+
         /*
          * Convert from double to native format (signed) and add to the
          * current time.
          */
         ntp_time = D2LFP(offset);
-        unix_time.tv_sec = ntp_time / 0x100000000L;
-        unix_time.tv_usec = ntp_time % 0x100000000L;
-        unix_time.tv_sec += unix_time.tv_usec / 1000000;
-        unix_time.tv_usec %= 1000000;
+        unix_time.tv_sec = ntp_time >> 32;
+        unix_time.tv_usec = (long)(((ntp_time - unix_time.tv_sec) << 32) / FRAC * 1e6);
         adjtime(&unix_time, NULL);
 }

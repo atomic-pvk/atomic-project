@@ -1,76 +1,91 @@
-// 1.1 DEFINITIONS, CONSTANTS AND PARAMETERS
+// A.1.  Global Definitions
+
+// A.1.1.  Definitions, Constants, Parameters
 
 #include <math.h>     /* avoids complaints about sqrt() */
 #include <sys/time.h> /* for gettimeofday() and friends */
 #include <stdlib.h>   /* for malloc() and friends */
+#include <string.h>   /* for memset() */
 
 /*
  * Data types
  *
  * This program assumes the int data type is 32 bits and the long data
- * type is 64 bits. The native data type used in most calculations is
- * floating double. The data types used in some packet header fields
- * require conversion to and from this representation. Some header
- * fields involve partitioning an octet, here represeted by individual * octets.
+ * type is 64 bits.  The native data type used in most calculations is
+ * floating double.  The data types used in some packet header fields
+ * require conversion to and from this representation.  Some header
+ * fields involve partitioning an octet, here represented by individual
+ * octets.
  *
  * The 64-bit NTP timestamp format used in timestamp calculations is
  * unsigned seconds and fraction with the decimal point to the left of
- * bit 32. The only operation permitted with these values is
- * subtraction, yielding a signed 31-bit difference. The 32-bit NTP
+ * bit 32.  The only operation permitted with these values is
+ * subtraction, yielding a signed 31-bit difference.  The 32-bit NTP
  * short format used in delay and dispersion calculations is seconds and
- * fraction with the decimal point to the left of bit 16. The only
+ * fraction with the decimal point to the left of bit 16.  The only
  * operations permitted with these values are addition and
  * multiplication by a constant.
  *
- * The IPv4 address is 32 bits, while the IPv6 address is 128 bits. The
+ * The IPv4 address is 32 bits, while the IPv6 address is 128 bits.  The
  * message digest field is 128 bits as constructed by the MD5 algorithm.
- * The precision and poll interval fields are signed log2 seconds. */
-
-typedef unsigned long tstamp; /* NTP timestamp format */
-typedef unsigned int tdist;   /* NTP short format */
-typedef unsigned long ipaddr; /* IPv4 or IPv6 address */
-typedef unsigned int ipport;  /* IP port number */
-typedef unsigned long digest; /* md5 digest */
-typedef signed char s_char;   /* precision and poll interval (log2) */
+ * The precision and poll interval fields are signed log2 seconds.
+ */
+typedef unsigned long long tstamp; /* NTP timestamp format */
+typedef unsigned int tdist;        /* NTP short format */
+typedef unsigned long ipaddr;      /* IPv4 or IPv6 address */
+typedef unsigned long digest;      /* md5 digest */
+typedef signed char s_char;        /* precision and poll interval (log2) */
 
 /*
- * Arithmetic conversion macroni
+ * Timestamp conversion macroni
+ */
+#define FRIC 65536.                   /* 2^16 as a double */
+#define D2FP(r) ((tdist)((r) * FRIC)) /* NTP short */
+#define FP2D(r) ((double)(r) / FRIC)
+
+#define FRAC 4294967296.                /* 2^32 as a double */
+#define D2LFP(a) ((tstamp)((a) * FRAC)) /* NTP timestamp */
+#define LFP2D(a) ((double)(a) / FRAC)
+#define U2LFP(a) (((unsigned long long)((a).tv_sec + JAN_1970) << 32) + \
+                  (unsigned long long)((a).tv_usec / 1e6 * FRAC))
+
+/*
+ * Arithmetic conversions
  */
 #define LOG2D(a) ((a) < 0 ? 1. / (1L << -(a)) : 1L << (a)) /* poll, etc. */
-#define LFP2D(a) ((double)(a) / 0x100000000L)              /* NTP timestamp */
-#define D2LFP(a) ((tstamp)((a) * 0x100000000L))
-#define FP2D(a) (double)((a) / 0x10000L) /* NTP short */
-#define D2FP(a) ((tdist)((a) * 0x10000L))
 #define SQUARE(x) (x * x)
 #define SQRT(x) (sqrt(x))
 
 /*
- * Global constants. Some of these might be converted to variables
- * which can be tinkered by configuration or computed on-fly. For
- * instance, the reference implementation computes PRECISION on-fly and
- * provides performance tuning for the defines marked with % below.
+ * Global constants.  Some of these might be converted to variables
+ * that can be tinkered by configuration or computed on-the-fly.  For
+ * instance, the reference implementation computes PRECISION on-the-fly
+ * and provides performance tuning for the defines marked with % below.
  */
 #define VERSION 4   /* version number */
-#define PORT 123    /* NTP port number */
 #define MINDISP .01 /* % minimum dispersion (s) */
-#define MAXDISP 16  /* % maximum dispersion (s) */
+#define MAXDISP 16  /* maximum dispersion (s) */
 #define MAXDIST 1   /* % distance threshold (s) */
-#define NOSYNC 3    /* leap unsync */
+#define NOSYNC 0x3  /* leap unsync */
 #define MAXSTRAT 16 /* maximum stratum (infinity metric) */
-#define MINPOLL 4   /* % minimum poll interval (64 s)*/
+#define MINPOLL 6   /* % minimum poll interval (64 s)*/
 #define MAXPOLL 17  /* % maximum poll interval (36.4 h) */
-#define PHI 15e-6   /* % frequency tolerance (15 PPM) */
-#define NSTAGE 8    /* clock register stages */
-#define NMAX 50     /* % maximum number of peers */
-#define NSANE 1     /* % minimum intersection survivors */
-#define NMIN 3      /* % minimum cluster survivors */
+#define MINCLOCK 3  /* minimum manycast survivors */
+#define MAXCLOCK 10 /* maximum manycast candidates */
+#define TTLMAX 8    /* max ttl manycast */
+#define BEACON 15   /* max interval between beacons */
+
+#define PHI 15e-6 /* % frequency tolerance (15 ppm) */
+#define NSTAGE 8  /* clock register stages */
+#define NMAX 50   /* maximum number of peers */
+#define NSANE 1   /* % minimum intersection survivors */
+#define NMIN 3    /* % minimum cluster survivors */
 
 /*
  * Global return values
  */
 #define TRUE 1  /* boolean true */
 #define FALSE 0 /* boolean false */
-#define NULL 0  /* empty pointer */
 
 /*
  * Local clock process return codes
@@ -95,6 +110,7 @@ typedef signed char s_char;   /* precision and poll interval (log2) */
 #define P_IBURST 0x04  /* intial burst enable */
 #define P_NOTRUST 0x08 /* authenticated access */
 #define P_NOPEER 0x10  /* authenticated mobilization */
+#define P_MANY 0x20    /* manycast client */
 
 /*
  * Authentication codes
@@ -115,7 +131,7 @@ typedef signed char s_char;   /* precision and poll interval (log2) */
 #define X_NKEY 5   /* untrusted key */
 
 /*
- * Protocol mode definitionss
+ * Protocol mode definitions
  */
 #define M_RSVD 0 /* reserved */
 #define M_SACT 1 /* symmetric active */
@@ -134,19 +150,26 @@ typedef signed char s_char;   /* precision and poll interval (log2) */
 #define FREQ 3 /* frequency mode */
 #define SYNC 4 /* clock synchronized */
 
-// 1.2 PACKET DATA STRUCTURES
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) < (b) ? (b) : (a))
+
+// A.1.2.  Packet Data Structures
+
 /*
  * The receive and transmit packets may contain an optional message
  * authentication code (MAC) consisting of a key identifier (keyid) and
- * message digest (mac). NTPv4 supports optional extension fields which
- * are inserted after the the header and before the MAC, but these are
- * not described here. *
+ * message digest (mac in the receive structure and dgst in the transmit
+ * structure).  NTPv4 supports optional extension fields that
+ * are inserted after the header and before the MAC, but these are
+ * not described here.
+ *
  * Receive packet
  *
- * Note the dst timestamp is not part of the packet itself. It is
+ * Note the dst timestamp is not part of the packet itself.  It is
  * captured upon arrival and returned in the receive buffer along with
- * the buffer length and data. Note that some of the char fields are
- * packed in the actual header, but the details are omited here. */
+ * the buffer length and data.  Note that some of the char fields are
+ * packed in the actual header, but the details are omitted here.
+ */
 struct r
 {
         ipaddr srcaddr;   /* source (remote) address */
@@ -164,12 +187,14 @@ struct r
         tstamp org;       /* origin timestamp */
         tstamp rec;       /* receive timestamp */
         tstamp xmt;       /* transmit timestamp */
-        int keyid;        /* keyID */
-        digest digest;    /* message digest */
+        int keyid;        /* key ID */
+        digest mac;       /* message digest */
         tstamp dst;       /* destination timestamp */
 } r;
+
 /*
- * Transmit packet */
+ * Transmit packet
+ */
 struct x
 {
         ipaddr dstaddr;   /* source (local) address */
@@ -187,14 +212,15 @@ struct x
         tstamp org;       /* origin timestamp */
         tstamp rec;       /* receive timestamp */
         tstamp xmt;       /* transmit timestamp */
-        int keyid;        /*keyID*/
-        digest digest;    /* message digest */
+        int keyid;        /* key ID */
+        digest dgst;      /* message digest */
 } x;
 
-// 1.3 ASSOCIATION DATA STRUCTURES
+// A.1.3.  Association Data Structures
+
 /*
- * Filter stage structure. Note the t member in this and other
- * structures refers to process time, not real time. Process time
+ * Filter stage structure.  Note the t member in this and other
+ * structures refers to process time, not real time.  Process time
  * increments by one second for every elapsed second of real time.
  */
 struct f
@@ -206,20 +232,19 @@ struct f
 } f;
 
 /*
- * Association structure. This is shared between the peer process and
- * poll process.
+ * Association structure.  This is shared between the peer process
+ * and poll process.
  */
 struct p
 {
+
         /*
          * Variables set by configuration
          */
         ipaddr srcaddr; /* source (remote) address */
-        ipport srcport; /* source port number */
         ipaddr dstaddr; /* destination (local) address */
-        ipport dstport; /* destination port number */
         char version;   /* version number */
-        char mode;      /* mode */
+        char hmode;     /* host mode */
         int keyid;      /* key identifier */
         int flags;      /* option flags */
 
@@ -227,7 +252,7 @@ struct p
          * Variables set by received packet
          */
         char leap;        /* leap indicator */
-        char mode;        /* mode */
+        char pmode;       /* peer mode */
         char stratum;     /* stratum */
         char ppoll;       /* peer poll interval */
         double rootdelay; /* root delay */
@@ -255,15 +280,17 @@ struct p
         char hpoll;       /* host poll interval */
         int burst;        /* burst counter */
         int reach;        /* reach register */
+        int ttl;          /* ttl (manycast) */
 #define end_clear unreach /* end of clear area */
         int unreach;      /* unreach counter */
-        int last;         /* last poll time */
-        int next;         /* next poll time */
+        int outdate;      /* last poll time */
+        int nextdate;     /* next poll time */
 } p;
 
-// 1.4 SYSTEM DATA STRUCTURES
+// A.1.4.  System Data Structures
+
 /*
- * Chime list. This is used by the intersection algorithm.
+ * Chime list.  This is used by the intersection algorithm.
  */
 struct m
 {                    /* m is for Marzullo */
@@ -273,7 +300,7 @@ struct m
 } m;
 
 /*
- * Survivor list. This is used by the clustering algorithm.
+ * Survivor list.  This is used by the clustering algorithm.
  */
 struct v
 {
@@ -301,9 +328,10 @@ struct s
         double offset;    /* combined offset */
         double jitter;    /* combined jitter */
         int flags;        /* option flags */
+        int n;            /* number of survivors */
 } s;
 
-// 1.5 LOCAL CLOCK DATA STRUCTURE
+// A.1.5.  Local Clock Data Structures
 
 /*
  * Local clock structure
@@ -313,7 +341,6 @@ struct c
         tstamp t;      /* update time */
         int state;     /* current state */
         double offset; /* current offset */
-        double base;   /* base offset */
         double last;   /* previous offset */
         int count;     /* jiggle counter */
         double freq;   /* frequency */
@@ -321,28 +348,29 @@ struct c
         double wander; /* RMS wander */
 } c;
 
-// 1.6 FUNCTION PROTOYPES
+// A.1.6.  Function Prototypes
+
 /*
  * Peer process
  */
-void receive(struct r *);                              /* recieve packet */
-void fast_xmit(struct r *, int, int);                  /* transmit a reply packet */
-struct p *find_assoc(struct r *);                      /* search the association table */
+void receive(struct r *);                              /* receive packet */
 void packet(struct p *, struct r *);                   /* process packet */
 void clock_filter(struct p *, double, double, double); /* filter */
-int accept(struct p *);                                /* determine fitness of server */
+double root_dist(struct p *);                          /* calculate root distance */
+int fit(struct p *);                                   /* determine fitness of server */
+void clear(struct p *, int);                           /* clear association */
 int access(struct r *);                                /* determine access restrictions */
 
 /*
  * System process
  */
+int main();                    /* main program */
 void clock_select();           /* find the best clocks */
 void clock_update(struct p *); /* update the system clock */
 void clock_combine();          /* combine the offsets */
-double root_dist(struct p *);  /* calculate root distance */
 
 /*
- * Clock discipline process
+ * Local clock process
  */
 int local_clock(struct p *, double); /* clock discipline */
 void rstclock(int, double, double);  /* clock state transition */
@@ -355,27 +383,23 @@ void clock_adjust(); /* one-second timer process */
 /*
  * Poll process
  */
-void poll(struct p *);             /* poll process */
-void poll_update(struct p *, int); /* update the poll interval */
-void peer_xmit(struct p *);        /* transmit a packet */
+void poll(struct p *);                /* poll process */
+void poll_update(struct p *, int);    /* update the poll interval */
+void peer_xmit(struct p *);           /* transmit a packet */
+void fast_xmit(struct r *, int, int); /* transmit a reply packet */
 
 /*
- * Main program and utility routines
+ * Utility routines
  */
-int main();                                             /* main program */
-struct p *mobilize(ipaddr, ipaddr, int, int, int, int); /* mobilize */
-void clear(struct p *, int);                            /* clear association */
 digest md5(int);                                        /* generate a message digest */
+struct p *mobilize(ipaddr, ipaddr, int, int, int, int); /* mobilize */
+struct p *find_assoc(struct r *);                       /* search the association table */
 
 /*
- * Kernel I/O Interface
+ * Kernel interface
  */
 struct r *recv_packet();      /* wait for packet */
 void xmit_packet(struct x *); /* send packet */
-
-/*
- * Kernel system clock interface
- */
-void step_time(double);   /* step time */
-void adjust_time(double); /* adjust (slew) time */
-tstamp get_time();        /* read time */
+void step_time(double);       /* step time */
+void adjust_time(double);     /* adjust (slew) time */
+tstamp get_time();            /* read time */
