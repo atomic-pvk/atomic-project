@@ -15,7 +15,7 @@ struct p *mobilize(
 
 // find_assoc - find a matching association
 struct p *find_assoc(
-    struct r *r // receive packet pointer
+    struct ntp_r *r // receive packet pointer
 );
 
 // md5 - compute message digest
@@ -30,7 +30,7 @@ struct r *recv_packet(void);
 
 // xmit_packet - transmit packet to network
 void xmit_packet(
-    struct x *x // transmit packet pointer
+    struct ntp_x *x // transmit packet pointer
 );
 
 // Kernel System Clock Interface

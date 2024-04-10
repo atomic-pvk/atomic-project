@@ -2,7 +2,7 @@
 #include "NTP_Types.h"
 // #include <sys/time.h>
 
-struct p *mobilize(
+struct ntp_p *mobilize(
     ipaddr srcaddr, /* IP source address */
     ipaddr dstaddr, /* IP destination address */
     int version,    /* version */
@@ -11,12 +11,12 @@ struct p *mobilize(
     int flags       /* peer flags */
 )
 {
-    struct p *p; /* peer process pointer */
+    struct ntp_p *p; /* peer process pointer */
 
     /*
      * Allocate and initialize association memory
      */
-    p = malloc(sizeof(struct p));
+    p = malloc(sizeof(struct ntp_p));
     p->srcaddr = srcaddr;
     p->dstaddr = dstaddr;
     p->version = version;
@@ -31,13 +31,13 @@ struct p *mobilize(
 /*
  * find_assoc() - find a matching association
  */
-struct p /* peer structure pointer or NULL */
+struct ntp_p /* peer structure pointer or NULL */
     *
     find_assoc(
-        struct r *r /* receive packet pointer */
+        struct ntp_r *r /* receive packet pointer */
     )
 {
-    struct p *p; /* dummy peer structure pointer */
+    struct ntp_p *p; /* dummy peer structure pointer */
 
     /*
      * Search association table for matching source
@@ -78,7 +78,7 @@ md5(
  *
  * recv_packet - receive packet from network
  */
-struct r /* receive packet pointer*/
+struct ntp_r /* receive packet pointer*/
     *
     recv_packet()
 {
@@ -89,7 +89,7 @@ struct r /* receive packet pointer*/
  * xmit_packet - transmit packet to network
  */
 void xmit_packet(
-    struct x *x /* transmit packet pointer */
+    struct ntp_x *x /* transmit packet pointer */
 )
 {
     /* send packet x */

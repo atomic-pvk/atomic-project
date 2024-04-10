@@ -28,17 +28,17 @@ void vStartUDPEchoClientTasks_SingleTasks(uint16_t usTaskStackSize,
 
 static void vUDPSendUsingStandardInterface(void *pvParameters)
 {
-    struct p *p; /* peer structure pointer */
-    struct r *r; /* receive packet pointer */
+    struct ntp_p *p; /* peer structure pointer */
+    struct ntp_r *r; /* receive packet pointer */
 
-    memset(&s, sizeof(s), 0);
-    s.leap = NOSYNC;
-    s.stratum = MAXSTRAT;
-    s.poll = MINPOLL;
-    s.precision = PRECISION;
-    s.p = NULL;
+    memset(&ntp_s, sizeof(ntp_s), 0);
+    ntp_s.leap = NOSYNC;
+    ntp_s.stratum = MAXSTRAT;
+    ntp_s.poll = MINPOLL;
+    ntp_s.precision = PRECISION;
+    ntp_s.p = NULL;
 
-    memset(&c, sizeof(c), 0);
+    memset(&ntp_c, sizeof(ntp_c), 0);
     // if (/* frequency file */ 0)
     // {
     //     c.freq = /* freq */ 0;
@@ -48,7 +48,7 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
     // {
     //     rstclock(NSET, 0, 0);
     // }
-    c.jitter = LOG2D(s.precision);
+    ntp_c.jitter = LOG2D(ntp_s.precision);
 
     // while (/* mobilize configurated associations */ 1)
     // {

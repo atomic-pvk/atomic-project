@@ -190,12 +190,12 @@ struct ntp_r
     int keyid;        /* key ID */
     digest mac;       /* message digest */
     tstamp dst;       /* destination timestamp */
-} r;
+} ntp_r;
 
 /*
  * Transmit packet
  */
-struct x
+struct ntp_x
 {
     ipaddr dstaddr;   /* source (local) address */
     ipaddr srcaddr;   /* destination (remote) address */
@@ -214,7 +214,7 @@ struct x
     tstamp xmt;       /* transmit timestamp */
     int keyid;        /* key ID */
     digest dgst;      /* message digest */
-} x;
+} ntp_x;
 
 // A.1.3.  Association Data Structures
 
@@ -223,19 +223,19 @@ struct x
  * structures refers to process time, not real time.  Process time
  * increments by one second for every elapsed second of real time.
  */
-struct f
+struct ntp_f
 {
     tstamp t;      /* update time */
     double offset; /* clock ofset */
     double delay;  /* roundtrip delay */
     double disp;   /* dispersion */
-} f;
+} ntp_f;
 
 /*
  * Association structure.  This is shared between the peer process
  * and poll process.
  */
-struct p
+struct ntp_p
 {
 
     /*
@@ -268,7 +268,7 @@ struct p
      * Computed data
      */
     double t;           /* update time */
-    struct f f[NSTAGE]; /* clock filter */
+    struct ntp_f f[NSTAGE]; /* clock filter */
     double offset;      /* peer offset */
     double delay;       /* peer delay */
     double disp;        /* peer dispersion */
@@ -285,33 +285,33 @@ struct p
     int unreach;          /* unreach counter */
     int outdate;          /* last poll time */
     int nextdate;         /* next poll time */
-} p;
+} ntp_p;
 
 // A.1.4.  System Data Structures
 
 /*
  * Chime list.  This is used by the intersection algorithm.
  */
-struct m
+struct ntp_m
 {                /* m is for Marzullo */
     struct p *p; /* peer structure pointer */
     int type;    /* high +1, mid 0, low -1 */
     double edge; /* correctness interval edge */
-} m;
+} ntp_m;
 
 /*
  * Survivor list.  This is used by the clustering algorithm.
  */
-struct v
+struct ntp_v
 {
     struct p *p;   /* peer structure pointer */
     double metric; /* sort metric */
-} v;
+} ntp_v;
 
 /*
  * System structure
  */
-struct s
+struct ntp_s
 {
     tstamp t;         /* update time */
     char leap;        /* leap indicator */
@@ -322,21 +322,21 @@ struct s
     double rootdisp;  /* root dispersion */
     char refid;       /* reference ID */
     tstamp reftime;   /* reference time */
-    struct m m[NMAX]; /* chime list */
-    struct v v[NMAX]; /* survivor list */
-    struct p *p;      /* association ID */
+    struct ntp_m m[NMAX]; /* chime list */
+    struct ntp_v v[NMAX]; /* survivor list */
+    struct ntp_p *p;      /* association ID */
     double offset;    /* combined offset */
     double jitter;    /* combined jitter */
     int flags;        /* option flags */
     int n;            /* number of survivors */
-} s;
+} ntp_s;
 
 // A.1.5.  Local Clock Data Structures
 
 /*
  * Local clock structure
  */
-struct c
+struct ntp_c
 {
     tstamp t;      /* update time */
     int state;     /* current state */
@@ -346,6 +346,6 @@ struct c
     double freq;   /* frequency */
     double jitter; /* RMS jitter */
     double wander; /* RMS wander */
-} c;
+} ntp_c;
 
 #endif
