@@ -1,6 +1,14 @@
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
 
+// #include "NTP_Types.h"
+#include "utility.h"
+
+#define PRECISION -18 /* precision (log2 s)  */
+#define IPADDR 0      /* any IP address */
+#define MODE 0        /* any NTP mode */
+#define KEYID 0       /* any key identifier */
+
 static void vUDPSendUsingStandardInterface(void *pvParameters);
 
 void vStartUDPEchoClientTasks_SingleTasks(uint16_t usTaskStackSize,
@@ -20,6 +28,41 @@ void vStartUDPEchoClientTasks_SingleTasks(uint16_t usTaskStackSize,
 
 static void vUDPSendUsingStandardInterface(void *pvParameters)
 {
+    struct p *p; /* peer structure pointer */
+    struct r *r; /* receive packet pointer */
+
+    memset(&s, sizeof(s), 0);
+    s.leap = NOSYNC;
+    s.stratum = MAXSTRAT;
+    s.poll = MINPOLL;
+    s.precision = PRECISION;
+    s.p = NULL;
+
+    memset(&c, sizeof(c), 0);
+    // if (/* frequency file */ 0)
+    // {
+    //     c.freq = /* freq */ 0;
+    //     rstclock(FSET, 0, 0);
+    // }
+    // else
+    // {
+    //     rstclock(NSET, 0, 0);
+    // }
+    c.jitter = LOG2D(s.precision);
+
+    // while (/* mobilize configurated associations */ 1)
+    // {
+    //     p = mobilize(IPADDR, IPADDR, VERSION, MODE, KEYID,
+    //                  P_FLAGS);
+    // }
+
+    // while (0)
+    // {
+    //     r = recv_packet();
+    //     r->dst = get_time();
+    //     receive(r);
+    // }
+
     Socket_t xSocket;
     struct freertos_sockaddr xDestinationAddress;
     uint8_t cString[50];

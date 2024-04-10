@@ -21,6 +21,7 @@ SOURCE_FILES += main.c
 SOURCE_FILES += main_networking.c
 SOURCE_FILES += TCPEchoClient_SingleTasks.c
 SOURCE_FILES += UDPEchoClientDemo.c
+SOURCE_FILES += utility.c
 
 INCLUDE_DIRS += -ICMSIS
 
