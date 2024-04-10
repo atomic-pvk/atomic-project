@@ -1,4 +1,4 @@
-// poll
+// 8. Poll Process
 
 #include "ntp4.h"
 /*
