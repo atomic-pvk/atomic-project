@@ -1,6 +1,7 @@
 #include "UDPEchoClientDemo.h"
 
 #include "NTP_main_utility.h"
+#include "NTP_peer.h"
 
 static void vUDPSendUsingStandardInterface(void *pvParameters);
 
@@ -23,8 +24,8 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
 {
     struct ntp_p *p; /* peer structure pointer */
     struct ntp_r *r; /* receive packet pointesr */
-    struct ntp_s s;  /* receive packet pointer */
-    struct ntp_c c;  /* receive packet pointer */
+    struct ntp_s s;
+    struct ntp_c c;
 
     memset(&s, sizeof(ntp_s), 0);
     s.leap = NOSYNC;
@@ -54,11 +55,9 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
 
     // while (0)
     // {
-    //     r = recv_packet();
-    //     r->dst = get_time();
-
-    // TODO fix peer.c and peer.h
-    //     receive(r);
+    r = recv_packet();
+    r->dst = get_time();
+    receive(r, s, c);
     // }
 
     Socket_t xSocket;
