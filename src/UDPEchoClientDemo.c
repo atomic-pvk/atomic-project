@@ -1,13 +1,6 @@
-#include "FreeRTOS_IP.h"
-#include "FreeRTOS_Sockets.h"
+#include "UDPEchoClientDemo.h"
 
-// #include "NTP_Types.h"
-#include "utility.h"
-
-#define PRECISION -18 /* precision (log2 s)  */
-#define IPADDR 0      /* any IP address */
-#define MODE 0        /* any NTP mode */
-#define KEYID 0       /* any key identifier */
+#include "NTP_main_utility.h"
 
 static void vUDPSendUsingStandardInterface(void *pvParameters);
 
@@ -29,16 +22,19 @@ void vStartUDPEchoClientTasks_SingleTasks(uint16_t usTaskStackSize,
 static void vUDPSendUsingStandardInterface(void *pvParameters)
 {
     struct ntp_p *p; /* peer structure pointer */
-    struct ntp_r *r; /* receive packet pointer */
+    struct ntp_r *r; /* receive packet pointesr */
+    struct ntp_s s;  /* receive packet pointer */
+    struct ntp_c c;  /* receive packet pointer */
 
-    memset(&ntp_s, sizeof(ntp_s), 0);
-    ntp_s.leap = NOSYNC;
-    ntp_s.stratum = MAXSTRAT;
-    ntp_s.poll = MINPOLL;
-    ntp_s.precision = PRECISION;
-    ntp_s.p = NULL;
+    memset(&s, sizeof(ntp_s), 0);
+    s.leap = NOSYNC;
+    s.stratum = MAXSTRAT;
+    s.poll = MINPOLL;
+    s.precision = PRECISION;
+    s.p = NULL;
 
-    memset(&ntp_c, sizeof(ntp_c), 0);
+    memset(&c, sizeof(ntp_c), 0);
+    // TODO freq file
     // if (/* frequency file */ 0)
     // {
     //     c.freq = /* freq */ 0;
@@ -48,18 +44,20 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
     // {
     //     rstclock(NSET, 0, 0);
     // }
-    ntp_c.jitter = LOG2D(ntp_s.precision);
+    c.jitter = LOG2D(s.precision);
 
     // while (/* mobilize configurated associations */ 1)
     // {
-    //     p = mobilize(IPADDR, IPADDR, VERSION, MODE, KEYID,
-    //                  P_FLAGS);
+    p = mobilize(IPADDR, IPADDR, VERSION, MODE, KEYID,
+                 P_FLAGS);
     // }
 
     // while (0)
     // {
     //     r = recv_packet();
     //     r->dst = get_time();
+
+    // TODO fix peer.c and peer.h
     //     receive(r);
     // }
 
