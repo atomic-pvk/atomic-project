@@ -33,18 +33,6 @@
 #define NEWBC 6 /* new broadcast client */
 
 /*
- * Dispatch matrix
- *              active  passv  client server bcast */
-int table[7][5] = {
-    /* nopeer  */ {NEWPS, DSCRD, FXMIT, MANY, NEWBC},
-    /* active  */ {PROC, PROC, DSCRD, DSCRD, DSCRD},
-    /* passv   */ {PROC, ERR, DSCRD, DSCRD, DSCRD},
-    /* client  */ {DSCRD, DSCRD, DSCRD, PROC, DSCRD},
-    /* server  */ {DSCRD, DSCRD, DSCRD, DSCRD, DSCRD},
-    /* bcast   */ {DSCRD, DSCRD, DSCRD, DSCRD, DSCRD},
-    /* bclient */ {DSCRD, DSCRD, DSCRD, DSCRD, PROC}};
-
-/*
  * Miscellaneous macroni
  *
  * This macro defines the authentication state.  If x is 0,
@@ -61,11 +49,10 @@ int table[7][5] = {
                    BEGIN_CLEAR((struct ntp_p *)0))
 
 void receive(struct ntp_r *, struct ntp_s s, struct ntp_c c);                              /* receive packet */
-void packet(struct ntp_p *, struct ntp_r *, struct ntp_s s, struct ntp_c c);                   /* process packet */
+void packet(struct ntp_p *, struct ntp_r *, struct ntp_s s, struct ntp_c c);               /* process packet */
 void clock_filter(struct ntp_p *, double, double, double, struct ntp_s s, struct ntp_c c); /* filter */
-double root_dist(struct ntp_p *);                          /* calculate root distance */
-int fit(struct ntp_p *, struct ntp_s s);                                   /* determine fitness of server */
-void clear(struct ntp_p *, int, struct ntp_s, struct ntp_c c);                           /* clear association */
+int fit(struct ntp_p *, struct ntp_s s, struct ntp_c c);                                   /* determine fitness of server */
+void clear(struct ntp_p *, int, struct ntp_s, struct ntp_c c);                             /* clear association */
 int access(struct ntp_r *r);
 
 #endif /* NTP_PEER_H */

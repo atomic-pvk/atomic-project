@@ -107,7 +107,7 @@ void poll(
              */
             p->unreach = 0;
             hpoll = s.poll;
-            if (p->flags & P_BURST && fit(p, s))
+            if (p->flags & P_BURST && fit(p, s, c))
                 p->burst = BCOUNT;
         }
     }

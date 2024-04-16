@@ -24,7 +24,8 @@ SOURCE_FILES += UDPEchoClientDemo.c
 SOURCE_FILES += NTP_main_utility.c
 SOURCE_FILES += NTP_peer.c
 SOURCE_FILES += NTP_poll.c
-# SOURCE_FILES += NTP_system_process.c
+SOURCE_FILES += NTP_system_process.c
+SOURCE_FILES += NTP_vfo.c
 
 INCLUDE_DIRS += -ICMSIS
 

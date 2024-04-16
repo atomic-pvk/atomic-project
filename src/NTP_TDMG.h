@@ -76,7 +76,9 @@ typedef signed char s_char;   /* precision and poll interval (log2) */
  */
 #define LOG2D(a) ((a) < 0 ? 1. / (1L << -(a)) : 1L << (a)) /* poll, etc. */
 #define SQUARE(x) (x * x)
-#define SQRT(x) (sqrt(x))
+// #define SQRT(x) (sqrt(x))
+// TODO THIS IS A DUMMY IMPLEMENTATION JUST TO MAKE THE CODE COMPILE
+#define SQRT(x) (x)
 
 /*
  * Global constants.  Some of these might be converted to variables
@@ -315,10 +317,10 @@ typedef struct ntp_p
  * Chime list.  This is used by the intersection algorithm.
  */
 typedef struct ntp_m
-{                /* m is for Marzullo */
-    struct p *p; /* peer structure pointer */
-    int type;    /* high +1, mid 0, low -1 */
-    double edge; /* correctness interval edge */
+{                    /* m is for Marzullo */
+    struct ntp_p *p; /* peer structure pointer */
+    int type;        /* high +1, mid 0, low -1 */
+    double edge;     /* correctness interval edge */
 } ntp_m;
 
 /*
@@ -326,8 +328,8 @@ typedef struct ntp_m
  */
 typedef struct ntp_v
 {
-    struct p *p;   /* peer structure pointer */
-    double metric; /* sort metric */
+    struct ntp_p *p; /* peer structure pointer */
+    double metric;   /* sort metric */
 } ntp_v;
 
 /*

@@ -1,5 +1,8 @@
 #include "NTP_system_process.h"
 
+#include "NTP_peer.h"
+#include "NTP_vfo.h"
+
 // A.5.5.  System Process
 
 // A.5.5.1.  clock_select()
@@ -32,7 +35,7 @@ void clock_select(
     osys = s.p;
     s.p = NULL;
     n = 0;
-    while (fit(p))
+    while (fit(p, s, c))
     {
         s.m[n].p = p;
         s.m[n].type = +1;
@@ -298,7 +301,7 @@ void clock_update(
      */
     s.t = p->t;
     clock_combine(s, c);
-    switch (local_clock(p, s.offset))
+    switch (local_clock(p, s.offset, s, c))
     {
     /*
      * The offset is too large and probably bogus.  Complain to the
@@ -322,7 +325,7 @@ void clock_update(
      */
     case STEP:
         while (/* all associations */ 0)
-            clear(p, X_STEP);
+            clear(p, X_STEP, s, c);
         s.stratum = MAXSTRAT;
         s.poll = MINPOLL;
         break;

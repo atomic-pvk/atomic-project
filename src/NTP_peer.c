@@ -1,11 +1,28 @@
 #include "NTP_peer.h"
-#include "NTP_main_utility.h"
 
+#include "NTP_main_utility.h"
 #include "NTP_poll.h"
 #include "NTP_system_process.h"
 
 // A.5.1.1.  packet()
 
+/*
+DUMMY SOLUTION
+table should be in the header file but the current configuration and dependency tree make it hard
+TODO
+*/
+
+/*
+ * Dispatch matrix
+ *              active  passv  client server bcast */
+int table[7][5] = {
+    /* nopeer  */ {NEWPS, DSCRD, FXMIT, MANY, NEWBC},
+    /* active  */ {PROC, PROC, DSCRD, DSCRD, DSCRD},
+    /* passv   */ {PROC, ERR, DSCRD, DSCRD, DSCRD},
+    /* client  */ {DSCRD, DSCRD, DSCRD, PROC, DSCRD},
+    /* server  */ {DSCRD, DSCRD, DSCRD, DSCRD, DSCRD},
+    /* bcast   */ {DSCRD, DSCRD, DSCRD, DSCRD, DSCRD},
+    /* bclient */ {DSCRD, DSCRD, DSCRD, DSCRD, PROC}};
 /*
  * packet() - process packet and compute offset, delay, and
  * dispersion.
@@ -56,7 +73,7 @@ void packet(
                                                              r->xmt)
                 return; /* invalid header values */
 
-        poll_update(p, p->hpoll,c);
+        poll_update(p, p->hpoll, c);
         p->reach |= 1;
 
         /*
@@ -181,7 +198,8 @@ int fit(
     struct ntp_p *p, /* peer structure pointer */
 
     // you know the drill
-    struct ntp_s s)
+    struct ntp_s s,
+    struct ntp_c c)
 {
         /*
          * A stratum error occurs if (1) the server has never been
@@ -195,7 +213,7 @@ int fit(
          * distance threshold plus an increment equal to one poll
          * interval.
          */
-        if (root_dist(p) > MAXDIST + PHI * LOG2D(s.poll))
+        if (root_dist(p, s, c) > MAXDIST + PHI * LOG2D(s.poll))
                 return (FALSE);
 
         /*
