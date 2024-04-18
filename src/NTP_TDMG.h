@@ -16,6 +16,7 @@ G Global Constants
 #include <sys/time.h> /* for gettimeofday() and friends */
 #include <stdlib.h>   /* for malloc() and friends */
 #include <string.h>   /* for memset() */
+#include "FreeRTOS_Sockets.h"
 
 /*
  * Data types
@@ -55,7 +56,7 @@ typedef signed char s_char;   /* precision and poll interval (log2) */
  */
 #define PRECISION -18 /* precision (log2 s)  */
 #define IPADDR 0      /* any IP address */
-#define MODE 0        /* any NTP mode */
+#define MODE 3        /* any NTP mode */
 #define KEYID 0       /* any key identifier */
 
 /*
@@ -98,6 +99,8 @@ typedef signed char s_char;   /* precision and poll interval (log2) */
 #define MAXCLOCK 10 /* maximum manycast candidates */
 #define TTLMAX 8    /* max ttl manycast */
 #define BEACON 15   /* max interval between beacons */
+
+#define DSTADDR 0 /* destination (local) address */
 
 #define PHI 15e-6 /* % frequency tolerance (15 ppm) */
 #define NSTAGE 8  /* clock register stages */
@@ -371,5 +374,25 @@ typedef struct ntp_c
     double jitter; /* RMS jitter */
     double wander; /* RMS wander */
 } ntp_c;
+
+typedef struct ntp_packet
+{
+    uint8_t li_vn_mode;      // Eight bits. li, vn, and mode.
+    uint8_t stratum;         // Eight bits. Stratum level of the local clock.
+    uint8_t poll;            // Eight bits. Maximum interval between successive messages.
+    uint8_t precision;       // Eight bits. Precision of the local clock.
+    uint32_t rootDelay;      // 32 bits. Total round trip delay time.
+    uint32_t rootDispersion; // 32 bits. Max error aloud from primary clock source.
+    uint32_t refId;          // 32 bits. Reference clock identifier.
+    uint32_t refTm_s;        // 32 bits. Reference time-stamp seconds.
+    uint32_t refTm_f;        // 32 bits. Reference time-stamp fraction of a second.
+    uint32_t origTm_s;       // 32 bits. Originate time-stamp seconds.
+    uint32_t origTm_f;       // 32 bits. Originate time-stamp fraction of a second.
+    uint32_t rxTm_s;         // 32 bits. Received time-stamp seconds.
+    uint32_t rxTm_f;         // 32 bits. Received time-stamp fraction of a second.
+    uint32_t txTm_s;         // 32 bits. Transmit time-stamp seconds.
+    uint32_t txTm_f;         // 32 bits. Transmit time-stamp fraction of a second.
+
+} ntp_packet;
 
 #endif

@@ -1,3 +1,4 @@
+#include "UDPEchoClientDemo.h"
 #include "NTP_main_utility.h"
 
 static struct ntp_p *p; /* peer structure pointer */
@@ -92,6 +93,48 @@ void xmit_packet(
     struct ntp_x *x /* transmit packet pointer */
 )
 {
+    /* setup ntp_packet *pkt */
+    ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
+
+    memset(pkt, 0, sizeof(ntp_packet)); // Clear the packet struct
+
+    // Setting li_vn_mode combining leap, version, and mode
+    pkt->li_vn_mode = (x->leap & 0x03) << 6 | (x->version & 0x07) << 3 | (x->mode & 0x07);
+
+    // Directly mapping other straightforward fields
+    pkt->stratum = x->stratum;
+    pkt->poll = x->poll;
+    pkt->precision = x->precision;
+
+    // Assuming simple direct assignments for demonstration purposes
+    // Transformations might be necessary depending on actual data types and requirements
+    pkt->refId = x->srcaddr; // Just an example mapping
+
+    // Serialize the packet to be ready for sending
+    unsigned char buffer[sizeof(ntp_packet)];
+    memcpy(buffer, pkt, sizeof(ntp_packet)); // Here the packet is fully prepared and can be sent
+
+    /* NOTE: FreeRTOS_bind() is not called.  This will only work if
+    ipconfigALLOW_SOCKET_SEND_WITHOUT_BIND is set to 1 in FreeRTOSIPConfig.h. */
+
+    // print the fucking buffer
+
+    /* Create the string that is sent. */
+    // sprintf(cString,
+    //         "Standard send message number %lurn",
+    //         ulCount);
+
+    /* Send the string to the UDP socket.  ulFlags is set to 0, so the standard
+    semantics are used.  That means the data from cString[] is copied
+    into a network buffer inside FreeRTOS_sendto(), and cString[] can be
+    reused as soon as FreeRTOS_sendto() has returned. */
+    FreeRTOS_sendto(xSocket,
+                    buffer,
+                    sizeof(buffer),
+                    0,
+                    xDestinationAddress,
+                    sizeof(xDestinationAddress));
+
     /* send packet x */
 }
 
