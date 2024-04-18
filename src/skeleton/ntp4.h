@@ -30,11 +30,11 @@
  * message digest field is 128 bits as constructed by the MD5 algorithm.
  * The precision and poll interval fields are signed log2 seconds.
  */
-typedef unsigned long long tstamp; /* NTP timestamp format */
-typedef unsigned int tdist;        /* NTP short format */
-typedef unsigned long ipaddr;      /* IPv4 or IPv6 address */
-typedef unsigned long digest;      /* md5 digest */
-typedef signed char s_char;        /* precision and poll interval (log2) */
+typedef uint64_t tstamp; /* NTP timestamp format */
+typedef uint16_t tdist;  /* NTP short format */
+typedef uint32_t ipaddr; /* IPv4 or IPv6 address */
+typedef uint32_t digest; /* md5 digest */
+typedef int8_t s_char;   /* precision and poll interval (log2) */
 
 /*
  * Timestamp conversion macroni
