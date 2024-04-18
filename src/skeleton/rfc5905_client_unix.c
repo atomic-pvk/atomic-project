@@ -1,15 +1,15 @@
-
-
 // A.1.  Global Definitions
 
 // A.1.1.  Definitions, Constants, Parameters
-
-
-#include <stdio.h>     /* printf */
+#include <stdio.h>    /* printf */
 #include <math.h>     /* avoids complaints about sqrt() */
 #include <sys/time.h> /* for gettimeofday() and friends */
 #include <stdlib.h>   /* for malloc() and friends */
 #include <string.h>   /* for memset() */
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 /*
  * Data types
@@ -112,7 +112,7 @@ typedef signed char s_char;        /* precision and poll interval (log2) */
 #define P_EPHEM 0x01   /* association is ephemeral */
 #define P_BURST 0x02   /* burst enable */
 #define P_IBURST 0x04  /* intial burst enable */
-#define P_NOTRUST 0x08 /* authenticated access */
+#define P_NOTRUST 0x08 /* authenticated skeleton_access */
 #define P_NOPEER 0x10  /* authenticated mobilization */
 #define P_MANY 0x20    /* manycast client */
 
@@ -363,7 +363,7 @@ void clock_filter(struct p *, double, double, double); /* filter */
 double root_dist(struct p *);                          /* calculate root distance */
 int fit(struct p *);                                   /* determine fitness of server */
 void clear(struct p *, int);                           /* clear association */
-int access(struct r *);                                /* determine access restrictions */
+int skeleton_access(struct r *);                       /* determine skeleton_access restrictions */
 
 /*
  * System process
@@ -423,9 +423,20 @@ tstamp get_time();            /* read time */
  */
 int main()
 {
-    tstamp currentTime = get_time();  // Get the current time in NTP format
-    printf("Current NTP time: %llu\n", currentTime);  // Print the time
-    
+        const char *ntp_server = "sth3.ntp.netnod.se";
+        const int ntp_port = 123;
+
+        // Create UDP socket
+        int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (sockfd < 0)
+        {
+                perror("Failed to create socket");
+                return -1;
+        }
+
+        tstamp currentTime = get_time();                 // Get the current time in NTP format
+        printf("Current NTP time: %llu\n", currentTime); // Print the time
+
         struct p *p; /* peer structure pointer */
         struct r *r; /* receive packet pointer */
 
@@ -442,7 +453,7 @@ int main()
         s.precision = PRECISION;
         s.p = NULL;
 
-                /*
+        /*
          * Initialize local clock variables
          */
         memset(&c, sizeof(c), 0);
@@ -462,6 +473,7 @@ int main()
          * associations with specified addresses, version, mode, key ID,
          * and flags.
          */
+
         while (/* mobilize configurated associations */ 0)
         {
                 p = mobilize(IPADDR, IPADDR, VERSION, MODE, KEYID,
@@ -473,8 +485,9 @@ int main()
          * read packets as they arrive, strike receive timestamp, and
          * call the receive() routine.
          */
-        while (0)
+        while (1)
         {
+
                 r = recv_packet();
                 r->dst = get_time();
                 receive(r);
@@ -599,22 +612,22 @@ void xmit_packet(
  */
 tstamp get_time()
 {
-    struct timeval unix_time;
+        struct timeval unix_time;
 
-    /*
-     * Normally, you would call gettimeofday() to fetch the current
-     * system time and convert it to NTP format. To simulate a specific
-     * fake time, you can manually set the unix_time structure to
-     * represent your desired time.
-     */
-    
-    // Example to set a specific date and time:
-    // Let's say you want to set the date to Jan 1, 2023, 12:00:00
-    unix_time.tv_sec = 1672574400; // Epoch time for Jan 1, 2023, 12:00:00
-    unix_time.tv_usec = 0;         // Microseconds part set to 0
+        /*
+         * Normally, you would call gettimeofday() to fetch the current
+         * system time and convert it to NTP format. To simulate a specific
+         * fake time, you can manually set the unix_time structure to
+         * represent your desired time.
+         */
 
-    // Now convert this time to NTP format and return
-    return U2LFP(unix_time);
+        // Example to set a specific date and time:
+        // Let's say you want to set the date to Jan 1, 2023, 12:00:00
+        // unix_time.tv_sec = 1672574400; // Epoch time for Jan 1, 2023, 12:00:00
+        // unix_time.tv_usec = 0;         // Microseconds part set to 0
+        gettimeofday(&unix_time, NULL);
+        // Now convert this time to NTP format and return
+        return U2LFP(unix_time);
 }
 
 /*
@@ -733,14 +746,14 @@ void receive(
         int synch;   /* synchronized switch */
 
         /*
-         * Check access control lists.  The intent here is to implement
-         * a whitelist of those IP addresses specifically accepted
+         * Check skeleton_access control lists.  The intent here is to implement
+         * a whitelist of those IP addresses specifically skeleton_accepted
          * and/or a blacklist of those IP addresses specifically
          * rejected.  There could be different lists for authenticated
          * clients and unauthenticated clients.
          */
-        if (!access(r))
-                return; /* access denied */
+        if (!skeleton_access(r))
+                return; /* skeleton_access denied */
 
         /*
          * The version must not be in the future.  Format checks include
@@ -756,7 +769,7 @@ void receive(
          *
          * P_NOPEER     do not mobilize an association unless
          *              authenticated.
-         * P_NOTRUST    do not allow access unless authenticated
+         * P_NOTRUST    do not allow skeleton_access unless authenticated
          *              (implies P_NOPEER).
          *
          * There are four outcomes:
@@ -768,8 +781,8 @@ void receive(
          * A_CRYPTO     crypto-NAK.  The MAC has four octets only.
          *
          * Note: The AUTH (x, y) macro is used to filter outcomes.  If x
-         * is zero, acceptable outcomes of y are NONE and OK.  If x is
-         * one, the only acceptable outcome of y is OK.
+         * is zero, skeleton_acceptable outcomes of y are NONE and OK.  If x is
+         * one, the only skeleton_acceptable outcome of y is OK.
          */
 
         has_mac = /* length of MAC field */ 0;
@@ -888,9 +901,9 @@ void receive(
                 p = mobilize(r->srcaddr, r->dstaddr, r->version, M_BCLN,
                              r->keyid, P_EPHEM);
                 break; /* processing continues */
-/*
-* Process packet.  Placeholdler only.
-*/
+                       /*
+                        * Process packet.  Placeholdler only.
+                        */
         case PROC:
                 break; /* processing continues */
 
@@ -1142,7 +1155,7 @@ void clock_filter(
 }
 
 /*
- * fit() - test if association p is acceptable for synchronization
+ * fit() - test if association p is skeleton_acceptable for synchronization
  */
 int fit(
     struct p *p /* peer structure pointer */
@@ -1290,23 +1303,23 @@ void fast_xmit(
         xmit_packet(&x);
 }
 
-// A.5.4.  access()
+// A.5.4.  skeleton_access()
 
 /*
- * access() - determine access restrictions
+ * skeleton_access() - determine skeleton_access restrictions
  */
-int access(
+int skeleton_access(
     struct r *r /* receive packet pointer */
 )
 {
         /*
-         * The access control list is an ordered set of tuples
+         * The skeleton_access control list is an ordered set of tuples
          * consisting of an address, mask, and restrict word containing
          * defined bits.  The list is searched for the first match on
          * the source address (r->srcaddr) and the associated restrict
          * word is returned.
          */
-        return (/* access bits */ 0);
+        return (/* skeleton_access bits */ 0);
 }
 
 // A.5.5.  System Process
@@ -1437,7 +1450,7 @@ void clock_select()
          * There must be at least NSANE survivors to satisfy the
          * correctness assertions.  Ordinarily, the Byzantine criteria
          * require four survivors, but for the demonstration here, one
-         * is acceptable.
+         * is skeleton_acceptable.
          */
         if (s.n < NSANE)
                 return;
@@ -1528,12 +1541,12 @@ root_dist(
                 p->rootdisp + p->disp + PHI * (c.t - p->t) + p->jitter);
 }
 
-// A.5.5.3.  accept()
+// A.5.5.3.  skeleton_accept()
 
 /*
- * accept() - test if association p is acceptable for synchronization
+ * skeleton_accept() - test if association p is skeleton_acceptable for synchronization
  */
-int accept(
+int skeleton_accept(
     struct p *p /* peer structure pointer */
 )
 {
