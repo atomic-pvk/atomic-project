@@ -456,25 +456,51 @@ typedef struct
 /*
  * main() - main program
  */
-#define NTP_TIMESTAMP_DELTA 2208988800ull
 
+// Defines the return type of the function
+char *skeleton_poll(const char *hostname);
+
+// Defines the time servers and print their time
 int main()
 {
-        const char *hostname = "sth3.ntp.netnod.se";
+        const char *göteborg1 = "gbg1.ntp.netnod.se";
+        const char *luleå1 = "lul1.ntp.netnod.se";
+        const char *malmö1 = "mmo1.ntp.netnod.se";
+        const char *stockholm1 = "sth1.ntp.netnod.se";
+        const char *sundsvall1 = "svl1.ntp.netnod.se";
+
+        // Print both NTP times
+        printf("Time from %s: %s", göteborg1, skeleton_poll(göteborg1));
+        printf("Time from %s: %s", luleå1, skeleton_poll(luleå1));
+        printf("Time from %s: %s", malmö1, skeleton_poll(malmö1));
+        printf("Time from %s: %s", stockholm1, skeleton_poll(stockholm1));
+        printf("Time from %s: %s", sundsvall1, skeleton_poll(sundsvall1));
+
+        return 0;
+}
+
+// Used when converting NTP-time to Unix-time
+#define NTP_TIMESTAMP_DELTA 2208988800ull
+
+// Polls the time from a server and return the polled time in CT-time
+char *skeleton_poll(const char *hostname)
+{
+        // Define the port used to communicate with the NTP-server
         const int ntp_port = 123;
 
+        // Configuration for the first NTP server (sth3.ntp.netnod.se)
         struct hostent *host;
         struct sockaddr_in server_addr;
         int sockfd;
         time_t ntp_time;
 
+        // Get NTP time from the first server
         if ((host = gethostbyname(hostname)) == NULL)
         {
                 herror("gethostbyname");
                 return 1;
         }
 
-        // Skapa socket
         sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (sockfd < 0)
         {
@@ -482,40 +508,33 @@ int main()
                 return -1;
         }
 
-        // Konfigurera serveradressen
         memset(&server_addr, 0, sizeof(server_addr));
         server_addr.sin_family = AF_INET;
         server_addr.sin_port = htons(ntp_port);
         memcpy(&server_addr.sin_addr, host->h_addr, host->h_length);
 
-        // Skapa NTP-begäran
-        unsigned char ntp_packet[48] = {0};
-        ntp_packet[0] = 0x1B; // NTP version 4, client mode
+        unsigned char ntp_packet1[48] = {0};
+        ntp_packet1[0] = 0x1B;
 
-        // Skicka NTP-begäran
-        if (sendto(sockfd, ntp_packet, sizeof(ntp_packet), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+        if (sendto(sockfd, ntp_packet1, sizeof(ntp_packet1), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         {
                 perror("Sendto failed");
                 return -1;
         }
 
-        // Ta emot NTP-svar
-        if (recv(sockfd, ntp_packet, sizeof(ntp_packet), 0) < 0)
+        if (recv(sockfd, ntp_packet1, sizeof(ntp_packet1), 0) < 0)
         {
                 perror("Recv failed");
                 return -1;
         }
 
-        // Stäng socket
         close(sockfd);
 
-        // Tolkar NTP-svaret för att få tiden
-        uint32_t timestamp = (uint32_t)ntp_packet[40] << 24 | (uint32_t)ntp_packet[41] << 16 | (uint32_t)ntp_packet[42] << 8 | (uint32_t)ntp_packet[43];
-        ntp_time = (time_t)(timestamp - NTP_TIMESTAMP_DELTA);
+        uint32_t timestamp1 = (uint32_t)ntp_packet1[40] << 24 | (uint32_t)ntp_packet1[41] << 16 | (uint32_t)ntp_packet1[42] << 8 | (uint32_t)ntp_packet1[43];
+        ntp_time = (time_t)(timestamp1 - NTP_TIMESTAMP_DELTA);
 
-        printf("Current NTP time: %s", ctime(&ntp_time));
-
-        return 0;
+        char *timeInCT = ctime(&ntp_time);
+        return timeInCT;
 }
 
 /*
