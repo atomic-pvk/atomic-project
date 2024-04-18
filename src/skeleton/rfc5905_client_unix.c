@@ -7,9 +7,12 @@
 #include <stdlib.h>   /* for malloc() and friends */
 #include <string.h>   /* for memset() */
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+#include <time.h>
 
 /*
  * Data types
@@ -418,82 +421,101 @@ tstamp get_time();            /* read time */
 #define MODE 0        /* any NTP mode */
 #define KEYID 0       /* any key identifier */
 
+// structure fo NTP packet send and receive
+
+typedef struct
+{
+
+        uint8_t li_vn_mode; // Eight bits. li, vn, and mode.
+                            // li.   Two bits.   Leap indicator.
+                            // vn.   Three bits. Version number of the protocol.
+                            // mode. Three bits. Client will pick mode 3 for client.
+
+        uint8_t stratum;   // Eight bits. Stratum level of the local clock.
+        uint8_t poll;      // Eight bits. Maximum interval between successive messages.
+        uint8_t precision; // Eight bits. Precision of the local clock.
+
+        uint32_t rootDelay;      // 32 bits. Total round trip delay time.
+        uint32_t rootDispersion; // 32 bits. Max error aloud from primary clock source.
+        uint32_t refId;          // 32 bits. Reference clock identifier.
+
+        uint32_t refTm_s; // 32 bits. Reference time-stamp seconds.
+        uint32_t refTm_f; // 32 bits. Reference time-stamp fraction of a second.
+
+        uint32_t origTm_s; // 32 bits. Originate time-stamp seconds.
+        uint32_t origTm_f; // 32 bits. Originate time-stamp fraction of a second.
+
+        uint32_t rxTm_s; // 32 bits. Received time-stamp seconds.
+        uint32_t rxTm_f; // 32 bits. Received time-stamp fraction of a second.
+
+        uint32_t txTm_s; // 32 bits and the most important field the client cares about. Transmit time-stamp seconds.
+        uint32_t txTm_f; // 32 bits. Transmit time-stamp fraction of a second.
+
+} ntp_packet; // Total: 384 bits or 48 bytes.
+
 /*
  * main() - main program
  */
+#define NTP_TIMESTAMP_DELTA 2208988800ull
+
 int main()
 {
-        const char *ntp_server = "sth3.ntp.netnod.se";
+        const char *hostname = "sth3.ntp.netnod.se";
         const int ntp_port = 123;
 
-        // Create UDP socket
-        int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        struct hostent *host;
+        struct sockaddr_in server_addr;
+        int sockfd;
+        time_t ntp_time;
+
+        if ((host = gethostbyname(hostname)) == NULL)
+        {
+                herror("gethostbyname");
+                return 1;
+        }
+
+        // Skapa socket
+        sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (sockfd < 0)
         {
                 perror("Failed to create socket");
                 return -1;
         }
 
-        tstamp currentTime = get_time();                 // Get the current time in NTP format
-        printf("Current NTP time: %llu\n", currentTime); // Print the time
+        // Konfigurera serveradressen
+        memset(&server_addr, 0, sizeof(server_addr));
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_port = htons(ntp_port);
+        memcpy(&server_addr.sin_addr, host->h_addr, host->h_length);
 
-        struct p *p; /* peer structure pointer */
-        struct r *r; /* receive packet pointer */
+        // Skapa NTP-begäran
+        unsigned char ntp_packet[48] = {0};
+        ntp_packet[0] = 0x1B; // NTP version 4, client mode
 
-        /*
-         * Read command line options and initialize system variables.
-         * The reference implementation measures the precision specific
-         * to each machine by measuring the clock increments to read the
-         * system clock.
-         */
-        memset(&s, sizeof(s), 0);
-        s.leap = NOSYNC;
-        s.stratum = MAXSTRAT;
-        s.poll = MINPOLL;
-        s.precision = PRECISION;
-        s.p = NULL;
-
-        /*
-         * Initialize local clock variables
-         */
-        memset(&c, sizeof(c), 0);
-        if (/* frequency file */ 0)
+        // Skicka NTP-begäran
+        if (sendto(sockfd, ntp_packet, sizeof(ntp_packet), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         {
-                c.freq = /* freq */ 0;
-                rstclock(FSET, 0, 0);
-        }
-        else
-        {
-                rstclock(NSET, 0, 0);
-        }
-        c.jitter = LOG2D(s.precision);
-
-        /*
-         * Read the configuration file and mobilize persistent
-         * associations with specified addresses, version, mode, key ID,
-         * and flags.
-         */
-
-        while (/* mobilize configurated associations */ 0)
-        {
-                p = mobilize(IPADDR, IPADDR, VERSION, MODE, KEYID,
-                             P_FLAGS);
+                perror("Sendto failed");
+                return -1;
         }
 
-        /*
-         * Start the system timer, which ticks once per second.  Then,
-         * read packets as they arrive, strike receive timestamp, and
-         * call the receive() routine.
-         */
-        while (1)
+        // Ta emot NTP-svar
+        if (recv(sockfd, ntp_packet, sizeof(ntp_packet), 0) < 0)
         {
-
-                r = recv_packet();
-                r->dst = get_time();
-                receive(r);
+                perror("Recv failed");
+                return -1;
         }
 
-        return (0);
+        // Stäng socket
+        close(sockfd);
+
+        // Tolkar NTP-svaret för att få tiden
+        uint32_t timestamp = (uint32_t)ntp_packet[40] << 24 | (uint32_t)ntp_packet[41] << 16 | (uint32_t)ntp_packet[42] << 8 | (uint32_t)ntp_packet[43];
+        ntp_time = (time_t)(timestamp - NTP_TIMESTAMP_DELTA);
+
+        printf("Current NTP time: %s", ctime(&ntp_time));
+
+        return 0;
 }
 
 /*
