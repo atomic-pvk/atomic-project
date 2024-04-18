@@ -3,12 +3,12 @@
 static struct ntp_p *p; /* peer structure pointer */
 
 struct ntp_p *mobilize(
-    ipaddr srcaddr, /* IP source address */
-    ipaddr dstaddr, /* IP destination address */
-    int version,    /* version */
-    int mode,       /* host mode */
-    int keyid,      /* key identifier */
-    int flags       /* peer flags */
+    uint32_t srcaddr, /* IP source address, change from ipaddr to uint32_t */
+    uint32_t dstaddr, /* IP destination address, change from ipaddr to uint32_t */
+    int version,      /* version */
+    int mode,         /* host mode */
+    int keyid,        /* key identifier */
+    int flags         /* peer flags */
 )
 {
     struct ntp_p *p; /* peer process pointer */

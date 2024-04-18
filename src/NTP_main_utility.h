@@ -5,12 +5,12 @@
 
 // mobilize - allocates and initializes a new peer structure
 struct ntp_p *mobilize(
-    ipaddr srcaddr, // IP source address
-    ipaddr dstaddr, // IP destination address
-    int version,    // version
-    int mode,       // host mode
-    int keyid,      // key identifier
-    int flags       // peer flags
+    uint32_t srcaddr, // IP source address
+    uint32_t dstaddr, // IP destination address
+    int version,      // version
+    int mode,         // host mode
+    int keyid,        // key identifier
+    int flags         // peer flags
 );
 
 // find_assoc - find a matching association

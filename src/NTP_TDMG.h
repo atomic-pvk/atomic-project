@@ -196,8 +196,8 @@ typedef signed char s_char;   /* precision and poll interval (log2) */
  */
 typedef struct ntp_r
 {
-    ipaddr srcaddr;   /* source (remote) address */
-    ipaddr dstaddr;   /* destination (local) address */
+    uint32_t srcaddr; /* source (remote) address, change from ipaddr to uint32_t */
+    uint32_t dstaddr; /* destination (local) address, change from ipaddr to uint32_t */
     char version;     /* version number */
     char leap;        /* leap indicator */
     char mode;        /* mode */
@@ -221,8 +221,8 @@ typedef struct ntp_r
  */
 typedef struct ntp_x
 {
-    ipaddr dstaddr;   /* source (local) address */
-    ipaddr srcaddr;   /* destination (remote) address */
+    uint32_t srcaddr; /* source (remote) address, change from ipaddr to uint32_t */
+    uint32_t dstaddr; /* destination (local) address, change from ipaddr to uint32_t */
     char version;     /* version number */
     char leap;        /* leap indicator */
     char mode;        /* mode */
@@ -265,12 +265,12 @@ typedef struct ntp_p
     /*
      * Variables set by configuration
      */
-    ipaddr srcaddr; /* source (remote) address */
-    ipaddr dstaddr; /* destination (local) address */
-    char version;   /* version number */
-    char hmode;     /* host mode */
-    int keyid;      /* key identifier */
-    int flags;      /* option flags */
+    uint32_t srcaddr; /* source (remote) address, change from ipaddr to uint32_t */
+    uint32_t dstaddr; /* destination (local) address, change from ipaddr to uint32_t */
+    char version;     /* version number */
+    char hmode;       /* host mode */
+    int keyid;        /* key identifier */
+    int flags;        /* option flags */
 
     /*
      * Variables set by received packet
