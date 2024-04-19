@@ -70,8 +70,8 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
     /* use https://github.com/FreeRTOS/FreeRTOS-Libraries-Integration-Tests/tree/main/tools/echo_server for udp echo server */
     memset(&xDestinationAddress, 0, sizeof(xDestinationAddress));
     xDestinationAddress.sin_family = FREERTOS_AF_INET4; // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
-    xDestinationAddress.sin_address.ulIP_IPv4 = FreeRTOS_inet_addr("45.132.235.217");
-    xDestinationAddress.sin_port = FreeRTOS_htons(9000); // outgoing port
+    xDestinationAddress.sin_address.ulIP_IPv4 = FreeRTOS_inet_addr("194.58.202.20");
+    xDestinationAddress.sin_port = FreeRTOS_htons(123); // outgoing port
     xDestinationAddress.sin_len = (uint8_t)sizeof(xDestinationAddress);
 
     ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
@@ -172,10 +172,10 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
             // Assuming bufferRecv points to an unsigned char array containing the data.
 
             uint32_t time = FreeRTOS_ntohl(
-                (bufferRecv[31] << 24) |
-                (bufferRecv[32] << 16) |
+                (bufferRecv[35] << 24) |
+                (bufferRecv[34] << 16) |
                 (bufferRecv[33] << 8) |
-                bufferRecv[34]);
+                bufferRecv[32]);
 
             // print the time integer
             FreeRTOS_printf(("Time in integer format only: %lu\n", time));
