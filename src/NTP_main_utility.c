@@ -101,6 +101,10 @@ struct ntp_r /* receive packet pointer*/
 
     if (iReturned > 0)
     {
+        struct ntp_r *r = malloc(sizeof(ntp_r)); // Allocate memory for the receive packet
+        memset(r, 0, sizeof(ntp_r));             // Clear the receive packet struct
+
+        memcpy(r, bufferRecv, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
         FreeRTOS_printf(("Packet received\n"));
 
         uint32_t time = FreeRTOS_ntohl(
@@ -108,9 +112,6 @@ struct ntp_r /* receive packet pointer*/
             (bufferRecv[34] << 16) |
             (bufferRecv[33] << 8) |
             bufferRecv[32]);
-
-        struct ntp_r *r = malloc(sizeof(ntp_r)); // Allocate memory for the receive packet
-        memset(r, 0, sizeof(ntp_r));             // Clear the receive packet struct
 
         // memcpy(r, pkt, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
         r->rec = time;
