@@ -1,7 +1,8 @@
 // A.1.  Global Definitions
 
 // A.1.1.  Definitions, Constants, Parameters
-#include <stdio.h>    /* printf */
+#include <stdio.h> /* printf */
+#include <stdint.h>
 #include <math.h>     /* avoids complaints about sqrt() */
 #include <sys/time.h> /* for gettimeofday() and friends */
 #include <stdlib.h>   /* for malloc() and friends */
@@ -421,61 +422,48 @@ tstamp get_time();            /* read time */
 #define MODE 0        /* any NTP mode */
 #define KEYID 0       /* any key identifier */
 
-// structure fo NTP packet send and receive
-
-typedef struct
-{
-
-        uint8_t li_vn_mode; // Eight bits. li, vn, and mode.
-                            // li.   Two bits.   Leap indicator.
-                            // vn.   Three bits. Version number of the protocol.
-                            // mode. Three bits. Client will pick mode 3 for client.
-
-        uint8_t stratum;   // Eight bits. Stratum level of the local clock.
-        uint8_t poll;      // Eight bits. Maximum interval between successive messages.
-        uint8_t precision; // Eight bits. Precision of the local clock.
-
-        uint32_t rootDelay;      // 32 bits. Total round trip delay time.
-        uint32_t rootDispersion; // 32 bits. Max error aloud from primary clock source.
-        uint32_t refId;          // 32 bits. Reference clock identifier.
-
-        uint32_t refTm_s; // 32 bits. Reference time-stamp seconds.
-        uint32_t refTm_f; // 32 bits. Reference time-stamp fraction of a second.
-
-        uint32_t origTm_s; // 32 bits. Originate time-stamp seconds.
-        uint32_t origTm_f; // 32 bits. Originate time-stamp fraction of a second.
-
-        uint32_t rxTm_s; // 32 bits. Received time-stamp seconds.
-        uint32_t rxTm_f; // 32 bits. Received time-stamp fraction of a second.
-
-        uint32_t txTm_s; // 32 bits and the most important field the client cares about. Transmit time-stamp seconds.
-        uint32_t txTm_f; // 32 bits. Transmit time-stamp fraction of a second.
-
-} ntp_packet; // Total: 384 bits or 48 bytes.
-
 /*
  * main() - main program
  */
 
 // Defines the return type of the function
-char *skeleton_poll(const char *hostname);
+char *skeleton_poll(const char *hostname, int socket, const int ntp_port);
 
 // Defines the time servers and print their time
 int main()
 {
+        // Define the port used to communicate with the NTP-server
+        const int ntp_port = 123;
+        // const int test_port = 9000;
+
+        // Declare the socket
+        int sockfd;
+        sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+        if (socket < 0)
+        {
+                perror("Failed to create socket");
+                return -1;
+        }
+
+        // Declare hostnames
         const char *göteborg1 = "gbg1.ntp.netnod.se";
         const char *luleå1 = "lul1.ntp.netnod.se";
         const char *malmö1 = "mmo1.ntp.netnod.se";
         const char *stockholm1 = "sth1.ntp.netnod.se";
         const char *sundsvall1 = "svl1.ntp.netnod.se";
+        // const char *test = "cerebrum.aisociety.se";
 
         // Print both NTP times
-        printf("Time from %s: %s", göteborg1, skeleton_poll(göteborg1));
-        printf("Time from %s: %s", luleå1, skeleton_poll(luleå1));
-        printf("Time from %s: %s", malmö1, skeleton_poll(malmö1));
-        printf("Time from %s: %s", stockholm1, skeleton_poll(stockholm1));
-        printf("Time from %s: %s", sundsvall1, skeleton_poll(sundsvall1));
+        printf("Time from %s: %s\n", göteborg1, skeleton_poll(göteborg1, sockfd, ntp_port));
+        printf("Time from %s: %s\n", luleå1, skeleton_poll(luleå1, sockfd, ntp_port));
+        printf("Time from %s: %s\n", malmö1, skeleton_poll(malmö1, sockfd, ntp_port));
+        printf("Time from %s: %s\n", stockholm1, skeleton_poll(stockholm1, sockfd, ntp_port));
+        printf("Time from %s: %s\n", sundsvall1, skeleton_poll(sundsvall1, sockfd, ntp_port));
+        // printf("Time from %s: %s", test, skeleton_poll(test, sockfd, test_port));
 
+        // Close the socket
+        close(socket);
         return 0;
 }
 
@@ -483,29 +471,16 @@ int main()
 #define NTP_TIMESTAMP_DELTA 2208988800ull
 
 // Polls the time from a server and return the polled time in CT-time
-char *skeleton_poll(const char *hostname)
+char *skeleton_poll(const char *hostname, int socket, const int ntp_port)
 {
-        // Define the port used to communicate with the NTP-server
-        const int ntp_port = 123;
-
-        // Configuration for the first NTP server (sth3.ntp.netnod.se)
         struct hostent *host;
         struct sockaddr_in server_addr;
-        int sockfd;
-        time_t ntp_time;
+        char *formatted_time = malloc(64); // Allocate memory for the formatted time string
 
-        // Get NTP time from the first server
         if ((host = gethostbyname(hostname)) == NULL)
         {
                 herror("gethostbyname");
-                return 1;
-        }
-
-        sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (sockfd < 0)
-        {
-                perror("Failed to create socket");
-                return -1;
+                return NULL;
         }
 
         memset(&server_addr, 0, sizeof(server_addr));
@@ -513,28 +488,37 @@ char *skeleton_poll(const char *hostname)
         server_addr.sin_port = htons(ntp_port);
         memcpy(&server_addr.sin_addr, host->h_addr, host->h_length);
 
-        unsigned char ntp_packet1[48] = {0};
-        ntp_packet1[0] = 0x1B;
+        unsigned char ntp_packet[48] = {0};
+        ntp_packet[0] = 0x1B; // NTP version 4, mode 3 (client)
 
-        if (sendto(sockfd, ntp_packet1, sizeof(ntp_packet1), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+        if (sendto(socket, ntp_packet, sizeof(ntp_packet), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         {
                 perror("Sendto failed");
-                return -1;
+                return NULL;
         }
 
-        if (recv(sockfd, ntp_packet1, sizeof(ntp_packet1), 0) < 0)
+        if (recv(socket, ntp_packet, sizeof(ntp_packet), 0) < 0)
         {
                 perror("Recv failed");
-                return -1;
+                return NULL;
         }
 
-        close(sockfd);
+        // Extract the timestamp parts from the response
+        uint32_t secs = ntohl(*(uint32_t *)&ntp_packet[40]);
+        uint32_t fraction = ntohl(*(uint32_t *)&ntp_packet[44]);
 
-        uint32_t timestamp1 = (uint32_t)ntp_packet1[40] << 24 | (uint32_t)ntp_packet1[41] << 16 | (uint32_t)ntp_packet1[42] << 8 | (uint32_t)ntp_packet1[43];
-        ntp_time = (time_t)(timestamp1 - NTP_TIMESTAMP_DELTA);
+        // Convert NTP time to UNIX time
+        time_t unix_time = (time_t)(secs - NTP_TIMESTAMP_DELTA);
 
-        char *timeInCT = ctime(&ntp_time);
-        return timeInCT;
+        // Convert the fractional part to microseconds (µs)
+        uint32_t microseconds = (uint32_t)((double)fraction / (1LL << 32) * 1e9);
+
+        // Format the time including microseconds
+        struct tm *timeinfo = localtime(&unix_time);
+        strftime(formatted_time, 64, "%Y-%m-%d %H:%M:%S", timeinfo);
+        sprintf(formatted_time + strlen(formatted_time), ".%09u", microseconds, "\n");
+
+        return formatted_time; // Caller should free this memory
 }
 
 /*
