@@ -197,29 +197,6 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
             FreeRTOS_printf(("Failed to receive full packet, received size: %d\n", iReturned));
         }
 
-        // if (iReturned == sizeof(ntp_packet))
-        // {
-        //     FreeRTOS_printf(("\n\n recvieved packet, trying parse \n\n"));
-
-        //     // struct ntp_r *r = malloc(sizeof(ntp_r)); // Allocate memory for the receive packet
-        //     // memset(r, 0, sizeof(ntp_r));             // Clear the receive packet struct
-
-        //     FreeRTOS_printf(("\n\n Random comment 1 \n\n"));
-        //     FreeRTOS_printf(("%lu", pkt->rxTm_s));
-
-        //     uint32_t test = pkt->rxTm_s;
-
-        //     // print test
-        //     FreeRTOS_printf(("\n\n Print test variable: %lu\n\n", test));
-
-        //     FreeRTOS_printf(("\n\n Random comment 2 \n\n"));
-        //     time_t timeInSeconds = (time_t)(pkt->rxTm_s) - 2208988800ull;
-
-        //     FreeRTOS_printf(("\n\n parse ok \n\n"));
-
-        //     FreeRTOS_printf(("Time: %s\n", ctime(&timeInSeconds)));
-        // }
-
         vTaskDelay(x1000ms);
     }
 }
