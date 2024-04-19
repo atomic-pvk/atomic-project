@@ -373,9 +373,9 @@ int skeleton_access(struct r *);                       /* determine skeleton_acc
  * System process
  */
 int main();                    /* main program */
-void clock_select();           /* find the best clocks */
-void clock_update(struct p *); /* update the system clock */
-void clock_combine();          /* combine the offsets */
+void clock_select();           /* find the best clocks and group them in clusters */
+void clock_update(struct p *); /* calls clock_combine() and update the system clock */
+void clock_combine();          /* combine the times to get the best approximation */
 
 /*
  * Local clock process
@@ -516,7 +516,7 @@ char *skeleton_poll(const char *hostname, int socket, const int ntp_port)
         // Format the time including microseconds
         struct tm *timeinfo = localtime(&unix_time);
         strftime(formatted_time, 64, "%Y-%m-%d %H:%M:%S", timeinfo);
-        sprintf(formatted_time + strlen(formatted_time), ".%09u", microseconds, "\n");
+        sprintf(formatted_time + strlen(formatted_time), ".%9u", microseconds, "\n");
 
         return formatted_time; // Caller should free this memory
 }
