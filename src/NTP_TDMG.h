@@ -379,6 +379,9 @@ typedef struct ntp_c
 typedef struct ntp_packet
 {
     uint8_t li_vn_mode;      // Eight bits. li, vn, and mode.
+                             // li.   Two bits.   Leap indicator.
+                             // vn.   Three bits. Version number of the protocol.
+                             // mode. Three bits. Client will pick mode 3 for client.
     uint8_t stratum;         // Eight bits. Stratum level of the local clock.
     uint8_t poll;            // Eight bits. Maximum interval between successive messages.
     uint8_t precision;       // Eight bits. Precision of the local clock.
@@ -393,7 +396,6 @@ typedef struct ntp_packet
     uint32_t rxTm_f;         // 32 bits. Received time-stamp fraction of a second.
     uint32_t txTm_s;         // 32 bits. Transmit time-stamp seconds.
     uint32_t txTm_f;         // 32 bits. Transmit time-stamp fraction of a second.
-
 } ntp_packet;
 
 #endif

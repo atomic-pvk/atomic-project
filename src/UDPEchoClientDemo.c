@@ -1,16 +1,14 @@
+#include "FreeRTOS_IP.h"
 #include "UDPEchoClientDemo.h"
 
 #include "NTP_main_utility.h"
 #include "NTP_peer.h"
+#include "FreeRTOS_Sockets.h"
 
 static void vUDPSendUsingStandardInterface(void *pvParameters);
 
-uint32_t NTP1_server_IP = 0;
-Socket_t xSocket = NULL;
-struct freertos_sockaddr *xDestinationAddress = NULL;
-
-void vStartUDPEchoClientTasks_SingleTasks1(uint16_t usTaskStackSize,
-                                           UBaseType_t uxTaskPriority)
+void vStartUDPEchoClientTasks_SingleTasks(uint16_t usTaskStackSize,
+                                          UBaseType_t uxTaskPriority)
 {
     BaseType_t x;
 
@@ -26,31 +24,12 @@ void vStartUDPEchoClientTasks_SingleTasks1(uint16_t usTaskStackSize,
 
 static void vUDPSendUsingStandardInterface(void *pvParameters)
 {
-    /* Create the socket. */
-    xSocket = FreeRTOS_socket(FREERTOS_AF_INET4,   /* Used for IPv4 UDP socket. */
-                                                   /* FREERTOS_AF_INET6 can be used for IPv6 UDP socket. */
-                              FREERTOS_SOCK_DGRAM, /*FREERTOS_SOCK_DGRAM for UDP.*/
-                              FREERTOS_IPPROTO_UDP);
+    Socket_t xSocket;
+    struct freertos_sockaddr xDestinationAddress;
+    uint8_t cString[50];
+    uint32_t ulCount = 0UL;
+    const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
 
-    /* Check the socket was created. */
-    configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
-
-    /* get the IP of the NTP server with FreeRTOS_gethostbyname */
-    NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
-
-    if (NTP1_server_IP == 0)
-    {
-        printf("DNS lookup failed. ");
-        return;
-    }
-
-    /* Setup destination address */
-    xDestinationAddress->sin_family = FREERTOS_AF_INET4;         // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
-    xDestinationAddress->sin_address.ulIP_IPv4 = NTP1_server_IP; // destination IP
-    xDestinationAddress->sin_port = FreeRTOS_htons(123);         // dest port
-    xDestinationAddress->sin_len = (uint8_t)sizeof(struct freertos_sockaddr);
-
-    // struct ntp_p *p; /* peer structure pointer */
     struct ntp_r *r;
     r = malloc(sizeof(ntp_r));
     struct ntp_x *x;
@@ -85,85 +64,162 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
 
     memset(&c, sizeof(ntp_c), 0);
 
-    xmit_packet(x);
-    FreeRTOS_printf(("\n\n 3 \n\n"));
-    r = recv_packet();
-    r->rec = FreeRTOS_ntohl(r->rec);
-    time_t timeInSeconds = (time_t)(r->rec & 0xFFFF0000) - 2208988800ull;
+    // xmit_packet(x);
 
-    FreeRTOS_printf(("Time: %s\n", ctime(&timeInSeconds)));
-    // r->dst = get_time();
-    // receive(r, s, c);
+    /* Send strings to port 9000 on IP address 192.168.69.2 (replace with suitable IP at run time) */
+    /* use https://github.com/FreeRTOS/FreeRTOS-Libraries-Integration-Tests/tree/main/tools/echo_server for udp echo server */
+    memset(&xDestinationAddress, 0, sizeof(xDestinationAddress));
+    xDestinationAddress.sin_family = FREERTOS_AF_INET4; // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
+    xDestinationAddress.sin_address.ulIP_IPv4 = FreeRTOS_inet_addr("45.132.235.217");
+    xDestinationAddress.sin_port = FreeRTOS_htons(9000); // outgoing port
+    xDestinationAddress.sin_len = (uint8_t)sizeof(xDestinationAddress);
 
-    // TODO freq file
-    // if (/* frequency file */ 0)
-    // {
-    //     c.freq = /* freq */ 0;
-    //     rstclock(FSET, 0, 0);
-    // }
-    // else
-    // {
-    //     rstclock(NSET, 0, 0);
-    // }
-    c.jitter = LOG2D(s.precision);
+    ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
 
-    // while (/* mobilize configurated associations */ 1)
-    // {
-    // p = mobilize(IPADDR, IPADDR, VERSION, MODE, KEYID,
-    //              P_FLAGS);
-    // }
+    memset(pkt, 0, sizeof(ntp_packet)); // Clear the packet struct
 
-    // while (0)
-    // {
-    // }
+    // Setting li_vn_mode combining leap, version, and mode
+    pkt->li_vn_mode = (x->leap & 0x03) << 6 | (x->version & 0x07) << 3 | (x->mode & 0x07);
 
-    // Socket_t xSocket;
-    // struct freertos_sockaddr xDestinationAddress;
-    // uint8_t cString[50];
-    // uint32_t ulCount = 0UL;
-    // const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
+    // Directly mapping other straightforward fields
+    pkt->stratum = x->stratum;
+    pkt->poll = x->poll;
+    pkt->precision = x->precision;
 
-    // /* Send strings to port 9000 on IP address 192.168.69.2 (replace with suitable IP at run time) */
-    // /* use https://github.com/FreeRTOS/FreeRTOS-Libraries-Integration-Tests/tree/main/tools/echo_server for udp echo server */
-    // memset(&xDestinationAddress, 0, sizeof(xDestinationAddress));
-    // xDestinationAddress.sin_family = FREERTOS_AF_INET4; // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
-    // xDestinationAddress.sin_address.ulIP_IPv4 = FreeRTOS_inet_addr("192.168.69.2");
-    // xDestinationAddress.sin_port = FreeRTOS_htons(9000); // outgoing port
-    // xDestinationAddress.sin_len = (uint8_t)sizeof(xDestinationAddress);
+    // Assuming simple direct assignments for demonstration purposes
+    // Transformations might be necessary depending on actual data types and requirements
+    pkt->refId = x->srcaddr; // Just an example mapping
 
-    // /* Create the socket. */
-    // xSocket = FreeRTOS_socket(FREERTOS_AF_INET4,   /* Used for IPv4 UDP socket. */
-    //                                                /* FREERTOS_AF_INET6 can be used for IPv6 UDP socket. */
-    //                           FREERTOS_SOCK_DGRAM, /*FREERTOS_SOCK_DGRAM for UDP.*/
-    //                           FREERTOS_IPPROTO_UDP);
+    // Serialize the packet to be ready for sending
+    unsigned char buffer[sizeof(ntp_packet)];
+    memcpy(buffer, pkt, sizeof(ntp_packet)); // Here the packet is fully prepared and can be sent
 
-    // /* Check the socket was created. */
-    // configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
+    /* Create the socket. */
+    xSocket = FreeRTOS_socket(FREERTOS_AF_INET4,   /* Used for IPv4 UDP socket. */
+                                                   /* FREERTOS_AF_INET6 can be used for IPv6 UDP socket. */
+                              FREERTOS_SOCK_DGRAM, /*FREERTOS_SOCK_DGRAM for UDP.*/
+                              FREERTOS_IPPROTO_UDP);
 
-    // /* NOTE: FreeRTOS_bind() is not called.  This will only work if
-    // ipconfigALLOW_SOCKET_SEND_WITHOUT_BIND is set to 1 in FreeRTOSIPConfig.h. */
+    /* Check the socket was created. */
+    configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
 
-    // for (;;)
-    // {
-    //     /* Create the string that is sent. */
-    // sprintf(cString,
-    //             "Standard send message number %lurn",
-    //             ulCount);
+    /* NOTE: FreeRTOS_bind() is not called.  This will only work if
+    ipconfigALLOW_SOCKET_SEND_WITHOUT_BIND is set to 1 in FreeRTOSIPConfig.h. */
 
-    //     /* Send the string to the UDP socket.  ulFlags is set to 0, so the standard
-    //     semantics are used.  That means the data from cString[] is copied
-    //     into a network buffer inside FreeRTOS_sendto(), and cString[] can be
-    //     reused as soon as FreeRTOS_sendto() has returned. */
-    //     FreeRTOS_sendto(xSocket,
-    //                     cString,
-    //                     strlen(cString),
-    //                     0,
-    //                     &xDestinationAddress,
-    //                     sizeof(xDestinationAddress));
+    int one = 1;
+    for (;;)
+    {
+        /* Create the string that is sent. */
+        sprintf(cString,
+                "Standard send message number %lurn",
+                ulCount);
 
-    //     ulCount++;
+        int32_t iReturned1;
 
-    //     /* Wait until it is time to send again. */
-    //     vTaskDelay(x1000ms);
-    // }
+        /* Send the string to the UDP socket.  ulFlags is set to 0, so the standard
+        semantics are used.  That means the data from cString[] is copied
+        into a network buffer inside FreeRTOS_sendto(), and cString[] can be
+        reused as soon as FreeRTOS_sendto() has returned. */
+        iReturned1 = FreeRTOS_sendto(xSocket,
+                                     buffer,
+                                     sizeof(buffer),
+                                     0,
+                                     &xDestinationAddress,
+                                     sizeof(xDestinationAddress));
+
+        if (iReturned1 == sizeof(buffer))
+        {
+            FreeRTOS_printf(("\n\nSent packet\n\n"));
+        }
+        else
+        {
+            FreeRTOS_printf(("\nFailed to send packet\n"));
+        }
+
+        ulCount++;
+
+        /* Wait until it is time to send again. */
+        //    vTaskDelay(x1000ms);
+
+        ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
+        memset(pkt, 0, sizeof(ntp_packet));           // Clear the packet struct
+        unsigned char bufferRecv[sizeof(ntp_packet)];
+        int32_t iReturned;
+        struct freertos_sockaddr xSourceAddress;
+        socklen_t xAddressLength = sizeof(xSourceAddress);
+
+        iReturned = FreeRTOS_recvfrom(xSocket,
+                                      bufferRecv,
+                                      sizeof(ntp_packet),
+                                      0,
+                                      &xSourceAddress,
+                                      &xAddressLength);
+
+        if (iReturned == sizeof(ntp_packet))
+        {
+            FreeRTOS_printf(("Received packet size is correct\n"));
+        }
+        else
+        {
+            FreeRTOS_printf(("\n\n\n\n\n\nFailed to receive full packet, received size: %d\n", iReturned));
+        }
+
+        if (iReturned == sizeof(ntp_packet))
+        {
+            FreeRTOS_printf(("Received packet size is correct\n"));
+
+            // Convert the timestamp from network byte order to host byte order
+            // Assuming bufferRecv points to an unsigned char array containing the data.
+
+            uint32_t time = FreeRTOS_ntohl(
+                (bufferRecv[31] << 24) |
+                (bufferRecv[32] << 16) |
+                (bufferRecv[33] << 8) |
+                bufferRecv[34]);
+
+            // print the time integer
+            FreeRTOS_printf(("Time in integer format only: %lu\n", time));
+
+            // uint32_t time = FreeRTOS_ntohl(((*(uint32_t*)bufferRecv) >> 12) & 0xFFFF);
+
+            // uint32_t time = FreeRTOS_ntohl(*((uint32_t *)(bufferRecv + 12)));
+            // one++;
+
+            // FreeRTOS_printf(("time thing: %lu\n", time));
+
+            // Convert NTP time (seconds since 1900) to UNIX time (seconds since 1970)
+            time_t timeInSeconds = (time_t)(time)-2208988800ull;
+
+            FreeRTOS_printf(("Time when converted using ctime: %s\n", ctime(&timeInSeconds)));
+        }
+        else
+        {
+            FreeRTOS_printf(("Failed to receive full packet, received size: %d\n", iReturned));
+        }
+
+        // if (iReturned == sizeof(ntp_packet))
+        // {
+        //     FreeRTOS_printf(("\n\n recvieved packet, trying parse \n\n"));
+
+        //     // struct ntp_r *r = malloc(sizeof(ntp_r)); // Allocate memory for the receive packet
+        //     // memset(r, 0, sizeof(ntp_r));             // Clear the receive packet struct
+
+        //     FreeRTOS_printf(("\n\n Random comment 1 \n\n"));
+        //     FreeRTOS_printf(("%lu", pkt->rxTm_s));
+
+        //     uint32_t test = pkt->rxTm_s;
+
+        //     // print test
+        //     FreeRTOS_printf(("\n\n Print test variable: %lu\n\n", test));
+
+        //     FreeRTOS_printf(("\n\n Random comment 2 \n\n"));
+        //     time_t timeInSeconds = (time_t)(pkt->rxTm_s) - 2208988800ull;
+
+        //     FreeRTOS_printf(("\n\n parse ok \n\n"));
+
+        //     FreeRTOS_printf(("Time: %s\n", ctime(&timeInSeconds)));
+        // }
+
+        vTaskDelay(x1000ms);
+    }
 }

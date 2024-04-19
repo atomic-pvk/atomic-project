@@ -83,6 +83,11 @@ struct ntp_r /* receive packet pointer*/
     *
     recv_packet()
 {
+    Socket_t xSocket = FreeRTOS_socket(FREERTOS_AF_INET4,   /* Used for IPv4 UDP socket. */
+                                                            /* FREERTOS_AF_INET6 can be used for IPv6 UDP socket. */
+                                       FREERTOS_SOCK_DGRAM, /*FREERTOS_SOCK_DGRAM for UDP.*/
+                                       FREERTOS_IPPROTO_UDP);
+
     FreeRTOS_printf(("\n\n in here 1\n\n"));
     ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
     memset(pkt, 0, sizeof(ntp_packet));           // Clear the packet struct
@@ -121,6 +126,35 @@ void xmit_packet(
     struct ntp_x *x /* transmit packet pointer */
 )
 {
+    Socket_t xSocket;
+    xSocket = FreeRTOS_socket(FREERTOS_AF_INET4,   /* Used for IPv4 UDP socket. */
+                                                            /* FREERTOS_AF_INET6 can be used for IPv6 UDP socket. */
+                                       FREERTOS_SOCK_DGRAM, /*FREERTOS_SOCK_DGRAM for UDP.*/
+                                       FREERTOS_IPPROTO_UDP);
+
+    /* Check the socket was created. */
+    configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
+
+    /* get the IP of the NTP server with FreeRTOS_gethostbyname */
+    // uint32_t NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
+    uint32_t NTP1_server_IP = FreeRTOS_inet_addr("45.132.235.217");
+
+    // if (NTP1_server_IP == 0)
+    // {
+    //     printf("DNS lookup failed. ");
+    //     return;
+    // }
+
+    
+
+    /* Setup destination address */
+    struct freertos_sockaddr xDestinationAddress;
+    memset(&xDestinationAddress, 0, sizeof(xDestinationAddress));
+    xDestinationAddress.sin_family = FREERTOS_AF_INET4;         // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
+    xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP; // destination IP
+    xDestinationAddress.sin_port = FreeRTOS_htons(9000);         // dest port
+    xDestinationAddress.sin_len = (uint8_t)sizeof(xDestinationAddress);
+
     /* setup ntp_packet *pkt */
     ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
 
@@ -158,16 +192,23 @@ void xmit_packet(
     reused as soon as FreeRTOS_sendto() has returned. */
     FreeRTOS_printf(("\n\n Sending packet... \n\n"));
 
+    // i am retarded
+    uint8_t cString[50];
+
+    sprintf(cString, "test");
+
+
     int32_t iReturned;
 
-    iReturned = FreeRTOS_sendto(xSocket,
-                                buffer,
-                                sizeof(buffer),
-                                0,
-                                xDestinationAddress,
-                                sizeof(xDestinationAddress));
+     FreeRTOS_sendto(xSocket,
+                        cString,
+                        strlen(cString),
+                        0,
+                        &xDestinationAddress,
+                        sizeof(xDestinationAddress));
 
-    if (iReturned == sizeof(buffer))
+
+    if (iReturned == strlen(cString))
     {
         FreeRTOS_printf(("\n\n Sent packet \n\n"));
     }
