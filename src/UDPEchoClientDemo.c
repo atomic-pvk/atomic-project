@@ -35,16 +35,14 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
     /* Check the socket was created. */
     configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
 
-    FreeRTOS_printf(("\n\n 1 \n\n"));
-
     /* get the IP of the NTP server with FreeRTOS_gethostbyname */
-    // NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
+    NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
 
-    // if (NTP1_server_IP == 0)
-    // {
-    //     printf("DNS lookup failed. ");
-    //     return;
-    // }
+    if (NTP1_server_IP == 0)
+    {
+        printf("DNS lookup failed. ");
+        return;
+    }
 
     /* Setup destination address */
     xDestinationAddress->sin_family = FREERTOS_AF_INET4;         // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
@@ -60,12 +58,9 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
     struct ntp_s s;
     struct ntp_c c;
 
-    FreeRTOS_printf(("\n\n 2 \n\n"));
-
     memset(r, 0, sizeof(ntp_r));
     r->dstaddr = DSTADDR;
     r->version = VERSION;
-    FreeRTOS_printf(("\n\n 3 \n\n"));
     r->leap = NOSYNC;
     r->mode = MODE;
     r->stratum = MAXSTRAT;
@@ -91,9 +86,14 @@ static void vUDPSendUsingStandardInterface(void *pvParameters)
     memset(&c, sizeof(ntp_c), 0);
 
     xmit_packet(x);
+    FreeRTOS_printf(("\n\n 3 \n\n"));
     r = recv_packet();
-    r->dst = get_time();
-    receive(r, s, c);
+    r->rec = FreeRTOS_ntohl(r->rec);
+    time_t timeInSeconds = (time_t)(r->rec & 0xFFFF0000) - 2208988800ull;
+
+    FreeRTOS_printf(("Time: %s\n", ctime(&timeInSeconds)));
+    // r->dst = get_time();
+    // receive(r, s, c);
 
     // TODO freq file
     // if (/* frequency file */ 0)

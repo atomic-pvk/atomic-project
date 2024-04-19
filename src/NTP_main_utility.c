@@ -83,7 +83,35 @@ struct ntp_r /* receive packet pointer*/
     *
     recv_packet()
 {
-    return (/* receive packet r */ 0);
+    FreeRTOS_printf(("\n\n in here 1\n\n"));
+    ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
+    memset(pkt, 0, sizeof(ntp_packet));           // Clear the packet struct
+    int32_t iReturned;
+    struct freertos_sockaddr xSourceAddress;
+    socklen_t xAddressLength = sizeof(xSourceAddress);
+
+    FreeRTOS_printf(("\n\n in here \n\n"));
+
+    iReturned = FreeRTOS_recvfrom(xSocket,
+                                  &pkt,
+                                  sizeof(pkt),
+                                  0,
+                                  &xSourceAddress,
+                                  &xAddressLength);
+
+    if (iReturned > 0)
+    {
+        struct ntp_r *r = malloc(sizeof(ntp_r)); // Allocate memory for the receive packet
+        memset(r, 0, sizeof(ntp_r));             // Clear the receive packet struct
+
+        memcpy(r, pkt, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
+
+        return r;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 /*
@@ -128,12 +156,25 @@ void xmit_packet(
     semantics are used.  That means the data from cString[] is copied
     into a network buffer inside FreeRTOS_sendto(), and cString[] can be
     reused as soon as FreeRTOS_sendto() has returned. */
-    FreeRTOS_sendto(xSocket,
-                    buffer,
-                    sizeof(buffer),
-                    0,
-                    xDestinationAddress,
-                    sizeof(xDestinationAddress));
+    FreeRTOS_printf(("\n\n Sending packet... \n\n"));
+
+    int32_t iReturned;
+
+    iReturned = FreeRTOS_sendto(xSocket,
+                                buffer,
+                                sizeof(buffer),
+                                0,
+                                xDestinationAddress,
+                                sizeof(xDestinationAddress));
+
+    if (iReturned == sizeof(buffer))
+    {
+        FreeRTOS_printf(("\n\n Sent packet \n\n"));
+    }
+    else
+    {
+        FreeRTOS_printf(("\n\n Failed to send packet \n\n"));
+    }
 
     /* send packet x */
 }
