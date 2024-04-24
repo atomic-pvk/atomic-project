@@ -1,4 +1,4 @@
-#include "UDPEchoClientDemo.h"
+#include "NTPTask.h"
 #include "NTP_main_utility.h"
 
 static struct ntp_p *p; /* peer structure pointer */

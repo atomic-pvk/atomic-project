@@ -42,7 +42,7 @@
 /* Demo application includes. */
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
-#include "UDPEchoClientDemo.h"
+#include "NTPTask.h"
 #include "CMSIS/CMSDK_CM3.h"
 
 /* Echo client task parameters  */
@@ -233,7 +233,7 @@ void vApplicationIPNetworkEventHook(eIPCallbackEvent_t eNetworkEvent)
             {
                 // vStartTCPEchoClientTasks_SingleTasks(mainECHO_CLIENT_TASK_STACK_SIZE,
                 //                                      mainECHO_CLIENT_TASK_PRIORITY);
-                vStartUDPEchoClientTasks_SingleTasks(mainECHO_CLIENT_TASK_STACK_SIZE,
+                vStartNTPClientTasks_SingleTasks(mainECHO_CLIENT_TASK_STACK_SIZE,
                                                       mainECHO_CLIENT_TASK_PRIORITY);
             }
 #endif /* mainCREATE_TCP_ECHO_TASKS_SINGLE */

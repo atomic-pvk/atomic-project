@@ -1,22 +1,22 @@
-#include "UDPEchoClientDemo.h"
+#include "NTPTask.h"
 
 #include "NTP_main_utility.h"
 #include "NTP_peer.h"
 
-static void vUDPSendUsingStandardInterface(void *pvParameters);
+static void vNTPTaskSendUsingStandardInterface(void *pvParameters);
 
 uint32_t NTP1_server_IP;
 Socket_t xSocket;
 struct freertos_sockaddr xDestinationAddress;
 
-void vStartUDPEchoClientTasks_SingleTasks(uint16_t usTaskStackSize,
+void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize,
                                           UBaseType_t uxTaskPriority)
 {
     BaseType_t x;
 
     /* Create the echo client tasks. */
 
-    xTaskCreate(vUDPSendUsingStandardInterface, /* The function that implements the task. */
+    xTaskCreate(vNTPTaskSendUsingStandardInterface, /* The function that implements the task. */
                 "Echo0",                        /* Just a text name for the task to aid debugging. */
                 usTaskStackSize,                /* The stack size is defined in FreeRTOSIPConfig.h. */
                 (void *)x,                      /* The task parameter, not used in this case. */
@@ -24,7 +24,7 @@ void vStartUDPEchoClientTasks_SingleTasks(uint16_t usTaskStackSize,
                 NULL);                          /* The task handle is not used. */
 }
 
-static void vUDPSendUsingStandardInterface(void *pvParameters)
+static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 {
     /* Create the socket. */
     xSocket = FreeRTOS_socket(FREERTOS_AF_INET4,   /* Used for IPv4 UDP socket. */
