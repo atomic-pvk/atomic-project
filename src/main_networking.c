@@ -42,7 +42,6 @@
 /* Demo application includes. */
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
-#include "TCPEchoClient_SingleTasks.h"
 #include "UDPEchoClientDemo.h"
 #include "CMSIS/CMSDK_CM3.h"
 

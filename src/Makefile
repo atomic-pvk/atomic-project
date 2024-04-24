@@ -19,7 +19,6 @@ SOURCE_FILES += startup.c
 SOURCE_FILES += syscalls.c
 SOURCE_FILES += main.c
 SOURCE_FILES += main_networking.c
-SOURCE_FILES += TCPEchoClient_SingleTasks.c
 SOURCE_FILES += UDPEchoClientDemo.c
 SOURCE_FILES += NTP_main_utility.c
 SOURCE_FILES += NTP_peer.c
