@@ -42,7 +42,7 @@ G Global Constants
  * The precision and poll interval fields are signed log2 seconds.
  */
 
-typedef uint64_t tstamp; /* NTP timestamp format */
+typedef uint64_t tstamp; /* NTP timestamp format, 32 first bits reprsent seconds, secons 32 bits represent fractions */
 typedef uint32_t tdist;  /* NTP short format */
 
 typedef uint32_t ipaddr; /* IPv4 or IPv6 address */
