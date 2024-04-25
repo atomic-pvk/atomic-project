@@ -24,10 +24,13 @@ void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize,
                 NULL);                              /* The task handle is not used. */
 }
 
+#define NUM_NTPSERVERS 5
+
 static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 {
     // setup sleep
     const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
+    const TickType_t x10000ms = 10000UL / portTICK_PERIOD_MS;
 
     /* Create the socket. */
     xSocket = FreeRTOS_socket(FREERTOS_AF_INET4,   /* Used for IPv4 UDP socket. */
@@ -38,21 +41,38 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     /* Check the socket was created. */
     configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
 
-    uint8_t DNSok = 0;
-    while (DNSok == 0) {
-        /* get the IP of the NTP server with FreeRTOS_gethostbyname */
-        NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
+    // Array of hostname strings
+    const char *pcHostNames[NUM_NTPSERVERS] = {
+        "sth1.ntp.se",
+        "sth2.ntp.se",
+        "svl1.ntp.se",
+        "mmo1.ntp.se",
+        "lul1.ntp.se"};
 
-        if (NTP1_server_IP == 0)
+    uint32_t NTP_server_IPs[NUM_NTPSERVERS];
+    uint8_t DNSok;
+
+    for (int i = 0; i < NUM_NTPSERVERS; i++)
+    {
+        DNSok = 0;
+        while (DNSok == 0)
         {
-            printf("DNS lookup failed, trying again in 1 second. ");
-            vTaskDelay(x1000ms);
+            /* get the IP of the NTP server with FreeRTOS_gethostbyname */
+            NTP_server_IPs[i] = FreeRTOS_gethostbyname(pcHostNames[i]);
+
+            if (NTP_server_IPs[i] == 0)
+            {
+                FreeRTOS_printf(("\n\nDNS lookup failed, trying again in 1 second. \n\n"));
+                vTaskDelay(x1000ms);
+            }
+            else
+            {
+                // print successful and the hostname
+                FreeRTOS_printf(("\n\nDNS lookup successful for %s\n\n", pcHostNames[i]));
+                DNSok = 1;
+            }
         }
-        else
-        {
-            DNSok = 1;
-        }
-    }  
+    }
 
     /* Setup destination address */
     xDestinationAddress.sin_family = FREERTOS_AF_INET4;         // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
@@ -95,23 +115,39 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
     memset(&c, sizeof(ntp_c), 0);
 
+    // stupid but just test
+    free(r);
+
     uint32_t ulCount = 0UL;
     for (;;)
     {
-        xmit_packet(x);
-        r = recv_packet();
-        // r->rec = FreeRTOS_ntohl(r->rec);
-        // time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);
+        for (int i = 0; i < NUM_NTPSERVERS; i++)
+        {
+            // set the destination IP to the current NTP server
+            xDestinationAddress.sin_address.ulIP_IPv4 = NTP_server_IPs[i];
 
-        // print rec in time, it is 64 bits where 32 first bits are seconds and 32 last bits are fractions of seconds
-        time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
-        time_t frac = (time_t)(r->rec & 0xFFFFFFFF);
-        FreeRTOS_printf(("\n\n Time: %s.%d\n", ctime(&timeInSeconds), frac));
+            // send packet
+            xmit_packet(x);
+            r = malloc(sizeof(ntp_r));
+            r = recv_packet();
+            // r->rec = FreeRTOS_ntohl(r->rec);
+            // time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);
 
-        TickType_t test = xTaskGetTickCount();
-        FreeRTOS_printf(("\n\n TICKS: %d\n", test));
+            // print rec in time, it is 64 bits where 32 first bits are seconds and 32 last bits are fractions of seconds
+            time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
+            time_t frac = (time_t)(r->rec & 0xFFFFFFFF);
+            FreeRTOS_printf(("\n\n Time according to %s: %s.%d\n", pcHostNames[i], ctime(&timeInSeconds), frac));
 
-        // FreeRTOS_printf(("\n\n Time: %s\n", ctime(&timeInSeconds)));
-        vTaskDelay(x1000ms);
+            TickType_t test = xTaskGetTickCount();
+            FreeRTOS_printf(("\n\n TICKS for %s: %d\n", pcHostNames[i], test));
+
+            // free the memory
+            free(r);
+        }
+
+        FreeRTOS_printf(("\n\nSleeping for 10 seconds before next get\n\n"));
+
+        // sleep for 10 seconds
+        vTaskDelay(x10000ms);
     }
 }
