@@ -26,6 +26,9 @@ void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize,
 
 static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 {
+    // setup sleep
+    const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
+
     /* Create the socket. */
     xSocket = FreeRTOS_socket(FREERTOS_AF_INET4,   /* Used for IPv4 UDP socket. */
                                                    /* FREERTOS_AF_INET6 can be used for IPv6 UDP socket. */
@@ -36,14 +39,15 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
 
     /* get the IP of the NTP server with FreeRTOS_gethostbyname */
-    // NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
-    NTP1_server_IP = FreeRTOS_inet_addr("194.58.200.20");
+    NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
+    // NTP1_server_IP = FreeRTOS_inet_addr("194.58.200.20");
 
-    // if (NTP1_server_IP == 0)
-    // {
-    //     printf("DNS lookup failed. ");
-    //     return;
-    // }
+    while (NTP1_server_IP == 0)
+    {
+        printf("DNS lookup failed, trying again in 1 second. ");
+        vTaskDelay(x1000ms);
+        NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
+    }
 
     /* Setup destination address */
     xDestinationAddress.sin_family = FREERTOS_AF_INET4;         // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
@@ -87,7 +91,6 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     memset(&c, sizeof(ntp_c), 0);
 
     uint32_t ulCount = 0UL;
-    const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
     for (;;)
     {
         xmit_packet(x);

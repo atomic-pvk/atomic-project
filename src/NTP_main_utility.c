@@ -81,6 +81,37 @@ void FreeRTOS_ntohl_array_32(uint32_t *array, size_t length)
     }
 }
 
+void create_ntp_r(struct ntp_r *r, ntp_packet *pkt)
+{
+    r->srcaddr = 0; // Set to zero if not known
+    r->dstaddr = 0; // Set to zero if not known
+
+    // Extract version, leap, and mode from li_vn_mode
+    r->version = (pkt->li_vn_mode >> 3) & 0x07; // Extract bits 3-5
+    r->leap = (pkt->li_vn_mode >> 6) & 0x03;    // Extract bits 6-7
+    r->mode = pkt->li_vn_mode & 0x07;           // Extract bits 0-2
+
+    r->stratum = (char)pkt->stratum;
+    r->poll = (char)pkt->poll;
+    r->precision = (s_char)pkt->precision;
+
+    r->rootdelay = (tdist)pkt->rootDelay;
+    r->rootdisp = (tdist)pkt->rootDispersion;
+
+    r->refid = (char)pkt->refId; // May require handling depending on refId's nature
+
+    // Combine seconds and fractions into a single 64-bit NTP timestamp
+    r->reftime = ((tstamp)pkt->refTm_s << 32) | pkt->refTm_f;
+    r->org = ((tstamp)pkt->origTm_s << 32) | pkt->origTm_f;
+    r->rec = ((tstamp)pkt->rxTm_s << 32) | pkt->rxTm_f;
+    r->xmt = ((tstamp)pkt->txTm_s << 32) | pkt->txTm_f;
+
+    // Set crypto fields to 0 or default values
+    r->keyid = 0;
+    r->mac = 0; // Zero out the MAC digest
+    r->dst = 0; // Zero out the dst timestamp
+}
+
 /*
  * Kernel interface to transmit and receive packets.  Details are
  * deliberately vague and depend on the operating system.
@@ -125,34 +156,7 @@ struct ntp_r /* receive packet pointer*/
 
         // do conversion
         // ntp_packet -> ntp_r
-
-        r->srcaddr = 0; // Set to zero if not known
-        r->dstaddr = 0; // Set to zero if not known
-
-        // Extract version, leap, and mode from li_vn_mode
-        r->version = (pkt->li_vn_mode >> 3) & 0x07; // Extract bits 3-5
-        r->leap = (pkt->li_vn_mode >> 6) & 0x03;    // Extract bits 6-7
-        r->mode = pkt->li_vn_mode & 0x07;           // Extract bits 0-2
-
-        r->stratum = (char)pkt->stratum;
-        r->poll = (char)pkt->poll;
-        r->precision = (s_char)pkt->precision;
-
-        r->rootdelay = (tdist)pkt->rootDelay;
-        r->rootdisp = (tdist)pkt->rootDispersion;
-
-        r->refid = (char)pkt->refId; // May require handling depending on refId's nature
-
-        // Combine seconds and fractions into a single 64-bit NTP timestamp
-        r->reftime = ((tstamp)pkt->refTm_s << 32) | pkt->refTm_f;
-        r->org = ((tstamp)pkt->origTm_s << 32) | pkt->origTm_f;
-        r->rec = ((tstamp)pkt->rxTm_s << 32) | pkt->rxTm_f;
-        r->xmt = ((tstamp)pkt->txTm_s << 32) | pkt->txTm_f;
-
-        // Set crypto fields to 0 or default values
-        r->keyid = 0;
-        r->mac = 0; // Zero out the MAC digest
-        r->dst = 0; // Zero out the dst timestamp
+        create_ntp_r(r, pkt);
 
         return r;
     }
