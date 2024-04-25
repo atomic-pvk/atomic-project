@@ -43,7 +43,7 @@ G Global Constants
  */
 
 typedef uint64_t tstamp; /* NTP timestamp format */
-typedef uint16_t tdist;        /* NTP short format */
+typedef uint32_t tdist;  /* NTP short format */
 
 typedef uint32_t ipaddr; /* IPv4 or IPv6 address */
 // TODO use freertos ipaddr
@@ -200,8 +200,11 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
  */
 typedef struct ntp_r
 {
+    // Address info, wait with setting
     uint32_t srcaddr; /* source (remote) address, change from ipaddr to uint32_t */
     uint32_t dstaddr; /* destination (local) address, change from ipaddr to uint32_t */
+
+    //  To implement/initiate
     char version;     /* version number */
     char leap;        /* leap indicator */
     char mode;        /* mode */
@@ -215,9 +218,11 @@ typedef struct ntp_r
     tstamp org;       /* origin timestamp */
     tstamp rec;       /* receive timestamp */
     tstamp xmt;       /* transmit timestamp */
-    int keyid;        /* key ID */
-    digest mac;       /* message digest */
-    tstamp dst;       /* destination timestamp */
+
+    // Crypto stuff, wait with
+    int keyid;  /* key ID */
+    digest mac; /* message digest */
+    tstamp dst; /* destination timestamp */
 } ntp_r;
 
 /*

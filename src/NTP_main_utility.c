@@ -73,6 +73,14 @@ md5(
 
 // A.3.  Kernel Input/Output Interface
 
+void FreeRTOS_ntohl_array_32(uint32_t *array, size_t length)
+{
+    for (size_t i = 0; i < length; i++)
+    {
+        array[i] = FreeRTOS_ntohl(array[i]);
+    }
+}
+
 /*
  * Kernel interface to transmit and receive packets.  Details are
  * deliberately vague and depend on the operating system.
@@ -101,22 +109,33 @@ struct ntp_r /* receive packet pointer*/
 
     if (iReturned > 0)
     {
+        // TODO: Clock local time when packet is recieved (tstamp dst)
+
         struct ntp_r *r = malloc(sizeof(ntp_r)); // Allocate memory for the receive packet
         memset(r, 0, sizeof(ntp_r));             // Clear the receive packet struct
 
-        memcpy(r, bufferRecv, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
-        FreeRTOS_printf(("Packet received\n"));
+        // Flip the bits
 
-        uint32_t time = FreeRTOS_ntohl(
-            (bufferRecv[35] << 24) |
-            (bufferRecv[34] << 16) |
-            (bufferRecv[33] << 8) |
-            bufferRecv[32]);
+        // Usage
+        uint32_t temp[12]; // 384-bit data broken down into 32-bit chunks
+        memcpy(temp, bufferRecv, sizeof(ntp_packet));
+        FreeRTOS_ntohl_array_32(temp, 12);
+        memcpy(pkt, temp, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
+        FreeRTOS_printf(("Packet received\n"));
+        FreeRTOS_printf(("\n\n rxTm_s: %d\n\n", pkt->rxTm_s));
+        time_t timeInSeconds = (time_t)(pkt->rxTm_s - 2208988800ull);
+        FreeRTOS_printf(("\n\n Time: %s\n", ctime(&timeInSeconds)));
+
+        // uint32_t time = FreeRTOS_ntohl(
+        //     (bufferRecv[35] << 24) |
+        //     (bufferRecv[34] << 16) |
+        //     (bufferRecv[33] << 8) |
+        //     bufferRecv[32]);
 
         // memcpy(r, pkt, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
-        r->rec = time;
+        // r->rec = time;
 
-        return r;
+        return 0;
     }
     else
     {

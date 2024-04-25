@@ -36,7 +36,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
 
     /* get the IP of the NTP server with FreeRTOS_gethostbyname */
-    // NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
+    //NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
     NTP1_server_IP = FreeRTOS_inet_addr("194.58.200.20");
 
     // if (NTP1_server_IP == 0)
@@ -93,9 +93,9 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
         xmit_packet(x);
         r = recv_packet();
         // r->rec = FreeRTOS_ntohl(r->rec);
-        time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);
+        // time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);
 
-        FreeRTOS_printf(("\n\n Time: %s\n", ctime(&timeInSeconds)));
+        // FreeRTOS_printf(("\n\n Time: %s\n", ctime(&timeInSeconds)));
         vTaskDelay(x1000ms);
     }
 }
