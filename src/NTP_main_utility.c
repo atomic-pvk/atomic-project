@@ -116,26 +116,45 @@ struct ntp_r /* receive packet pointer*/
 
         // Flip the bits
 
-        // Usage
         uint32_t temp[12]; // 384-bit data broken down into 32-bit chunks
         memcpy(temp, bufferRecv, sizeof(ntp_packet));
         FreeRTOS_ntohl_array_32(temp, 12);
         memcpy(pkt, temp, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
+
         FreeRTOS_printf(("Packet received\n"));
-        FreeRTOS_printf(("\n\n rxTm_s: %d\n\n", pkt->rxTm_s));
-        time_t timeInSeconds = (time_t)(pkt->rxTm_s - 2208988800ull);
-        FreeRTOS_printf(("\n\n Time: %s\n", ctime(&timeInSeconds)));
 
-        // uint32_t time = FreeRTOS_ntohl(
-        //     (bufferRecv[35] << 24) |
-        //     (bufferRecv[34] << 16) |
-        //     (bufferRecv[33] << 8) |
-        //     bufferRecv[32]);
+        // do conversion
+        // ntp_packet -> ntp_r
 
-        // memcpy(r, pkt, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
-        // r->rec = time;
+        r->srcaddr = 0; // Set to zero if not known
+        r->dstaddr = 0; // Set to zero if not known
 
-        return 0;
+        // Extract version, leap, and mode from li_vn_mode
+        r->version = (pkt->li_vn_mode >> 3) & 0x07; // Extract bits 3-5
+        r->leap = (pkt->li_vn_mode >> 6) & 0x03;    // Extract bits 6-7
+        r->mode = pkt->li_vn_mode & 0x07;           // Extract bits 0-2
+
+        r->stratum = (char)pkt->stratum;
+        r->poll = (char)pkt->poll;
+        r->precision = (s_char)pkt->precision;
+
+        r->rootdelay = (tdist)pkt->rootDelay;
+        r->rootdisp = (tdist)pkt->rootDispersion;
+
+        r->refid = (char)pkt->refId; // May require handling depending on refId's nature
+
+        // Combine seconds and fractions into a single 64-bit NTP timestamp
+        r->reftime = ((tstamp)pkt->refTm_s << 32) | pkt->refTm_f;
+        r->org = ((tstamp)pkt->origTm_s << 32) | pkt->origTm_f;
+        r->rec = ((tstamp)pkt->rxTm_s << 32) | pkt->rxTm_f;
+        r->xmt = ((tstamp)pkt->txTm_s << 32) | pkt->txTm_f;
+
+        // Set crypto fields to 0 or default values
+        r->keyid = 0;
+        r->mac = 0; // Zero out the MAC digest
+        r->dst = 0; // Zero out the dst timestamp
+
+        return r;
     }
     else
     {

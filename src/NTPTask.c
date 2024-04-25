@@ -10,18 +10,18 @@ Socket_t xSocket;
 struct freertos_sockaddr xDestinationAddress;
 
 void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize,
-                                          UBaseType_t uxTaskPriority)
+                                      UBaseType_t uxTaskPriority)
 {
     BaseType_t x;
 
     /* Create the echo client tasks. */
 
     xTaskCreate(vNTPTaskSendUsingStandardInterface, /* The function that implements the task. */
-                "Echo0",                        /* Just a text name for the task to aid debugging. */
-                usTaskStackSize,                /* The stack size is defined in FreeRTOSIPConfig.h. */
-                (void *)x,                      /* The task parameter, not used in this case. */
-                uxTaskPriority,                 /* The priority assigned to the task is defined in FreeRTOSConfig.h. */
-                NULL);                          /* The task handle is not used. */
+                "Echo0",                            /* Just a text name for the task to aid debugging. */
+                usTaskStackSize,                    /* The stack size is defined in FreeRTOSIPConfig.h. */
+                (void *)x,                          /* The task parameter, not used in this case. */
+                uxTaskPriority,                     /* The priority assigned to the task is defined in FreeRTOSConfig.h. */
+                NULL);                              /* The task handle is not used. */
 }
 
 static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
@@ -36,7 +36,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
 
     /* get the IP of the NTP server with FreeRTOS_gethostbyname */
-    //NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
+    // NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
     NTP1_server_IP = FreeRTOS_inet_addr("194.58.200.20");
 
     // if (NTP1_server_IP == 0)
@@ -94,6 +94,11 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
         r = recv_packet();
         // r->rec = FreeRTOS_ntohl(r->rec);
         // time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);
+
+        // print rec in time, it is 64 bits where 32 first bits are seconds and 32 last bits are fractions of seconds
+        time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
+        time_t frac = (time_t)(r->rec & 0xFFFFFFFF);
+        FreeRTOS_printf(("\n\n Time: %s.%d\n", ctime(&timeInSeconds), frac));
 
         // FreeRTOS_printf(("\n\n Time: %s\n", ctime(&timeInSeconds)));
         vTaskDelay(x1000ms);
