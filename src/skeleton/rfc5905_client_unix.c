@@ -293,6 +293,7 @@ struct p
         int unreach;      /* unreach counter */
         int outdate;      /* last poll time */
         int nextdate;     /* next poll time */
+        
 } p;
 
 // A.1.4.  System Data Structures
@@ -502,7 +503,6 @@ char *skeleton_poll(const char *hostname, int socket, const int ntp_port)
                 perror("Recv failed");
                 return NULL;
         }
-
         // Extract the timestamp parts from the response
         uint32_t secs = ntohl(*(uint32_t *)&ntp_packet[40]);
         uint32_t fraction = ntohl(*(uint32_t *)&ntp_packet[44]);
@@ -517,6 +517,10 @@ char *skeleton_poll(const char *hostname, int socket, const int ntp_port)
         struct tm *timeinfo = localtime(&unix_time);
         strftime(formatted_time, 64, "%Y-%m-%d %H:%M:%S", timeinfo);
         sprintf(formatted_time + strlen(formatted_time), ".%9u", microseconds, "\n");
+
+        //struct p *p;
+        //p->leap = strtol(ntp_packet[0-1], NULL, 2)
+        
 
         return formatted_time; // Caller should free this memory
 }
