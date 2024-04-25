@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  freertos:
+    build: .
+    ports:
+      - "2222:22"
+    restart: unless-stopped
+    volumes:
+      - ./:/ntp-client
+
