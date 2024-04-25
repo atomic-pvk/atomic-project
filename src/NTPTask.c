@@ -40,7 +40,6 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
     /* get the IP of the NTP server with FreeRTOS_gethostbyname */
     NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
-    // NTP1_server_IP = FreeRTOS_inet_addr("194.58.200.20");
 
     while (NTP1_server_IP == 0)
     {
