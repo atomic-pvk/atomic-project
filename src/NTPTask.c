@@ -38,15 +38,21 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     /* Check the socket was created. */
     configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
 
-    /* get the IP of the NTP server with FreeRTOS_gethostbyname */
-    NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
-
-    while (NTP1_server_IP == 0)
-    {
-        printf("DNS lookup failed, trying again in 1 second. ");
-        vTaskDelay(x1000ms);
+    uint8_t DNSok = 0;
+    while (DNSok == 0) {
+        /* get the IP of the NTP server with FreeRTOS_gethostbyname */
         NTP1_server_IP = FreeRTOS_gethostbyname("ntp.se");
-    }
+
+        if (NTP1_server_IP == 0)
+        {
+            printf("DNS lookup failed, trying again in 1 second. ");
+            vTaskDelay(x1000ms);
+        }
+        else
+        {
+            DNSok = 1;
+        }
+    }  
 
     /* Setup destination address */
     xDestinationAddress.sin_family = FREERTOS_AF_INET4;         // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
@@ -101,6 +107,9 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
         time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
         time_t frac = (time_t)(r->rec & 0xFFFFFFFF);
         FreeRTOS_printf(("\n\n Time: %s.%d\n", ctime(&timeInSeconds), frac));
+
+        TickType_t test = xTaskGetTickCount();
+        FreeRTOS_printf(("\n\n TICKS: %d\n", test));
 
         // FreeRTOS_printf(("\n\n Time: %s\n", ctime(&timeInSeconds)));
         vTaskDelay(x1000ms);

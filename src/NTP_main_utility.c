@@ -154,7 +154,7 @@ struct ntp_r /* receive packet pointer*/
 
         FreeRTOS_printf(("Packet received\n"));
 
-        // do conversion
+        // do conversion 
         // ntp_packet -> ntp_r
         create_ntp_r(r, pkt);
 
@@ -280,7 +280,7 @@ void step_time(
     // settimeofday(&unix_time, NULL);
 }
 
-/*
+/* 
  * adjust_time() - slew system clock to given offset value
  */
 void adjust_time(
