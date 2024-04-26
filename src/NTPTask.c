@@ -88,6 +88,9 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     struct ntp_s s;
     struct ntp_c c;
 
+    struct ntp_p *p;
+    p = malloc(sizeof(ntp_p));
+
     memset(r, 0, sizeof(ntp_r));
     r->dstaddr = DSTADDR;
     r->version = VERSION;
@@ -121,18 +124,20 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;
 
             FreeRTOS_printf(("\n\n Getting from IP (which is %s): %lu.%lu.%lu.%lu \n\n",
-                pcHostNames[i],
-                NTP1_server_IP & 0xFF,  // Extract the fourth byte
-                (NTP1_server_IP >> 8) & 0xFF,   // Extract the third byte
-                (NTP1_server_IP >> 16) & 0xFF,  // Extract the second byte
-                (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
+                             pcHostNames[i],
+                             NTP1_server_IP & 0xFF,           // Extract the fourth byte
+                             (NTP1_server_IP >> 8) & 0xFF,    // Extract the third byte
+                             (NTP1_server_IP >> 16) & 0xFF,   // Extract the second byte
+                             (NTP1_server_IP >> 24) & 0xFF)); // Extract the first byte
 
             // send packet
             xmit_packet(x);
             r = malloc(sizeof(ntp_r));
             r = recv_packet();
-            // r->rec = FreeRTOS_ntohl(r->rec);
-            // time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);
+
+            FreeRTOS_printf(("\n\n I have recieved ze packet \n\n"));
+
+            receive(r);
 
             // print rec in time, it is 64 bits where 32 first bits are seconds and 32 last bits are fractions of seconds
             time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);

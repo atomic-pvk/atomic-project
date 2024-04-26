@@ -36,6 +36,7 @@ void packet(
         double delay;  /* sample delay */
         double disp;   /* sample dispersion */
 
+
         /*
          * By golly the packet is valid.  Light up the remaining header
          * fields.  Note that we map stratum 0 (unspecified) to MAXSTRAT
@@ -55,12 +56,18 @@ void packet(
         p->refid = r->refid;
         p->reftime = r->reftime;
 
+
+
         /*
          * Verify the server is synchronized with valid stratum and
          * reference time not later than the transmit time.
          */
-        if (p->leap == NOSYNC || p->stratum >= MAXSTRAT)
+        if (p->leap == NOSYNC || p->stratum >= MAXSTRAT) {
+                FreeRTOS_printf(("\n\n p.stratum: %u \n\n", p->stratum));
+                FreeRTOS_printf(("\n\n p.leap: %u \n\n", p->leap));
                 return; /* unsynchronized */
+        }
+
 
         /*
          * Verify valid root distance.
@@ -69,6 +76,7 @@ void packet(
                                                              r->xmt)
                 return; /* invalid header values */
 
+        FreeRTOS_printf(("\n\n I am sending it to poll_update \n\n"));
         poll_update(p, p->hpoll);
         p->reach |= 1;
 
@@ -103,6 +111,7 @@ void packet(
                             LOG2D(s.precision));
                 disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
         }
+        FreeRTOS_printf(("\n\n I am sending it to clock_filter \n\n"));
         clock_filter(p, offset, delay, disp);
 }
 
@@ -357,7 +366,6 @@ int access(
  */
 void receive(
     struct ntp_r *r /* receive packet pointer */
-    // I am adding this to the function signature to make it compile and since I do not see any other way to "check" the system structure pointer
    )
 {
         struct ntp_p *p; /* peer structure pointer */
@@ -415,7 +423,7 @@ void receive(
                 auth = A_CRYPTO; /* crypto-NAK */
         }
         else
-        {
+        { //
                 if (r->mac != md5(r->keyid))
                         auth = A_ERROR; /* auth error */
                 else

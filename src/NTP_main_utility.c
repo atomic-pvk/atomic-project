@@ -83,7 +83,7 @@ void FreeRTOS_ntohl_array_32(uint32_t *array, size_t length)
 
 void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
 {
-    r->srcaddr = 0; // Set to zero if not known
+    r->srcaddr = xDestinationAddress.sin_address.ulIP_IPv4;
     r->dstaddr = 0; // Set to zero if not known
 
     // Extract version, leap, and mode from li_vn_mode

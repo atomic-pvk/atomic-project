@@ -187,6 +187,7 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 /* Global variable */
 extern struct ntp_s s;
 extern struct ntp_c c;
+extern struct ntp_p r;
 
 // A.1.2.  Packet Data Structures
 

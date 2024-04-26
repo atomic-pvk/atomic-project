@@ -5,6 +5,7 @@
 
 struct ntp_s s;
 struct ntp_c c;
+struct ntp_p p;
 
 // void ntp_init(ntp_r *r , ntp_x *x , const char *pcHostNames[], uint32_t *NTP_server_IPs) {
 void ntp_init() {
@@ -54,6 +55,8 @@ void ntp_init() {
     // x->stratum = MAXSTRAT;
     // x->poll = MINPOLL;
     // x->precision = PRECISION;
+
+    memset(&p, sizeof(ntp_p), 0);
 
     memset(&s, sizeof(ntp_s), 0);
     s.leap = NOSYNC;
