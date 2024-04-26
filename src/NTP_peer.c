@@ -29,13 +29,12 @@ int table[7][5] = {
  */
 void packet(
     struct ntp_p *p, /* peer structure pointer */
-    struct ntp_r *r /* receive packet pointer */
-    )
+    struct ntp_r *r  /* receive packet pointer */
+)
 {
         double offset; /* sample offsset */
         double delay;  /* sample delay */
         double disp;   /* sample dispersion */
-
 
         /*
          * By golly the packet is valid.  Light up the remaining header
@@ -56,18 +55,12 @@ void packet(
         p->refid = r->refid;
         p->reftime = r->reftime;
 
-
-
         /*
          * Verify the server is synchronized with valid stratum and
          * reference time not later than the transmit time.
          */
-        if (p->leap == NOSYNC || p->stratum >= MAXSTRAT) {
-                FreeRTOS_printf(("\n\n p.stratum: %u \n\n", p->stratum));
-                FreeRTOS_printf(("\n\n p.leap: %u \n\n", p->leap));
+        if (p->leap == NOSYNC || p->stratum >= MAXSTRAT)
                 return; /* unsynchronized */
-        }
-
 
         /*
          * Verify valid root distance.
@@ -76,7 +69,6 @@ void packet(
                                                              r->xmt)
                 return; /* invalid header values */
 
-        FreeRTOS_printf(("\n\n I am sending it to poll_update \n\n"));
         poll_update(p, p->hpoll);
         p->reach |= 1;
 
@@ -111,7 +103,6 @@ void packet(
                             LOG2D(s.precision));
                 disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
         }
-        FreeRTOS_printf(("\n\n I am sending it to clock_filter \n\n"));
         clock_filter(p, offset, delay, disp);
 }
 
@@ -125,8 +116,8 @@ void clock_filter(
     struct ntp_p *p, /* peer structure pointer */
     double offset,   /* clock offset */
     double delay,    /* roundtrip delay */
-    double disp     /* dispersion */
-    )
+    double disp      /* dispersion */
+)
 {
         struct ntp_f f[NSTAGE]; /* sorted list */
         double dtemp;
@@ -239,8 +230,8 @@ int fit(
  */
 void clear(
     struct ntp_p *p, /* peer structure pointer */
-    int kiss       /* kiss code */
-    )
+    int kiss         /* kiss code */
+)
 {
         int i;
 
@@ -292,7 +283,7 @@ void clear(
 void fast_xmit(
     struct ntp_r *r, /* receive packet pointer */
     int mode,        /* association mode */
-    int auth        /* authentication code */
+    int auth         /* authentication code */
 )
 {
         struct ntp_x x;
@@ -366,7 +357,8 @@ int access(
  */
 void receive(
     struct ntp_r *r /* receive packet pointer */
-   )
+                    // I am adding this to the function signature to make it compile and since I do not see any other way to "check" the system structure pointer
+)
 {
         struct ntp_p *p; /* peer structure pointer */
         int auth;        /* authentication code */
@@ -423,7 +415,7 @@ void receive(
                 auth = A_CRYPTO; /* crypto-NAK */
         }
         else
-        { //
+        {
                 if (r->mac != md5(r->keyid))
                         auth = A_ERROR; /* auth error */
                 else
@@ -434,7 +426,11 @@ void receive(
          * Find association and dispatch code.  If there is no
          * association to match, the value of p->hmode is assumed NULL.
          */
-        p = find_assoc(r);
+        FreeRTOS_printf(("\n\n I have recieved a packet of mode %d\n\n", r->mode));
+        
+        p = find_assoc(r); 
+        // switch (FXMIT)
+        
         switch (table[(unsigned int)(p->hmode)][(unsigned int)(r->mode)])
         {
 
@@ -450,6 +446,7 @@ void receive(
                  */
 
                 /* not multicast dstaddr */
+                // TODO - Implement correct fast_xmit
                 if (0)
                 {
                         if (AUTH(p->flags & P_NOTRUST, auth))

@@ -683,7 +683,7 @@ void adjust_time(
 
 /*
  * Dispatch matrix
- *              active  passv  client server bcast */
+ *                active  passv  client server bcast */
 int table[7][5] = {
     /* nopeer  */ {NEWPS, DSCRD, FXMIT, MANY, NEWBC},
     /* active  */ {PROC, PROC, DSCRD, DSCRD, DSCRD},

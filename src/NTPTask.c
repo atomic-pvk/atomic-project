@@ -136,6 +136,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             r = recv_packet();
 
             FreeRTOS_printf(("\n\n I have recieved ze packet \n\n"));
+            FreeRTOS_printf(("\n\n I have recieved a packet of mode %d\n\n", r->mode));
 
             receive(r);
 

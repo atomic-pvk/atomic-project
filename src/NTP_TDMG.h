@@ -330,6 +330,8 @@ typedef struct ntp_p
 
 // A.1.4.  System Data Structures
 
+
+
 /*
  * Chime list.  This is used by the intersection algorithm.
  */
