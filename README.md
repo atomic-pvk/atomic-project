@@ -37,7 +37,7 @@ You can now proceed from the [Developing with Docker](#developing-with-docker) s
 
 ### Developing with Docker
 
-There are two ways to acces the Docker container:
+There are two ways to acces the Docker container, the second one is preferred for development:
 
 1. **Accessing the Docker container via SSH**:
    Connect to the Docker container with SSH using:
@@ -68,22 +68,11 @@ cd /FreeRTOS
 ./setup_network.sh
 ```
 
-Make sure you have a `nc` server running on port 7 on your local network.
-
-Change these four lines in [src/FreeRTOSConfig.h](src/FreeRTOSConfig.h) (will be mounted in container as `/FreeRTOS/src/FreeRTOSConfig.h`) to the IP of the `nc` server.
-
-```c
-#define configECHO_SERVER_ADDR0    10
-#define configECHO_SERVER_ADDR1    0
-#define configECHO_SERVER_ADDR2    1
-#define configECHO_SERVER_ADDR3    237
-```
-
-Then, to run the demo:
+Then, to run the project:
 
 ```bash
 cd /FreeRTOS
-./autoRunDemo.sh
+./run.sh
 ```
 
 ### Additional Resources
