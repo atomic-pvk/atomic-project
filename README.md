@@ -57,9 +57,7 @@ There are two ways to acces the Docker container, the second one is preferred fo
 
 #### Automatic
 
-The container includes a file named `autoRunDemo.sh`. Running this ash script automatically runs the demo in its standard configuration.
-
-**Note**: this is for the demo only, we will adjust when we have our own application.
+The container includes a file named `run.sh`. Running this ash script automatically runs the project in its standard configuration.
 
 Setup networking by running setup script, once.
 
