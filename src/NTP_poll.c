@@ -8,12 +8,7 @@
 /*
  * poll() - determine when to send a packet for association p->
  */
-void poll(
-    struct ntp_p *p, /* peer structure pointer */
-
-    // check peer, same reason
-    struct ntp_s s,
-    struct ntp_c c)
+void poll(struct ntp_p *p) // peer structure pointer
 {
     int hpoll;
     int oreach;
@@ -31,8 +26,8 @@ void poll(
     {
         p->outdate = c.t;
         if (s.p != NULL)
-            peer_xmit(p, s, c);
-        poll_update(p, hpoll, c);
+            peer_xmit(p);
+        poll_update(p, hpoll);
         return;
     }
 
@@ -50,16 +45,16 @@ void poll(
         {
             p->unreach = 0;
             p->ttl = 1;
-            peer_xmit(p, s, c);
+            peer_xmit(p);
         }
         else if (s.n < MINCLOCK)
         {
             if (p->ttl < TTLMAX)
                 p->ttl++;
-            peer_xmit(p, s, c);
+            peer_xmit(p);
         }
         p->unreach++;
-        poll_update(p, hpoll, c);
+        poll_update(p, hpoll);
         return;
     }
     if (p->burst == 0)
@@ -75,7 +70,7 @@ void poll(
         p->outdate = c.t;
         p->reach = p->reach << 1;
         if (!(p->reach & 0x7))
-            clock_filter(p, 0, 0, MAXDISP, s, c);
+            clock_filter(p, 0, 0, MAXDISP);
         if (!p->reach)
         {
 
@@ -107,7 +102,7 @@ void poll(
              */
             p->unreach = 0;
             hpoll = s.poll;
-            if (p->flags & P_BURST && fit(p, s, c))
+            if (p->flags & P_BURST && fit(p))
                 p->burst = BCOUNT;
         }
     }
@@ -124,8 +119,8 @@ void poll(
      * Do not transmit if in broadcast client mode.
      */
     if (p->hmode != M_BCLN)
-        peer_xmit(p, s, c);
-    poll_update(p, hpoll, c);
+        peer_xmit(p);
+    poll_update(p, hpoll);
 }
 
 // A.5.7.2.  poll_update()
@@ -140,11 +135,8 @@ void poll(
  * the next poll.  This is considered so unlikely as to be negligible.
  */
 void poll_update(
-    struct ntp_p *p, /* peer structure pointer */
-    int poll,        /* poll interval (log2 s) */
-
-    // check peer, same reason
-    struct ntp_c c)
+        struct ntp_p *p, /* peer structure pointer */
+    int poll)        /* poll interval (log2 s) */
 {
     /*
      * This routine is called by both the poll() and packet()
@@ -188,11 +180,8 @@ void poll_update(
  * transmit() - transmit a packet for association p
  */
 void peer_xmit(
-    struct ntp_p *p, /* peer structure pointer */
-
-    // ...
-    struct ntp_s s,
-    struct ntp_c c)
+    struct ntp_p *p // peer structure pointer)
+)
 {
     struct ntp_x x; /* transmit packet */
 
@@ -229,7 +218,7 @@ void peer_xmit(
     if (p->keyid)
         if (/* p->keyid invalid */ 0)
         {
-            clear(p, X_NKEY, s, c);
+            clear(p, X_NKEY);
             return;
         }
     x.dgst = md5(p->keyid);

@@ -127,6 +127,12 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             NTP1_server_IP = NTP_server_IPs[i];
             xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;
 
+            FreeRTOS_printf(("\n\n Getting from IP: %lu.%lu.%lu.%lu \n\n",
+                NTP1_server_IP & 0xFF,  // Extract the fourth byte
+                (NTP1_server_IP >> 8) & 0xFF,   // Extract the third byte
+                (NTP1_server_IP >> 16) & 0xFF,  // Extract the second byte
+                (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
+
             // send packet
             xmit_packet(x);
             r = malloc(sizeof(ntp_r));

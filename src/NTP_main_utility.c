@@ -81,7 +81,7 @@ void FreeRTOS_ntohl_array_32(uint32_t *array, size_t length)
     }
 }
 
-void create_ntp_r(struct ntp_r *r, ntp_packet *pkt)
+void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
 {
     r->srcaddr = 0; // Set to zero if not known
     r->dstaddr = 0; // Set to zero if not known
@@ -109,7 +109,7 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt)
     // Set crypto fields to 0 or default values
     r->keyid = 0;
     r->mac = 0; // Zero out the MAC digest
-    r->dst = 0; // Zero out the dst timestamp
+    r->dst = time_in_ms; // Set the timestamp to the ms passed since vTaskStartScheduler started
 }
 
 /*
@@ -141,6 +141,7 @@ struct ntp_r /* receive packet pointer*/
     if (iReturned > 0)
     {
         // TODO: Clock local time when packet is recieved (tstamp dst)
+        TickType_t time_in_ms = xTaskGetTickCount();
 
         struct ntp_r *r = malloc(sizeof(ntp_r)); // Allocate memory for the receive packet
         memset(r, 0, sizeof(ntp_r));             // Clear the receive packet struct
@@ -156,7 +157,7 @@ struct ntp_r /* receive packet pointer*/
 
         // do conversion 
         // ntp_packet -> ntp_r
-        create_ntp_r(r, pkt);
+        create_ntp_r(r, pkt, (uint64_t)time_in_ms);
 
         return r;
     }

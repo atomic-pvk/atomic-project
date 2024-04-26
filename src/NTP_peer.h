@@ -48,11 +48,11 @@
 #define LEN_CLEAR (END_CLEAR((struct ntp_p *)0) - \
                    BEGIN_CLEAR((struct ntp_p *)0))
 
-void receive(struct ntp_r *, struct ntp_s s, struct ntp_c c);                              /* receive packet */
-void packet(struct ntp_p *, struct ntp_r *, struct ntp_s s, struct ntp_c c);               /* process packet */
-void clock_filter(struct ntp_p *, double, double, double, struct ntp_s s, struct ntp_c c); /* filter */
-int fit(struct ntp_p *, struct ntp_s s, struct ntp_c c);                                   /* determine fitness of server */
-void clear(struct ntp_p *, int, struct ntp_s, struct ntp_c c);                             /* clear association */
+void receive(struct ntp_r *);                              /* receive packet */
+void packet(struct ntp_p *, struct ntp_r *);               /* process packet */
+void clock_filter(struct ntp_p *, double, double, double); /* filter */
+int fit(struct ntp_p *);                                   /* determine fitness of server */
+void clear(struct ntp_p *, int);                             /* clear association */
 int access(struct ntp_r *r);
 
 #endif /* NTP_PEER_H */

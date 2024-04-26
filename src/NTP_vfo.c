@@ -10,11 +10,8 @@
 int /* return code */
 local_clock(
     struct ntp_p *p, /* peer structure pointer */
-    double offset,   /* clock offset from combine() */
-
-    //....
-    struct ntp_s s,
-    struct ntp_c c)
+    double offset   /* clock offset from combine() */
+)
 {
     int state;   /* clock discipline state */
     double freq; /* frequency */
@@ -110,12 +107,12 @@ local_clock(
             rval = STEP;
             if (state == NSET)
             {
-                rstclock(FREQ, p->t, 0, s, c);
+                rstclock(FREQ, p->t, 0);
                 return (rval);
             }
             break;
         }
-        rstclock(SYNC, p->t, 0, s, c);
+        rstclock(SYNC, p->t, 0);
     }
     else
     {
@@ -139,7 +136,7 @@ local_clock(
          * frequency.
          */
         case NSET:
-            rstclock(FREQ, p->t, offset, s, c);
+            rstclock(FREQ, p->t, offset);
             return (IGNORE);
         /*
          * In S_FSET state, this is the first update and the
@@ -147,7 +144,7 @@ local_clock(
          * but don't adjust the frequency until the next update.
          */
         case FSET:
-            rstclock(SYNC, p->t, offset, s, c);
+            rstclock(SYNC, p->t, offset);
             break;
 
         /*
@@ -195,7 +192,7 @@ local_clock(
             etemp = min(mu, LOG2D(s.poll));
             dtemp = 4 * PLL * LOG2D(s.poll);
             freq += offset * etemp / (dtemp * dtemp);
-            rstclock(SYNC, p->t, offset, s, c);
+            rstclock(SYNC, p->t, offset);
             break;
         }
     }
@@ -257,11 +254,8 @@ local_clock(
 void rstclock(
     int state,     /* new state */
     double offset, /* new offset */
-    double t,      /* new update time */
-
-    //....
-    struct ntp_s s,
-    struct ntp_c c)
+    double t      /* new update time */
+)
 {
     /*
      * Enter new state and set state variables.  Note, we use the
@@ -280,10 +274,7 @@ void rstclock(
 /*
  * clock_adjust() - runs at one-second intervals
  */
-void clock_adjust(
-    //....
-    struct ntp_s s,
-    struct ntp_c c)
+void clock_adjust()
 {
     double dtemp;
 
@@ -323,7 +314,7 @@ void clock_adjust(
         struct ntp_p *p; /* dummy peer structure pointer */
 
         if (c.t >= p->nextdate)
-            poll(p, s, c);
+            poll(p);
     }
 
     /*

@@ -10,10 +10,7 @@
 /*
  * clock_select() - find the best clocks
  */
-void clock_select(
-    // we are using the ntp_s struct at line 32, 33 etc but it is not defined in this file
-    struct ntp_s s,
-    struct ntp_c c)
+void clock_select()
 {
     struct ntp_p *p, *osys;  /* peer structure pointers */
     double low, high;        /* correctness interval extents */
@@ -35,11 +32,11 @@ void clock_select(
     osys = s.p;
     s.p = NULL;
     n = 0;
-    while (fit(p, s, c))
+    while (fit(p))
     {
         s.m[n].p = p;
         s.m[n].type = +1;
-        s.m[n].edge = p->offset + root_dist(p, s, c);
+        s.m[n].edge = p->offset + root_dist(p);
         n++;
         s.m[n].p = p;
         s.m[n].type = 0;
@@ -47,7 +44,7 @@ void clock_select(
         n++;
         s.m[n].p = p;
         s.m[n].type = -1;
-        s.m[n].edge = p->offset - root_dist(p, s, c);
+        s.m[n].edge = p->offset - root_dist(p);
         n++;
     }
 
@@ -126,7 +123,7 @@ void clock_select(
 
         p = s.m[i].p;
         s.v[n].p = p;
-        s.v[n].metric = MAXDIST * p->stratum + root_dist(p, s, c);
+        s.v[n].metric = MAXDIST * p->stratum + root_dist(p);
         s.n++;
     }
 
@@ -201,7 +198,7 @@ void clock_select(
         s.p = osys;
     else
         s.p = s.v[0].p;
-    clock_update(s.p, s, c);
+    clock_update(s.p);
 }
 
 // A.5.5.2.  root_dist()
@@ -211,11 +208,8 @@ void clock_select(
  */
 double
 root_dist(
-    struct ntp_p *p, /* peer structure pointer */
-
-    // same as usual
-    struct ntp_s s,
-    struct ntp_c c)
+    struct ntp_p *p /* peer structure pointer */
+)
 {
 
     /*
@@ -234,11 +228,8 @@ root_dist(
  * accept() - test if association p is acceptable for synchronization
  */
 int accept(
-    struct ntp_p *p, /* peer structure pointer */
-
-    // same as usual
-    struct ntp_s s,
-    struct ntp_c c)
+    struct ntp_p *p /* peer structure pointer */
+)
 {
     /*
      * A stratum error occurs if (1) the server has never been
@@ -252,7 +243,7 @@ int accept(
      * distance threshold plus an increment equal to one poll
      * interval.
      */
-    if (root_dist(p, s, c) > MAXDIST + PHI * LOG2D(s.poll))
+    if (root_dist(p) > MAXDIST + PHI * LOG2D(s.poll))
         return (FALSE);
 
     /*
@@ -279,11 +270,8 @@ int accept(
  * clock_update() - update the system clock
  */
 void clock_update(
-    struct ntp_p *p, /* peer structure pointer */
-
-    // ...
-    struct ntp_s s,
-    struct ntp_c c)
+    struct ntp_p *p /* peer structure pointer */
+)
 {
     double dtemp;
 
@@ -301,7 +289,7 @@ void clock_update(
      */
     s.t = p->t;
     clock_combine(s, c);
-    switch (local_clock(p, s.offset, s, c))
+    switch (local_clock(p, s.offset))
     {
     /*
      * The offset is too large and probably bogus.  Complain to the
@@ -325,7 +313,7 @@ void clock_update(
      */
     case STEP:
         while (/* all associations */ 0)
-            clear(p, X_STEP, s, c);
+            clear(p, X_STEP);
         s.stratum = MAXSTRAT;
         s.poll = MINPOLL;
         break;
@@ -364,10 +352,7 @@ void clock_update(
 /*
  * clock_combine() - combine offsets
  */
-void clock_combine(
-    //...
-    struct ntp_s s,
-    struct ntp_c c)
+void clock_combine()
 {
     struct ntp_p *p; /* peer structure pointer */
     double x, y, z, w;
@@ -388,7 +373,7 @@ void clock_combine(
     for (i = 0; s.v[i].p != NULL; i++)
     {
         p = s.v[i].p;
-        x = root_dist(p, s, c);
+        x = root_dist(p);
         y += 1 / x;
         z += p->offset / x;
         w += SQUARE(p->offset - s.v[0].p->offset) / x;

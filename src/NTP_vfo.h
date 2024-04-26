@@ -2,6 +2,7 @@
 #define NTP_VFO_H
 
 #include "NTP_TDMG.h"
+#include "NTPTask.h"
 
 /*
  * Clock discipline parameters and constants
@@ -17,8 +18,8 @@
 #define MAXFREQ 500e-6  /* frequency tolerance (500 ppm) */
 #define PGATE 4         /* poll-adjust gate */
 
-int local_clock(struct ntp_p *, double, struct ntp_s, struct ntp_c); /* clock discipline */
-void rstclock(int, double, double, struct ntp_s, struct ntp_c);      /* clock state transition */
-void clock_adjust(struct ntp_s, struct ntp_c);                       /* one-second timer process */
+int local_clock(struct ntp_p *, double); /* clock discipline */
+void rstclock(int, double, double);      /* clock state transition */
+void clock_adjust();                       /* one-second timer process */
 
 #endif /* NTP_VFO_H */

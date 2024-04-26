@@ -17,6 +17,7 @@ G Global Constants
 #include <stdlib.h>   /* for malloc() and friends */
 #include <string.h>   /* for memset() */
 #include "FreeRTOS_Sockets.h"
+#include "FreeRTOS_IP.h"
 
 /*
  * Data types
@@ -180,6 +181,12 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) < (b) ? (b) : (a))
+
+#define NUM_NTPSERVERS 5
+
+/* Global variable */
+extern struct ntp_s s;
+extern struct ntp_c c;
 
 // A.1.2.  Packet Data Structures
 
@@ -402,5 +409,7 @@ typedef struct ntp_packet
     uint32_t txTm_s;         // 32 bits. Transmit time-stamp seconds.
     uint32_t txTm_f;         // 32 bits. Transmit time-stamp fraction of a second.
 } ntp_packet;
+
+void ntp_init(ntp_r *, ntp_x *, const char *[], uint32_t *);
 
 #endif

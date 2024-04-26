@@ -29,12 +29,8 @@ int table[7][5] = {
  */
 void packet(
     struct ntp_p *p, /* peer structure pointer */
-    struct ntp_r *r, /* receive packet pointer */
-    // Same as above
-    struct ntp_s s, /* system structure pointer */
-
-    // Adding this for clockfilter, same reasoning as before
-    struct ntp_c c)
+    struct ntp_r *r /* receive packet pointer */
+    )
 {
         double offset; /* sample offsset */
         double delay;  /* sample delay */
@@ -73,7 +69,7 @@ void packet(
                                                              r->xmt)
                 return; /* invalid header values */
 
-        poll_update(p, p->hpoll, c);
+        poll_update(p, p->hpoll);
         p->reach |= 1;
 
         /*
@@ -107,7 +103,7 @@ void packet(
                             LOG2D(s.precision));
                 disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
         }
-        clock_filter(p, offset, delay, disp, s, c);
+        clock_filter(p, offset, delay, disp);
 }
 
 // A.5.2.  clock_filter()
@@ -120,11 +116,8 @@ void clock_filter(
     struct ntp_p *p, /* peer structure pointer */
     double offset,   /* clock offset */
     double delay,    /* roundtrip delay */
-    double disp,     /* dispersion */
-
-    // Same as above, again
-    struct ntp_s s,
-    struct ntp_c c)
+    double disp     /* dispersion */
+    )
 {
         struct ntp_f f[NSTAGE]; /* sorted list */
         double dtemp;
@@ -195,11 +188,8 @@ void clock_filter(
  * fit() - test if association p is acceptable for synchronization
  */
 int fit(
-    struct ntp_p *p, /* peer structure pointer */
-
-    // you know the drill
-    struct ntp_s s,
-    struct ntp_c c)
+    struct ntp_p *p /* peer structure pointer */
+)
 {
         /*
          * A stratum error occurs if (1) the server has never been
@@ -213,7 +203,7 @@ int fit(
          * distance threshold plus an increment equal to one poll
          * interval.
          */
-        if (root_dist(p, s, c) > MAXDIST + PHI * LOG2D(s.poll))
+        if (root_dist(p) > MAXDIST + PHI * LOG2D(s.poll))
                 return (FALSE);
 
         /*
@@ -240,11 +230,8 @@ int fit(
  */
 void clear(
     struct ntp_p *p, /* peer structure pointer */
-    int kiss,        /* kiss code */
-
-    // ...
-    struct ntp_s s,
-    struct ntp_c c)
+    int kiss       /* kiss code */
+    )
 {
         int i;
 
@@ -296,10 +283,8 @@ void clear(
 void fast_xmit(
     struct ntp_r *r, /* receive packet pointer */
     int mode,        /* association mode */
-    int auth,        /* authentication code */
-
-    // ...
-    struct ntp_s s)
+    int auth        /* authentication code */
+)
 {
         struct ntp_x x;
 
@@ -371,12 +356,9 @@ int access(
  * receive() - receive packet and decode modes
  */
 void receive(
-    struct ntp_r *r, /* receive packet pointer */
+    struct ntp_r *r /* receive packet pointer */
     // I am adding this to the function signature to make it compile and since I do not see any other way to "check" the system structure pointer
-    struct ntp_s s, /* system structure pointer */
-
-    // god this is cascading
-    struct ntp_c c)
+   )
 {
         struct ntp_p *p; /* peer structure pointer */
         int auth;        /* authentication code */
@@ -463,9 +445,9 @@ void receive(
                 if (0)
                 {
                         if (AUTH(p->flags & P_NOTRUST, auth))
-                                fast_xmit(r, M_SERV, auth, s);
+                                fast_xmit(r, M_SERV, auth);
                         else if (auth == A_ERROR)
-                                fast_xmit(r, M_SERV, A_CRYPTO, s);
+                                fast_xmit(r, M_SERV, A_CRYPTO);
                         return; /* M_SERV packet sent */
                 }
 
@@ -482,7 +464,7 @@ void receive(
                  * unicast address is used, not the multicast.
                  */
                 if (AUTH(p->flags & P_NOTRUST, auth))
-                        fast_xmit(r, M_SERV, auth, s);
+                        fast_xmit(r, M_SERV, auth);
                 return;
 
         /*
@@ -511,12 +493,12 @@ void receive(
                 if (!AUTH(p->flags & P_NOTRUST, auth))
                 {
                         if (auth == A_ERROR)
-                                fast_xmit(r, M_SACT, A_CRYPTO, s);
+                                fast_xmit(r, M_SACT, A_CRYPTO);
                         return; /* crypto-NAK packet sent */
                 }
                 if (!AUTH(p->flags & P_NOPEER, auth))
                 {
-                        fast_xmit(r, M_SACT, auth, s);
+                        fast_xmit(r, M_SACT, auth);
                         return; /* M_SACT packet sent */
                 }
                 p = mobilize(r->srcaddr, r->dstaddr, r->version, M_PASV,
@@ -552,7 +534,7 @@ void receive(
          * toss it.
          */
         case ERR:
-                clear(p, X_ERROR, s, c);
+                clear(p, X_ERROR);
                 return; /* invalid mode combination */
 
         /*
@@ -609,7 +591,7 @@ void receive(
          */
         if (auth == A_CRYPTO)
         {
-                clear(p, X_CRYPTO, s, c);
+                clear(p, X_CRYPTO);
                 return; /* crypto-NAK */
         }
 
@@ -627,5 +609,5 @@ void receive(
          * and prevent bad guys from disrupting the protocol or
          * injecting bogus data.  Earn some revenue.
          */
-        packet(p, r, s, c);
+        packet(p, r);
 }

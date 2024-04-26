@@ -20,6 +20,7 @@ SOURCE_FILES += syscalls.c
 SOURCE_FILES += main.c
 SOURCE_FILES += main_networking.c
 SOURCE_FILES += NTPTask.c
+SOURCE_FILES += NTP_TDMG.c
 SOURCE_FILES += NTP_main_utility.c
 SOURCE_FILES += NTP_peer.c
 SOURCE_FILES += NTP_poll.c
