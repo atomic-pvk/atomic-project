@@ -106,14 +106,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     x->poll = MINPOLL;
     x->precision = PRECISION;
 
-    memset(&s, sizeof(ntp_s), 0);
-    s.leap = NOSYNC;
-    s.stratum = MAXSTRAT;
-    s.poll = MINPOLL;
-    s.precision = PRECISION;
-    s.p = NULL;
-
-    memset(&c, sizeof(ntp_c), 0);
+    ntp_init();
 
     // stupid but just test
     free(r);
@@ -142,8 +135,8 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
             // print rec in time, it is 64 bits where 32 first bits are seconds and 32 last bits are fractions of seconds
             time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
-            time_t frac = (time_t)(r->rec & 0xFFFFFFFF);
-            FreeRTOS_printf(("\n\n Time according to %s: %s.%d\n", pcHostNames[i], ctime(&timeInSeconds), frac));
+            uint32_t frac = (uint32_t)(r->rec & 0xFFFFFFFF);
+            FreeRTOS_printf(("\n\n Time according to %s: %s.%u\n", pcHostNames[i], ctime(&timeInSeconds), frac));
 
             TickType_t test = xTaskGetTickCount();
             FreeRTOS_printf(("\n\n TICKS for %s: %d\n", pcHostNames[i], test));

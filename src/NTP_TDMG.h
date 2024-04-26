@@ -410,6 +410,7 @@ typedef struct ntp_packet
     uint32_t txTm_f;         // 32 bits. Transmit time-stamp fraction of a second.
 } ntp_packet;
 
-void ntp_init(ntp_r *, ntp_x *, const char *[], uint32_t *);
+// void ntp_init(ntp_r *, ntp_x *, const char *[], uint32_t *);
+void ntp_init();
 
 #endif
