@@ -124,7 +124,8 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
         for (int i = 0; i < NUM_NTPSERVERS; i++)
         {
             // set the destination IP to the current NTP server
-            xDestinationAddress.sin_address.ulIP_IPv4 = NTP_server_IPs[i];
+            NTP1_server_IP = NTP_server_IPs[i];
+            xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;
 
             // send packet
             xmit_packet(x);
