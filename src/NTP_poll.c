@@ -135,7 +135,7 @@ void poll(struct ntp_p *p) // peer structure pointer
  * the next poll.  This is considered so unlikely as to be negligible.
  */
 void poll_update(
-        struct ntp_p *p, /* peer structure pointer */
+    struct ntp_p *p, /* peer structure pointer */
     int poll)        /* poll interval (log2 s) */
 {
     /*

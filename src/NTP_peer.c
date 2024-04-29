@@ -29,8 +29,8 @@ int table[7][5] = {
  */
 void packet(
     struct ntp_p *p, /* peer structure pointer */
-    struct ntp_r *r /* receive packet pointer */
-    )
+    struct ntp_r *r  /* receive packet pointer */
+)
 {
         double offset; /* sample offsset */
         double delay;  /* sample delay */
@@ -116,8 +116,8 @@ void clock_filter(
     struct ntp_p *p, /* peer structure pointer */
     double offset,   /* clock offset */
     double delay,    /* roundtrip delay */
-    double disp     /* dispersion */
-    )
+    double disp      /* dispersion */
+)
 {
         struct ntp_f f[NSTAGE]; /* sorted list */
         double dtemp;
@@ -230,8 +230,8 @@ int fit(
  */
 void clear(
     struct ntp_p *p, /* peer structure pointer */
-    int kiss       /* kiss code */
-    )
+    int kiss         /* kiss code */
+)
 {
         int i;
 
@@ -283,7 +283,7 @@ void clear(
 void fast_xmit(
     struct ntp_r *r, /* receive packet pointer */
     int mode,        /* association mode */
-    int auth        /* authentication code */
+    int auth         /* authentication code */
 )
 {
         struct ntp_x x;
@@ -349,7 +349,7 @@ int access(
          * the source address (r->srcaddr) and the associated restrict
          * word is returned.
          */
-        return (/* access bits */ 0);
+        return (/* access bits */ 1); // TODO ALL HAVE ACCESS AT ALL TIME CURRENTLY
 }
 
 /*
@@ -357,8 +357,8 @@ int access(
  */
 void receive(
     struct ntp_r *r /* receive packet pointer */
-    // I am adding this to the function signature to make it compile and since I do not see any other way to "check" the system structure pointer
-   )
+                    // I am adding this to the function signature to make it compile and since I do not see any other way to "check" the system structure pointer
+)
 {
         struct ntp_p *p; /* peer structure pointer */
         int auth;        /* authentication code */
@@ -372,6 +372,7 @@ void receive(
          * rejected.  There could be different lists for authenticated
          * clients and unauthenticated clients.
          */
+        FreeRTOS_printf(("trying access\n"));
         if (!access(r))
                 return; /* access denied */
 
@@ -426,7 +427,10 @@ void receive(
          * Find association and dispatch code.  If there is no
          * association to match, the value of p->hmode is assumed NULL.
          */
+        FreeRTOS_printf(("calling find_assoc\n"));
         p = find_assoc(r);
+        FreeRTOS_printf(("code: %d %d\n", p->hmode, r->mode));
+        FreeRTOS_printf(("array value: %d\n", table[(unsigned int)(p->hmode)][(unsigned int)(r->mode)]));
         switch (table[(unsigned int)(p->hmode)][(unsigned int)(r->mode)])
         {
 
@@ -526,9 +530,10 @@ void receive(
 * Process packet.  Placeholdler only.
 */
         case PROC:
+                FreeRTOS_printf(("mobilizing p in PROC\n"));
                 p = mobilize(r->srcaddr, r->dstaddr, r->version, M_SERV,
                              r->keyid, P_EPHEM); // TODO //
-                break; /* processing continues */
+                break;                           /* processing continues */
 
         /*
          * Invalid mode combination.  We get here only in case of
@@ -603,6 +608,7 @@ void receive(
          * to avoid a bait-and-switch attack, which was possible in past
          * versions.
          */
+        FreeRTOS_printf(("access 2\n"));
         if (!AUTH(p->keyid || (p->flags & P_NOTRUST), auth))
                 return; /* bad auth */
 
@@ -611,5 +617,6 @@ void receive(
          * and prevent bad guys from disrupting the protocol or
          * injecting bogus data.  Earn some revenue.
          */
+        FreeRTOS_printf(("calling packet\n"));
         packet(p, r);
 }

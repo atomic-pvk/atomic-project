@@ -8,7 +8,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters);
 uint32_t NTP1_server_IP;
 Socket_t xSocket;
 struct freertos_sockaddr xDestinationAddress;
-Assoc_table assoc_table;
+Assoc_table *assoc_table;
 
 void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize,
                                       UBaseType_t uxTaskPriority)
@@ -109,7 +109,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
     ntp_init();
 
-    assoc_table_init(&assoc_table);
+    assoc_table_init(assoc_table);
 
     // stupid but just test
     free(r);
@@ -135,6 +135,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             r = malloc(sizeof(ntp_r));
             r = recv_packet();
 
+            FreeRTOS_printf(("calling receive\n"));
             receive(r);
             // r->rec = FreeRTOS_ntohl(r->rec);
             // time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);

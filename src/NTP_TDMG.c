@@ -7,7 +7,8 @@ struct ntp_s s;
 struct ntp_c c;
 
 // void ntp_init(ntp_r *r , ntp_x *x , const char *pcHostNames[], uint32_t *NTP_server_IPs) {
-void ntp_init() {
+void ntp_init()
+{
     // const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
     // const TickType_t x10000ms = 10000UL / portTICK_PERIOD_MS;
 
@@ -65,26 +66,31 @@ void ntp_init() {
     memset(&c, sizeof(ntp_c), 0);
 }
 
-void assoc_table_init(Assoc_table *table){
-    table->entries = (Assoc_info*) malloc(NUM_NTPSERVERS * sizeof(Assoc_info));
+void assoc_table_init(Assoc_table *table)
+{
+    table->entries = (Assoc_info *)malloc(NUM_NTPSERVERS * sizeof(Assoc_info));
     table->size = 0;
 }
 
-bool assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode){
-    if(table->size >= NUM_NTPSERVERS){
-        return false;
-    }
+int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode)
+{
+    FreeRTOS_printf(("\n\nthis is the hmode we're adding: %d\n\n", hmode));
 
     // Check for duplicate entries
-    for(int i = 0; i < table->size; i++){
-        if(table->entries[i].srcaddr == srcaddr){
-            return true; // Entry already exists, do not add
+    for (int i = 0; i < table->size; i++)
+    {
+        if (table->entries[i].srcaddr == srcaddr)
+        {
+            return 1; // Entry already exists, do not add
         }
     }
-
+    if (table->size >= NUM_NTPSERVERS)
+    {
+        return 0;
+    }
     // Add new entry
     table->entries[table->size].srcaddr = srcaddr;
     table->entries[table->size].hmode = hmode;
     table->size++;
-    return true;
+    return 1;
 }

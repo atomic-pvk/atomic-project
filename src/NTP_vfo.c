@@ -10,7 +10,7 @@
 int /* return code */
 local_clock(
     struct ntp_p *p, /* peer structure pointer */
-    double offset   /* clock offset from combine() */
+    double offset    /* clock offset from combine() */
 )
 {
     int state;   /* clock discipline state */
@@ -254,7 +254,7 @@ local_clock(
 void rstclock(
     int state,     /* new state */
     double offset, /* new offset */
-    double t      /* new update time */
+    double t       /* new update time */
 )
 {
     /*

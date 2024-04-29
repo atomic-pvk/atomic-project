@@ -52,7 +52,7 @@ void receive(struct ntp_r *);                              /* receive packet */
 void packet(struct ntp_p *, struct ntp_r *);               /* process packet */
 void clock_filter(struct ntp_p *, double, double, double); /* filter */
 int fit(struct ntp_p *);                                   /* determine fitness of server */
-void clear(struct ntp_p *, int);                             /* clear association */
+void clear(struct ntp_p *, int);                           /* clear association */
 int access(struct ntp_r *r);
 
 #endif /* NTP_PEER_H */

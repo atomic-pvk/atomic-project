@@ -411,7 +411,7 @@ typedef struct ntp_packet
 } ntp_packet;
 
 // Association Data Structures used in the assoc table to find associations between peers and addresses
-typedef struct Assoc_info 
+typedef struct Assoc_info
 {
     uint32_t srcaddr;
     char hmode;
@@ -424,7 +424,7 @@ typedef struct Assoc_table
 } Assoc_table;
 
 void assoc_table_init(Assoc_table *table);
-void assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode);
+int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode);
 
 // void ntp_init(ntp_r *, ntp_x *, const char *[], uint32_t *);
 void ntp_init();

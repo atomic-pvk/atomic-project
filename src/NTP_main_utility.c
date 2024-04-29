@@ -40,14 +40,19 @@ struct ntp_p /* peer structure pointer or NULL */
 {
     struct ntp_p *p; /* dummy peer structure pointer */
     p = malloc(sizeof(struct ntp_p));
-    
-    for(int i = 0; i < assoc_table->size; i++)
+
+    FreeRTOS_printf(("searching for Association\n"));
+
+    for (int i = 0; i < assoc_table->size; i++)
     {
         Assoc_info assoc = assoc_table->entries[i];
-        if (r->srcaddr == assoc->srcaddr && r->mode == assoc->hmode)
+        if (r->srcaddr == assoc.srcaddr && r->mode == assoc.hmode)
         {
-            p->srcaddr = assoc->srcaddr;
-            p->hmode = assoc->hmode;
+            FreeRTOS_printf(("Association found\n"));
+            p->srcaddr = assoc.srcaddr;
+            p->hmode = assoc.hmode;
+
+            FreeRTOS_printf(("values: %d %d\n", p->srcaddr, p->hmode));
             return (p);
         }
     }
@@ -88,14 +93,40 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
     r->srcaddr = NTP1_server_IP; // Set to zero if not known
     r->dstaddr = 0;              // Set to zero if not known
 
-    // Extract version, leap, and mode from li_vn_mode
-    r->version = (pkt->li_vn_mode >> 3) & 0x07; // Extract bits 3-5
-    r->leap = (pkt->li_vn_mode >> 6) & 0x03;    // Extract bits 6-7
-    r->mode = pkt->li_vn_mode & 0x07;           // Extract bits 0-2
+    FreeRTOS_printf(("\n\nhex debugging: %X\n\n", pkt->li_vn_mode));
 
-    r->stratum = (char)pkt->stratum;
+    // 11100111
+    // 00100100 (correct!)
+
+    // Extract version, leap, and mode from li_vn_mode
+    // pkt->li_vn_mode = FreeRTOS_ntohl(pkt->li_vn_mode) << 24;
+    r->leap = (pkt->li_vn_mode >> 6) & 0x3;    // Extract bits 0-1
+    r->version = (pkt->li_vn_mode >> 3) & 0x7; // Extract bits 2-4
+    r->mode = (pkt->li_vn_mode) & 0x7;         // Extract bits 5-7
+
+    FreeRTOS_printf(("\n\nhex debugging: %X\n\n", r->mode));
+
+    // LLVVVMMM
+    // LLVVVMMM & 111 = MMM
+    // LLVVVMMM >> 3 & 111= VVV
+    // LLVVVMMM >> 6 & 11 = LL
+
+    // r->version = (pkt->li_vn_mode >> 3) & 0x07; // Extract bits 3-5
+    // r->leap = (pkt->li_vn_mode >> 6) & 0x03;    // Extract bits 6-7
+    // r->mode = pkt->li_vn_mode & 0x07;           // Extract bits 0-2
+
+    // uint8_t li_vn_mode;      // Eight bits. li, vn, and mode.
+    //                          // li.   Two bits.   Leap indicator.
+    //                          // vn.   Three bits. Version number of the protocol.
+    //                          // mode. Three bits. Client will pick mode 3 for client
+    r->stratum = ((char)pkt->stratum);
     r->poll = (char)pkt->poll;
     r->precision = (s_char)pkt->precision;
+
+    uint32_t temp[12]; // 384-bit data broken down into 32-bit chunks
+    memcpy(temp, pkt, sizeof(ntp_packet));
+    FreeRTOS_ntohl_array_32(temp, 12);
+    memcpy(pkt, temp, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
 
     r->rootdelay = (tdist)pkt->rootDelay;
     r->rootdisp = (tdist)pkt->rootDispersion;
@@ -152,7 +183,7 @@ struct ntp_r /* receive packet pointer*/
 
         uint32_t temp[12]; // 384-bit data broken down into 32-bit chunks
         memcpy(temp, bufferRecv, sizeof(ntp_packet));
-        FreeRTOS_ntohl_array_32(temp, 12);
+        // FreeRTOS_ntohl_array_32(temp, 12);
         memcpy(pkt, temp, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
 
         FreeRTOS_printf(("Packet received\n"));
@@ -162,11 +193,12 @@ struct ntp_r /* receive packet pointer*/
         create_ntp_r(r, pkt, (uint64_t)time_in_ms);
 
         // Add the association to the table
-        if(!assoc_table_add(&assoc_table, r->srcaddr, r->mode)) {
+        if (!assoc_table_add(assoc_table, r->srcaddr, r->mode))
+        {
             FreeRTOS_printf(("Error adding association to table\n"));
             r = NULL;
         }
-       
+
         return r;
     }
     else
