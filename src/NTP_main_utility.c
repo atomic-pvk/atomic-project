@@ -83,8 +83,8 @@ void FreeRTOS_ntohl_array_32(uint32_t *array, size_t length)
 
 void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
 {
-    r->srcaddr = 0; // Set to zero if not known
-    r->dstaddr = 0; // Set to zero if not known
+    r->srcaddr = NTP1_server_IP; // Set to zero if not known
+    r->dstaddr = 0;              // Set to zero if not known
 
     // Extract version, leap, and mode from li_vn_mode
     r->version = (pkt->li_vn_mode >> 3) & 0x07; // Extract bits 3-5
@@ -108,7 +108,7 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
 
     // Set crypto fields to 0 or default values
     r->keyid = 0;
-    r->mac = 0; // Zero out the MAC digest
+    r->mac = 0;          // Zero out the MAC digest
     r->dst = time_in_ms; // Set the timestamp to the ms passed since vTaskStartScheduler started
 }
 
@@ -155,7 +155,7 @@ struct ntp_r /* receive packet pointer*/
 
         FreeRTOS_printf(("Packet received\n"));
 
-        // do conversion 
+        // do conversion
         // ntp_packet -> ntp_r
         create_ntp_r(r, pkt, (uint64_t)time_in_ms);
 
@@ -281,7 +281,7 @@ void step_time(
     // settimeofday(&unix_time, NULL);
 }
 
-/* 
+/*
  * adjust_time() - slew system clock to given offset value
  */
 void adjust_time(
