@@ -46,6 +46,7 @@ SOURCE_FILES += ${KERNEL_DIR}/portable/MemMang/heap_3.c
 
 # FreeRTOS+TCP
 INCLUDE_DIRS += -I${FREERTOS_TCP}/source/include/
+INCLUDE_DIRS += -I${FREERTOS_TCP}/tools/tcp_utilities/include/
 
 SOURCE_FILES += $(wildcard ${FREERTOS_PLUS_DIR}/Source/FreeRTOS-Plus-TCP/source/*.c )
 
@@ -56,6 +57,9 @@ INCLUDE_DIRS += -I${FREERTOS_TCP}/source/portable/Compiler/GCC
 SOURCE_FILES += ${FREERTOS_TCP}/source/portable/BufferManagement/BufferAllocation_2.c
 SOURCE_FILES += ${FREERTOS_TCP}/source/portable/NetworkInterface/MPS2_AN385/NetworkInterface.c
 SOURCE_FILES += ${FREERTOS_TCP}/source/portable/NetworkInterface/MPS2_AN385/ether_lan9118/smsc9220_eth_drv.c
+
+# src/FreeRTOS/FreeRTOS-Plus/Source/FreeRTOS-Plus-TCP/tools/tcp_utilities/
+SOURCE_FILES += ${FREERTOS_TCP}/tools/tcp_utilities/date_and_time.c
 
 DEFINES := -DQEMU_SOC_MPS2 -DHEAP3
 

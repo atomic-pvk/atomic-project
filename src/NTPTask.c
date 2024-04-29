@@ -2,6 +2,7 @@
 
 #include "NTP_main_utility.h"
 #include "NTP_peer.h"
+#include "date_and_time.h"
 
 static void vNTPTaskSendUsingStandardInterface(void *pvParameters);
 
@@ -147,6 +148,12 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
             TickType_t test = xTaskGetTickCount();
             FreeRTOS_printf(("\n\n TICKS for %s: %d\n", pcHostNames[i], test));
+
+            FreeRTOS_settime(&timeInSeconds);
+
+            time_t current_time;
+            FreeRTOS_time(&current_time);
+            FreeRTOS_printf(("\n\nCurrent time: %ld seconds since the epoch\n\n", current_time));
 
             // free the memory
             free(r);
