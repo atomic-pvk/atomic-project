@@ -39,15 +39,17 @@ struct ntp_p /* peer structure pointer or NULL */
     )
 {
     struct ntp_p *p; /* dummy peer structure pointer */
-
-    /*
-     * Search association table for matching source
-     * address, source port and mode.
-     */
-    while (/* all associations */ 0)
+    p = malloc(sizeof(struct ntp_p));
+    
+    for(int i = 0; i < assoc_table->size; i++)
     {
-        if (r->srcaddr == p->srcaddr && r->mode == p->hmode)
+        Assoc_info assoc = assoc_table->entries[i];
+        if (r->srcaddr == assoc->srcaddr && r->mode == assoc->hmode)
+        {
+            p->srcaddr = assoc->srcaddr;
+            p->hmode = assoc->hmode;
             return (p);
+        }
     }
     return (NULL);
 }
@@ -159,6 +161,12 @@ struct ntp_r /* receive packet pointer*/
         // ntp_packet -> ntp_r
         create_ntp_r(r, pkt, (uint64_t)time_in_ms);
 
+        // Add the association to the table
+        if(!assoc_table_add(&assoc_table, r->srcaddr, r->mode)) {
+            FreeRTOS_printf(("Error adding association to table\n"));
+            r = NULL;
+        }
+       
         return r;
     }
     else

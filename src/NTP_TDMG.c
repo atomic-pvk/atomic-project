@@ -64,3 +64,27 @@ void ntp_init() {
 
     memset(&c, sizeof(ntp_c), 0);
 }
+
+void assoc_table_init(Assoc_table *table){
+    table->entries = (Assoc_info*) malloc(NUM_NTPSERVERS * sizeof(Assoc_info));
+    table->size = 0;
+}
+
+bool assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode){
+    if(table->size >= NUM_NTPSERVERS){
+        return false;
+    }
+
+    // Check for duplicate entries
+    for(int i = 0; i < table->size; i++){
+        if(table->entries[i].srcaddr == srcaddr){
+            return true; // Entry already exists, do not add
+        }
+    }
+
+    // Add new entry
+    table->entries[table->size].srcaddr = srcaddr;
+    table->entries[table->size].hmode = hmode;
+    table->size++;
+    return true;
+}

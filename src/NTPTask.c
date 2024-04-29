@@ -8,6 +8,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters);
 uint32_t NTP1_server_IP;
 Socket_t xSocket;
 struct freertos_sockaddr xDestinationAddress;
+Assoc_table assoc_table;
 
 void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize,
                                       UBaseType_t uxTaskPriority)
@@ -108,6 +109,8 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
     ntp_init();
 
+    assoc_table_init(&assoc_table);
+
     // stupid but just test
     free(r);
 
@@ -121,16 +124,18 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;
 
             FreeRTOS_printf(("\n\n Getting from IP (which is %s): %lu.%lu.%lu.%lu \n\n",
-                pcHostNames[i],
-                NTP1_server_IP & 0xFF,  // Extract the fourth byte
-                (NTP1_server_IP >> 8) & 0xFF,   // Extract the third byte
-                (NTP1_server_IP >> 16) & 0xFF,  // Extract the second byte
-                (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
+                             pcHostNames[i],
+                             NTP1_server_IP & 0xFF,           // Extract the fourth byte
+                             (NTP1_server_IP >> 8) & 0xFF,    // Extract the third byte
+                             (NTP1_server_IP >> 16) & 0xFF,   // Extract the second byte
+                             (NTP1_server_IP >> 24) & 0xFF)); // Extract the first byte
 
             // send packet
             xmit_packet(x);
             r = malloc(sizeof(ntp_r));
             r = recv_packet();
+
+            receive(r);
             // r->rec = FreeRTOS_ntohl(r->rec);
             // time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);
 

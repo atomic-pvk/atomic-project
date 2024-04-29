@@ -226,7 +226,7 @@ typedef struct ntp_r
     tstamp rec;       /* receive timestamp */
     tstamp xmt;       /* transmit timestamp */
 
-    // Crypto stuff, wait with
+    // Crypto stuff, wait with TODO?
     int keyid;  /* key ID */
     digest mac; /* message digest */
     tstamp dst; /* destination timestamp */
@@ -409,6 +409,22 @@ typedef struct ntp_packet
     uint32_t txTm_s;         // 32 bits. Transmit time-stamp seconds.
     uint32_t txTm_f;         // 32 bits. Transmit time-stamp fraction of a second.
 } ntp_packet;
+
+// Association Data Structures used in the assoc table to find associations between peers and addresses
+typedef struct Assoc_info 
+{
+    uint32_t srcaddr;
+    char hmode;
+} Assoc_info;
+
+typedef struct Assoc_table
+{
+    Assoc_info *entries;
+    int size;
+} Assoc_table;
+
+void assoc_table_init(Assoc_table *table);
+void assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode);
 
 // void ntp_init(ntp_r *, ntp_x *, const char *[], uint32_t *);
 void ntp_init();

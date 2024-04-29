@@ -526,6 +526,8 @@ void receive(
 * Process packet.  Placeholdler only.
 */
         case PROC:
+                p = mobilize(r->srcaddr, r->dstaddr, r->version, M_SERV,
+                             r->keyid, P_EPHEM); // TODO //
                 break; /* processing continues */
 
         /*
