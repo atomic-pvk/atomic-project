@@ -37,7 +37,7 @@ You can now proceed from the [Developing with Docker](#developing-with-docker) s
 
 ### Developing with Docker
 
-There are two ways to acces the Docker container, the second one is preferred for development:
+There are three ways to acces the Docker container, the second one is preferred for development:
 
 1. **Accessing the Docker container via SSH**:
    Connect to the Docker container with SSH using:
@@ -50,6 +50,15 @@ There are two ways to acces the Docker container, the second one is preferred fo
 
 2. **Using VSCode for Development**:
    Enhance your development experience with the `Remote Explorer` extension in VS Code. This will allow you to open Visual Studio Code as if you were running it **inside the container**. This makes it a lot easier to work with locally, since you can have a terminal inside the container and use the same tools as if you were running it locally.
+
+3. **Accessing the Docker container via terminal**:
+   You can also access the container via the terminal by running:
+
+   ```bash
+   docker compose exec -it freertos /bin/ash
+   ```
+
+   This will open a ash shell inside the container.
 
 ---
 
