@@ -23,6 +23,7 @@ CMD="qemu-system-arm -machine mps2-an385 -cpu cortex-m3 \
           -net nic,macaddr=$QEMU_MAC_ADDRESS,model=lan9118,netdev=mynet0 \
           -object filter-dump,id=tap_dump,netdev=mynet0,file=/tmp/qemu_tap_dump\
           -display gtk -m 16M  -nographic -serial stdio \
+          -rtc base=utc,clock=host \
           -monitor null -semihosting -semihosting-config enable=on,target=native"
 
 run "$CMD"
