@@ -430,9 +430,11 @@ void receive(
         FreeRTOS_printf(("calling find_assoc\n"));
         p = find_assoc(r);
         FreeRTOS_printf(("code: %d %d\n", p->hmode, r->mode));
-        FreeRTOS_printf(("array value: %d\n", table[(unsigned int)(p->hmode)][(unsigned int)(r->mode)]));
-        switch (table[(unsigned int)(p->hmode)][(unsigned int)(r->mode)])
-        {
+        FreeRTOS_printf(("array value: %d\n", table[(unsigned int)(p->hmode)][(unsigned int)(r->mode)-1]));
+        FreeRTOS_printf(("%d\n", PROC));
+        FreeRTOS_printf(("array value: %d\n", table[3][3]));
+        switch (table[(unsigned int)(p->hmode)][(unsigned int)(r->mode)-1]) // PACKET MODE IS INDEXED FROM 1
+        {                                                                   // WHEN TABLE IS INDEXED FROM 0
 
         /*
          * Client packet and no association.  Send server reply without
@@ -548,6 +550,7 @@ void receive(
          * No match; just discard the packet.
          */
         case DSCRD:
+                FreeRTOS_printf(("I AM IN DSCRD CASE\n"));
                 return; /* orphan abandoned */
         }
 
@@ -571,6 +574,7 @@ void receive(
          * from us.  Otherwise, if the origin timestamp does not match
          * the transmit timestamp, the packet is bogus.
          */
+        FreeRTOS_printf(("I am past the cases in receive\n"));
         synch = TRUE;
         if (r->mode != M_BCST)
         {

@@ -50,7 +50,8 @@ struct ntp_p /* peer structure pointer or NULL */
         {
             FreeRTOS_printf(("Association found\n"));
             p->srcaddr = assoc.srcaddr;
-            p->hmode = assoc.hmode;
+            p->hmode = 3;
+            p->pmode = assoc.hmode;
 
             FreeRTOS_printf(("values: %d %d\n", p->srcaddr, p->hmode));
             return (p);
