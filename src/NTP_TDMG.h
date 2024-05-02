@@ -79,9 +79,9 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
  */
 #define LOG2D(a) ((a) < 0 ? 1. / (1L << -(a)) : 1L << (a)) /* poll, etc. */
 #define SQUARE(x) (x * x)
-// #define SQRT(x) (sqrt(x))
+#define SQRT(x) (sqrt(x))
 // TODO THIS IS A DUMMY IMPLEMENTATION JUST TO MAKE THE CODE COMPILE
-#define SQRT(x) (x)
+// #define SQRT(x) (x)
 
 /*
  * Global constants.  Some of these might be converted to variables
@@ -415,6 +415,7 @@ typedef struct Assoc_info
 {
     uint32_t srcaddr;
     char hmode;
+    ntp_p peer;
 } Assoc_info;
 
 typedef struct Assoc_table
@@ -428,5 +429,7 @@ int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode);
 
 // void ntp_init(ntp_r *, ntp_x *, const char *[], uint32_t *);
 void ntp_init();
+
+double sqrt(double number);
 
 #endif

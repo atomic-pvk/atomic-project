@@ -106,8 +106,10 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     x->stratum = MAXSTRAT;
     x->poll = MINPOLL;
     x->precision = PRECISION;
+    x->org = (tstamp)3913142400010 << 32;
 
     ntp_init();
+
 
     assoc_table_init(assoc_table);
 
@@ -121,6 +123,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
         {
             // set the destination IP to the current NTP server
             NTP1_server_IP = NTP_server_IPs[i];
+            x->srcaddr = NTP1_server_IP;
             xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;
 
             FreeRTOS_printf(("\n\n Getting from IP (which is %s): %lu.%lu.%lu.%lu \n\n",

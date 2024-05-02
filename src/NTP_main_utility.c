@@ -46,12 +46,11 @@ struct ntp_p /* peer structure pointer or NULL */
     for (int i = 0; i < assoc_table->size; i++)
     {
         Assoc_info assoc = assoc_table->entries[i];
-        if (r->srcaddr == assoc.srcaddr && r->mode == assoc.hmode)
+        if (r->srcaddr == assoc.srcaddr)
         {
             FreeRTOS_printf(("Association found\n"));
             p->srcaddr = assoc.srcaddr;
-            p->hmode = 3;
-            p->pmode = assoc.hmode;
+            p->hmode = assoc.hmode;
 
             FreeRTOS_printf(("values: %d %d\n", p->srcaddr, p->hmode));
             return (p);
@@ -136,9 +135,24 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
 
     // Combine seconds and fractions into a single 64-bit NTP timestamp
     r->reftime = ((tstamp)pkt->refTm_s << 32) | pkt->refTm_f;
+    time_t timeInSeconds = (time_t)((r->reftime >> 32) - 2208988800ull);
+    uint32_t frac = (uint32_t)(r->reftime & 0xFFFFFFFF);
+    FreeRTOS_printf(("\n\n ref: %s.%u\n", ctime(&timeInSeconds), frac));
+
     r->org = ((tstamp)pkt->origTm_s << 32) | pkt->origTm_f;
+    timeInSeconds = (time_t)((r->org >> 32) - 2208988800ull);
+    frac = (uint32_t)(r->org & 0xFFFFFFFF);
+    FreeRTOS_printf(("\n\n org: %s.%u\n", ctime(&timeInSeconds), frac));
+
     r->rec = ((tstamp)pkt->rxTm_s << 32) | pkt->rxTm_f;
+    timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
+    frac = (uint32_t)(r->rec & 0xFFFFFFFF);
+    FreeRTOS_printf(("\n\n rec: %s.%u\n", ctime(&timeInSeconds), frac));
+
     r->xmt = ((tstamp)pkt->txTm_s << 32) | pkt->txTm_f;
+    timeInSeconds = (time_t)((r->xmt >> 32) - 2208988800ull);
+    frac = (uint32_t)(r->xmt & 0xFFFFFFFF);
+    FreeRTOS_printf(("\n\n xmt: %s.%u\n", ctime(&timeInSeconds), frac)); 
 
     // Set crypto fields to 0 or default values
     r->keyid = 0;
@@ -193,13 +207,6 @@ struct ntp_r /* receive packet pointer*/
         // ntp_packet -> ntp_r
         create_ntp_r(r, pkt, (uint64_t)time_in_ms);
 
-        // Add the association to the table
-        if (!assoc_table_add(assoc_table, r->srcaddr, r->mode))
-        {
-            FreeRTOS_printf(("Error adding association to table\n"));
-            r = NULL;
-        }
-
         return r;
     }
     else
@@ -243,6 +250,12 @@ void xmit_packet(
     into a network buffer inside FreeRTOS_sendto(), and cString[] can be
     reused as soon as FreeRTOS_sendto() has returned. */
     FreeRTOS_printf(("Sending packet...\n"));
+
+    // Add the association to the table
+        if (!assoc_table_add(assoc_table, x->srcaddr, x->mode))
+        {
+            FreeRTOS_printf(("Error adding association to table, will not do shit\n"));
+        }
 
     int32_t iReturned;
     socklen_t xAddressLength = sizeof(xDestinationAddress);

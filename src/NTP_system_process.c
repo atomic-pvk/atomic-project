@@ -48,6 +48,8 @@ void clock_select()
         n++;
     }
 
+    FreeRTOS_printf(("we are in clock select\n"));
+
     /*
      * Find the largest contiguous intersection of correctness
      * intervals.  Allow is the number of allowed falsetickers;
@@ -109,6 +111,7 @@ void clock_select()
             break;
     }
 
+    FreeRTOS_printf(("we are in clock select 2\n"));
     /*
      * Clustering algorithm.  Construct a list of survivors (p,
      * metric) from the chime list, where metric is dominated first
@@ -134,8 +137,10 @@ void clock_select()
      * is acceptable.
      */
     if (s.n < NSANE)
+        FreeRTOS_printf(("nsane survivors dead\n"));
         return;
 
+    FreeRTOS_printf(("we are in clock select 3\n"));
     /*
      * For each association p in turn, calculate the selection
      * jitter p->sjitter as the square root of the sum of squares
@@ -187,6 +192,7 @@ void clock_select()
          */
         s.n--;
     }
+    FreeRTOS_printf(("we are in clock select 4\n"));
 
     /*
      * Pick the best clock.  If the old system peer is on the list
@@ -198,6 +204,7 @@ void clock_select()
         s.p = osys;
     else
         s.p = s.v[0].p;
+    FreeRTOS_printf(("calling clock update\n"));
     clock_update(s.p);
 }
 

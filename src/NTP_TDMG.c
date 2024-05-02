@@ -94,3 +94,24 @@ int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode)
     table->size++;
     return 1;
 }
+
+
+double sqrt(double number) {
+    double low = 0, high = number;
+    double mid, precision = 0.00001;
+
+    if (number < 1) {
+        high = 1;
+    }
+
+    while (high - low > precision) {
+        mid = low + (high - low) / 2;
+        if (mid * mid < number) {
+            low = mid;
+        } else {
+            high = mid;
+        }
+    }
+
+    return (low + high) / 2;
+}
