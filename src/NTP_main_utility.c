@@ -24,7 +24,7 @@ struct ntp_p *mobilize(
     p->hmode = mode;
     p->keyid = keyid;
     p->hpoll = MINPOLL;
-    // clear(p, X_INIT);
+    clear(p, X_INIT);
     p->flags = flags;
     return (p);
 }
@@ -46,13 +46,18 @@ struct ntp_p /* peer structure pointer or NULL */
     for (int i = 0; i < assoc_table->size; i++)
     {
         Assoc_info assoc = assoc_table->entries[i];
+        FreeRTOS_printf(("\n\nComparing r srcadr to assoc srcaddr. r got %d and assoc got %d\n\n", r->srcaddr, assoc.srcaddr));
         if (r->srcaddr == assoc.srcaddr)
         {
             FreeRTOS_printf(("Association found\n"));
             p->srcaddr = assoc.srcaddr;
             p->hmode = assoc.hmode;
+            p->xmt = assoc.xmt;
 
-            FreeRTOS_printf(("values: %d %d\n", p->srcaddr, p->hmode));
+            FreeRTOS_printf(("values: %d %d %d\n", p->srcaddr, p->hmode, p->xmt));
+            time_t pXmtInSeconds = (time_t)((p->xmt >> 32) - 2208988800ull);
+            uint32_t pXmtFrac = (uint32_t)(p->xmt & 0xFFFFFFFF);
+            FreeRTOS_printf(("\n\n found association p with xmt: %s.%u\n", ctime(&pXmtInSeconds), pXmtFrac));
             return (p);
         }
     }
@@ -93,8 +98,6 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
     r->srcaddr = NTP1_server_IP; // Set to zero if not known
     r->dstaddr = 0;              // Set to zero if not known
 
-    FreeRTOS_printf(("\n\nhex debugging: %X\n\n", pkt->li_vn_mode));
-
     // 11100111
     // 00100100 (correct!)
 
@@ -103,8 +106,6 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
     r->leap = (pkt->li_vn_mode >> 6) & 0x3;    // Extract bits 0-1
     r->version = (pkt->li_vn_mode >> 3) & 0x7; // Extract bits 2-4
     r->mode = (pkt->li_vn_mode) & 0x7;         // Extract bits 5-7
-
-    FreeRTOS_printf(("\n\nhex debugging: %X\n\n", r->mode));
 
     // LLVVVMMM
     // LLVVVMMM & 111 = MMM
@@ -123,6 +124,11 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
     r->poll = (char)pkt->poll;
     r->precision = (s_char)pkt->precision;
 
+    time_t motherfucker = (time_t)((pkt->origTm_s) - 2208988800ull);
+
+    // we do this before ntohl
+    r->org = ((tstamp)pkt->origTm_s << 32) | pkt->origTm_f;
+
     uint32_t temp[12]; // 384-bit data broken down into 32-bit chunks
     memcpy(temp, pkt, sizeof(ntp_packet));
     FreeRTOS_ntohl_array_32(temp, 12);
@@ -134,26 +140,11 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
     r->refid = (char)pkt->refId; // May require handling depending on refId's nature
 
     // Combine seconds and fractions into a single 64-bit NTP timestamp'
-    FreeRTOS_printf(("All of the received data for the received packet r is:"));
+    // FreeRTOS_printf(("All of the received data for the received packet r is:\n"));
     r->reftime = ((tstamp)pkt->refTm_s << 32) | pkt->refTm_f;
-    time_t timeInSeconds = (time_t)((r->reftime >> 32) - 2208988800ull);
-    uint32_t frac = (uint32_t)(r->reftime & 0xFFFFFFFF);
-    FreeRTOS_printf(("\n\n ref: %s.%u\n", ctime(&timeInSeconds), frac));
-
-    r->org = ((tstamp)pkt->origTm_s << 32) | pkt->origTm_f;
-    timeInSeconds = (time_t)((r->org >> 32) - 2208988800ull);
-    frac = (uint32_t)(r->org & 0xFFFFFFFF);
-    FreeRTOS_printf(("\n\n org: %s.%u\n", ctime(&timeInSeconds), frac));
 
     r->rec = ((tstamp)pkt->rxTm_s << 32) | pkt->rxTm_f;
-    timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
-    frac = (uint32_t)(r->rec & 0xFFFFFFFF);
-    FreeRTOS_printf(("\n\n rec: %s.%u\n", ctime(&timeInSeconds), frac));
-
     r->xmt = ((tstamp)pkt->txTm_s << 32) | pkt->txTm_f;
-    timeInSeconds = (time_t)((r->xmt >> 32) - 2208988800ull);
-    frac = (uint32_t)(r->xmt & 0xFFFFFFFF);
-    FreeRTOS_printf(("\n\n xmt: %s.%u\n", ctime(&timeInSeconds), frac));
 
     // Set crypto fields to 0 or default values
     r->keyid = 0;
@@ -218,6 +209,30 @@ struct ntp_r /* receive packet pointer*/
     }
 }
 
+void translate_ntp_x_to_ntp_packet(ntp_x *x, ntp_packet *pkt)
+{
+
+    // Combine leap, version, and mode into li_vn_mode
+    pkt->li_vn_mode = (x->leap & 0x03) << 6 | (x->version & 0x07) << 3 | (x->mode & 0x07);
+
+    pkt->stratum = x->stratum;
+    pkt->poll = x->poll;
+    pkt->precision = x->precision;
+    pkt->rootDelay = x->rootdelay;
+    pkt->rootDispersion = x->rootdisp;
+    pkt->refId = x->refid;
+
+    // Assuming tstamp is a type that can be split into seconds and fraction of a second
+    pkt->refTm_s = x->reftime >> 32;
+    pkt->refTm_f = x->reftime & 0xFFFFFFFF;
+    pkt->origTm_s = x->org >> 32;
+    pkt->origTm_f = x->org & 0xFFFFFFFF;
+    pkt->rxTm_s = x->rec >> 32;
+    pkt->rxTm_f = x->rec & 0xFFFFFFFF;
+    pkt->txTm_s = x->xmt >> 32;
+    pkt->txTm_f = x->xmt & 0xFFFFFFFF;
+}
+
 /*
  * xmit_packet - transmit packet to network
  */
@@ -227,22 +242,27 @@ void xmit_packet(
 {
     /* setup ntp_packet *pkt */
     ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
+    memset(pkt, 0, sizeof(ntp_packet));           // Clear the packet struct
+    // memcpy(pkt, x, sizeof(ntp_packet));           // Copy the transmit packet to the packet struct
 
-    memset(pkt, 0, sizeof(ntp_packet)); // Clear the packet struct
+    // // Setting li_vn_mode combining leap, version, and mode
+    // pkt->li_vn_mode = (x->leap & 0x03) << 6 | (x->version & 0x07) << 3 | (x->mode & 0x07);
 
-    // Setting li_vn_mode combining leap, version, and mode
-    pkt->li_vn_mode = (x->leap & 0x03) << 6 | (x->version & 0x07) << 3 | (x->mode & 0x07);
+    // // uint32_t origTm_s;       // 32 bits. Originate time-stamp seconds.
+    // // uint32_t origTm_f;       // 32 bits. Originate time-stamp fraction of a second.
 
-    // Directly mapping other straightforward fields
-    pkt->stratum = x->stratum;
-    pkt->poll = x->poll;
-    pkt->precision = x->precision;
+    // // Directly mapping other straightforward fields
+    // pkt->stratum = x->stratum;
+    // pkt->poll = x->poll;
+    // pkt->precision = x->precision;
 
-    // Assuming simple direct assignments for demonstration purposes
-    // Transformations might be necessary depending on actual data types and requirements
-    pkt->refId = x->srcaddr; // Just an example mapping
+    // // Assuming simple direct assignments for demonstration purposes
+    // // Transformations might be necessary depending on actual data types and requirements
+    // pkt->refId = x->srcaddr; // Just an example mapping
 
-    // Serialize the packet to be ready for sending
+    // // Serialize the packet to be ready for sending
+
+    translate_ntp_x_to_ntp_packet(x, pkt);
     unsigned char buffer[sizeof(ntp_packet)];
     memcpy(buffer, pkt, sizeof(ntp_packet)); // Here the packet is fully prepared and can be sent
 
@@ -253,7 +273,7 @@ void xmit_packet(
     FreeRTOS_printf(("Sending packet...\n"));
 
     // Add the association to the table
-    if (!assoc_table_add(assoc_table, x->srcaddr, x->mode))
+    if (!assoc_table_add(assoc_table, x->srcaddr, x->mode, x->xmt))
     {
         FreeRTOS_printf(("Error adding association to table, will not do shit\n"));
     }
@@ -354,4 +374,14 @@ void adjust_time(
     unix_time.tv_sec = time >> 32;
     unix_time.tv_usec = (long)(((time - unix_time.tv_sec) << 32) / FRAC * 1e6);
     // adjtime(&unix_time, NULL);
+}
+
+// Returns the current time according to the local clock in ntp-format
+void get_current_time()
+{
+    TickType_t current_ticks = xTaskGetTickCount();
+    // Get the last time polled from the server
+    // Get the tick-count when we got the last time from the server
+    // Calculate the difference between the current tick and the tick when we got the latest time
+    // Calculate the new time by adding the last time we got from the server with the difference in ticks
 }

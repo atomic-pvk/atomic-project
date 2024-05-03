@@ -102,11 +102,12 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 #define TTLMAX 8    /* max ttl manycast */
 #define BEACON 15   /* max interval between beacons */
 
-#define DSTADDR 0 /* destination (local) address */
+// this is FreeRTOS_inet_addr("172.21.0.3")
+#define DSTADDR 50337196 /* destination (local) address */
 
 #define PHI 15e-6 /* % frequency tolerance (15 ppm) */
 #define NSTAGE 8  /* clock register stages */
-#define NMAX 50   /* maximum number of peers */
+#define NMAX 5    /* maximum number of peers (number of ntp servers) */
 #define NSANE 1   /* % minimum intersection survivors */
 #define NMIN 3    /* % minimum cluster survivors */
 
@@ -182,11 +183,9 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) < (b) ? (b) : (a))
 
-#define NUM_NTPSERVERS 5
-
 /* Global variable */
-extern struct ntp_s s;
-extern struct ntp_c c;
+// extern struct ntp_s s;
+// extern struct ntp_c c;
 
 // A.1.2.  Packet Data Structures
 
@@ -415,7 +414,8 @@ typedef struct Assoc_info
 {
     uint32_t srcaddr;
     char hmode;
-    ntp_p peer;
+    tstamp xmt;
+    ntp_p *peer;
 } Assoc_info;
 
 typedef struct Assoc_table
@@ -424,8 +424,8 @@ typedef struct Assoc_table
     int size;
 } Assoc_table;
 
-void assoc_table_init(Assoc_table *table);
-int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode);
+void assoc_table_init(Assoc_table *, uint32_t *);
+int assoc_table_add(Assoc_table *, uint32_t, char, tstamp);
 
 // void ntp_init(ntp_r *, ntp_x *, const char *[], uint32_t *);
 void ntp_init();

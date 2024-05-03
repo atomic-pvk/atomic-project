@@ -60,10 +60,10 @@ void packet(
          * Verify the server is synchronized with valid stratum and
          * reference time not later than the transmit time.
          */
-        if (p->leap == NOSYNC || p->stratum >= MAXSTRAT){
+        if (p->leap == NOSYNC || p->stratum >= MAXSTRAT)
+        {
                 return; /* unsynchronized */
         }
-
 
         /*
          * Verify valid root distance.
@@ -92,9 +92,17 @@ void packet(
          * order to avoid violating the Principle of Least Astonishment,
          * the delay is clamped not less than the system precision.
          */
+        time_t rXmtS = (time_t)(r->xmt >> 32);
+        uint32_t rXmtFrac = (uint32_t)(r->xmt & 0xFFFFFFFF);
+        time_t rDstS = (time_t)(r->dst >> 32);
+        uint32_t rDstFrac = (uint32_t)(r->dst & 0xFFFFFFFF);
+        time_t rRecS = (time_t)(r->rec >> 32);
+        uint32_t rRecFrac = (uint32_t)(r->rec & 0xFFFFFFFF);
+        time_t rOrgS = (time_t)(r->org >> 32);
+        uint32_t rOrgFrac = (uint32_t)(r->org & 0xFFFFFFFF);
         if (p->pmode == M_BCST)
         {
-                offset = LFP2D(r->xmt - r->dst);
+                offset = (LFP2D(rXmtS - rDstS) << 32) + LFP2D(rXmtFrac - rDstFrac);
                 delay = BDELAY;
                 disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * 2 * BDELAY;
         }
@@ -108,6 +116,9 @@ void packet(
                             LOG2D(s.precision));
                 disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
         }
+        FreeRTOS_printf(("\n\n\noffset is %d\n\n\n", offset));
+        FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
+        FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
         FreeRTOS_printf(("I AM CALLING CLOCK_FILTER\n"));
         clock_filter(p, offset, delay, disp);
 }
@@ -172,10 +183,10 @@ void clock_filter(
         FreeRTOS_printf(("we are in clockf 2%d\n", p->jitter));
 
         /*
-        * Prime directive: use a sample only once and never a sample
-        * older than the latest one, but anything goes before first
-        * synchronized.
-        */
+         * Prime directive: use a sample only once and never a sample
+         * older than the latest one, but anything goes before first
+         * synchronized.
+         */
         FreeRTOS_printf(("we are in clockf 2\n"));
 
         FreeRTOS_printf(("s leap is %d\n", s.leap));
@@ -189,18 +200,25 @@ void clock_filter(
          * less than twice the system poll interval, dump the spike.
          * Otherwise, and if not in a burst, shake out the truechimers.
          */
-           FreeRTOS_printf(("before popcorn assoc_t size: %d\n", assoc_table->size));
-        if (fabs(p->offset - dtemp) > SGATE * p->jitter && (f[0].t -
-                                                            p->t) < 2 * s.poll && assoc_table->size > 1){
+
+        FreeRTOS_printf(("before popcorn assoc_t size: %d\n", assoc_table->size));
+
+        FreeRTOS_printf(("fabs(p->offset - dtemp) is equal to: %d\n", fabs(p->offset - dtemp)));
+        FreeRTOS_printf(("SGATE * p->jitter is equal to: %d\n", SGATE * p->jitter));
+        FreeRTOS_printf(("f[0].t - p->t is equal to: %d\n", f[0].t - p->t));
+        if (fabs(p->offset - dtemp) > SGATE * p->jitter && (f[0].t - p->t) < 2 * s.poll)
+        {
                 FreeRTOS_printf(("Popcorn spike found\n"));
                 return;
-                                                            }
-
+        }
 
         p->t = f[0].t;
         if (p->burst == 0)
+        {
                 FreeRTOS_printf(("I AM CALLING clock_select\n"));
                 clock_select();
+        }
+
         return;
 }
 
@@ -449,10 +467,8 @@ void receive(
          */
         FreeRTOS_printf(("calling find_assoc\n"));
         p = find_assoc(r);
-        FreeRTOS_printf(("code: %d %d\n", p->hmode, r->mode));
-        FreeRTOS_printf(("array value: %d\n", table[(unsigned int)(p->hmode)][(unsigned int)(r->mode)-1]));
-        switch (table[(unsigned int)(p->hmode)][(unsigned int)(r->mode) -1]) // PACKET MODE IS INDEXED FROM 1
-        {                                                                   // WHEN TABLE IS INDEXED FROM 0
+        switch (table[(unsigned int)(p->hmode)][(unsigned int)(r->mode) - 1]) // PACKET MODE IS INDEXED FROM 1
+        {                                                                     // WHEN TABLE IS INDEXED FROM 0
 
         /*
          * Client packet and no association.  Send server reply without
@@ -550,10 +566,9 @@ void receive(
 * Process packet.  Placeholdler only.
 */
         case PROC:
-                FreeRTOS_printf(("mobilizing p in PROC\n"));
-                p = mobilize(r->srcaddr, r->dstaddr, r->version, M_SERV,
-                             r->keyid, P_EPHEM); // TODO //
-                break;                           /* processing continues */
+                // p = mobilize(r->srcaddr, r->dstaddr, r->version, M_SERV,
+                //              r->keyid, P_EPHEM); // TODO //
+                break; /* processing continues */
 
         /*
          * Invalid mode combination.  We get here only in case of
@@ -588,14 +603,14 @@ void receive(
          */
         time_t pXmtInSeconds = (time_t)((p->xmt >> 32) - 2208988800ull);
         uint32_t pXmtFrac = (uint32_t)(p->xmt & 0xFFFFFFFF);
-        FreeRTOS_printf(("\n\n p xmt: %s.%u\n", ctime(&pXmtInSeconds), pXmtFrac)); 
-        FreeRTOS_printf(("\n\n r xmt: %s.%u\n", ctime(&rXmtInSeconds), rXmtFrac)); 
+        FreeRTOS_printf(("\n\n found association p is xmt: %s.%u\n", ctime(&pXmtInSeconds), pXmtFrac));
+        FreeRTOS_printf(("\n\n current received r xmt: %s.%u\n", ctime(&rXmtInSeconds), rXmtFrac));
 
-        if ((rXmtInSeconds == pXmtInSeconds) && (rXmtFrac == pXmtFrac)){
+        if ((rXmtInSeconds == pXmtInSeconds) && (rXmtFrac == pXmtFrac))
+        {
                 FreeRTOS_printf(("xmt is same in p and r\n"));
                 return; /* duplicate packet */
         }
-
 
         /*
          * If this is a broadcast mode packet, skip further checking.
@@ -606,15 +621,26 @@ void receive(
         time_t rOrgInSeconds = (time_t)((r->org >> 32) - 2208988800ull);
         uint32_t rOrgFrac = (uint32_t)(r->org & 0xFFFFFFFF);
         FreeRTOS_printf(("I am gonna check r->mode"));
+        FreeRTOS_printf(("\n\n found association p is xmt: %s.%u\n", ctime(&pXmtInSeconds), pXmtFrac));
+        FreeRTOS_printf(("\n\n current received r org: %s.%u\n", ctime(&rOrgInSeconds), rOrgFrac));
         synch = TRUE;
         if (r->mode != M_BCST)
         {
                 if ((rOrgInSeconds == 0) && (rOrgFrac == 0))
+                {
+                        FreeRTOS_printf(("rOrgInSeconds == 0\n"));
                         synch = FALSE; /* unsynchronized */
+                }
 
-                else if (r->org != p->xmt)
-
+                else if ((rOrgInSeconds != pXmtInSeconds) && (rOrgFrac != pXmtFrac))
+                {
+                        FreeRTOS_printf(("rOrgInSeconds != pXmtInSeconds\n"));
                         synch = FALSE; /* bogus packet */
+                }
+        }
+        else
+        {
+                FreeRTOS_printf(("r->mode == M_BCST\n"));
         }
 
         /*
@@ -625,6 +651,8 @@ void receive(
         p->rec = r->dst;
         if (!synch)
                 return; /* unsynch */
+
+        FreeRTOS_printf(("synch is true\n"));
 
         /*
          * The timestamps are valid and the receive packet matches the

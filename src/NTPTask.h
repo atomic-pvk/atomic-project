@@ -14,5 +14,7 @@ extern uint32_t NTP1_server_IP;
 extern Socket_t xSocket;
 extern struct freertos_sockaddr xDestinationAddress;
 extern Assoc_table *assoc_table;
+extern struct ntp_s s;
+extern struct ntp_c c;
 
 #endif /* UDP_ECHO_CLIENT_DEMO_H */

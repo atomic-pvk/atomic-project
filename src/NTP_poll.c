@@ -3,8 +3,8 @@
 
 #include "NTP_peer.h"
 #include "NTP_main_utility.h"
+#include "NTPTask.h"
 // A.5.7.1.  poll()
-
 /*
  * poll() - determine when to send a packet for association p->
  */

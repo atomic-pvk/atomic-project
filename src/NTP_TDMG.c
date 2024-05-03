@@ -1,10 +1,12 @@
 #include "NTP_TDMG.h"
 
+#include "NTP_main_utility.h"
+
 // Socket_t xSocket;
 // struct freertos_sockaddr xDestinationAddress;
 
-struct ntp_s s;
-struct ntp_c c;
+// struct ntp_s s;
+// struct ntp_c c;
 
 // void ntp_init(ntp_r *r , ntp_x *x , const char *pcHostNames[], uint32_t *NTP_server_IPs) {
 void ntp_init()
@@ -14,7 +16,7 @@ void ntp_init()
 
     // uint8_t DNSok;
 
-    // for (int i = 0; i < NUM_NTPSERVERS; i++)
+    // for (int i = 0; i < NMAX; i++)
     // {
     //     DNSok = 0;
     //     while (DNSok == 0)
@@ -56,59 +58,77 @@ void ntp_init()
     // x->poll = MINPOLL;
     // x->precision = PRECISION;
 
-    memset(&s, sizeof(ntp_s), 0);
-    s.leap = NOSYNC;
-    s.stratum = MAXSTRAT;
-    s.poll = MINPOLL;
-    s.precision = PRECISION;
-    s.p = NULL;
+    // memset(&s, sizeof(ntp_s), 0);
+    // s.leap = NOSYNC;
+    // s.stratum = MAXSTRAT;
+    // s.poll = MINPOLL;
+    // s.precision = PRECISION;
+    // s.p = NULL;
 
-    memset(&c, sizeof(ntp_c), 0);
+    // memset(&c, sizeof(ntp_c), 0);
 }
 
-void assoc_table_init(Assoc_table *table)
+void assoc_table_init(Assoc_table *table, uint32_t *NTP_server_IPs)
 {
-    table->entries = (Assoc_info *)malloc(NUM_NTPSERVERS * sizeof(Assoc_info));
+    table->entries = (Assoc_info *)malloc(NMAX * sizeof(Assoc_info));
     table->size = 0;
+
+    for (int i = 0; i < NMAX; i++)
+    {
+        FreeRTOS_printf(("\n\ntrying to mobilize with srcaddr %d\n\n", NTP_server_IPs[i]));
+        table->entries[i].peer = mobilize(NTP_server_IPs[i], IPADDR, VERSION, MODE, KEYID,
+                                          P_FLAGS);
+    }
 }
 
-int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode)
+int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode, tstamp xmt)
 {
-    FreeRTOS_printf(("\n\nthis is the hmode we're adding: %d\n\n", hmode));
-
+    FreeRTOS_printf(("\n\ntrying to modify assoc\n\n"));
     // Check for duplicate entries
     for (int i = 0; i < table->size; i++)
     {
+        FreeRTOS_printf(("\n\n numbers we are comparing srcaddr: %d | entry srcaddr:%d\n\n", srcaddr, table->entries[i].srcaddr));
+
         if (table->entries[i].srcaddr == srcaddr)
         {
+            FreeRTOS_printf(("\n\nthis is the hmode we're adding to entry nummer %d: %d\n\n", i, hmode));
+            table->entries[table->size].hmode = hmode;
+            table->entries[table->size].xmt = xmt;
             return 1; // Entry already exists, do not add
         }
     }
-    if (table->size >= NUM_NTPSERVERS)
+    if (table->size >= NMAX)
     {
         return 0;
     }
     // Add new entry
+    FreeRTOS_printf(("\n\n setting values for table srcaddr: %d | hmode:%d\n\n", srcaddr, hmode));
     table->entries[table->size].srcaddr = srcaddr;
     table->entries[table->size].hmode = hmode;
+    table->entries[table->size].xmt = xmt;
     table->size++;
     return 1;
 }
 
-
-double sqrt(double number) {
+double sqrt(double number)
+{
     double low = 0, high = number;
     double mid, precision = 0.00001;
 
-    if (number < 1) {
+    if (number < 1)
+    {
         high = 1;
     }
 
-    while (high - low > precision) {
+    while (high - low > precision)
+    {
         mid = low + (high - low) / 2;
-        if (mid * mid < number) {
+        if (mid * mid < number)
+        {
             low = mid;
-        } else {
+        }
+        else
+        {
             high = mid;
         }
     }
