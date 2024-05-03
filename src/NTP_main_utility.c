@@ -133,7 +133,8 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
 
     r->refid = (char)pkt->refId; // May require handling depending on refId's nature
 
-    // Combine seconds and fractions into a single 64-bit NTP timestamp
+    // Combine seconds and fractions into a single 64-bit NTP timestamp'
+    FreeRTOS_printf(("All of the received data for the received packet r is:"));
     r->reftime = ((tstamp)pkt->refTm_s << 32) | pkt->refTm_f;
     time_t timeInSeconds = (time_t)((r->reftime >> 32) - 2208988800ull);
     uint32_t frac = (uint32_t)(r->reftime & 0xFFFFFFFF);
@@ -152,7 +153,7 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
     r->xmt = ((tstamp)pkt->txTm_s << 32) | pkt->txTm_f;
     timeInSeconds = (time_t)((r->xmt >> 32) - 2208988800ull);
     frac = (uint32_t)(r->xmt & 0xFFFFFFFF);
-    FreeRTOS_printf(("\n\n xmt: %s.%u\n", ctime(&timeInSeconds), frac)); 
+    FreeRTOS_printf(("\n\n xmt: %s.%u\n", ctime(&timeInSeconds), frac));
 
     // Set crypto fields to 0 or default values
     r->keyid = 0;
@@ -252,10 +253,10 @@ void xmit_packet(
     FreeRTOS_printf(("Sending packet...\n"));
 
     // Add the association to the table
-        if (!assoc_table_add(assoc_table, x->srcaddr, x->mode))
-        {
-            FreeRTOS_printf(("Error adding association to table, will not do shit\n"));
-        }
+    if (!assoc_table_add(assoc_table, x->srcaddr, x->mode))
+    {
+        FreeRTOS_printf(("Error adding association to table, will not do shit\n"));
+    }
 
     int32_t iReturned;
     socklen_t xAddressLength = sizeof(xDestinationAddress);
