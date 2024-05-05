@@ -129,6 +129,10 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
     // we do this before ntohl
     r->org = ((tstamp)pkt->origTm_s << 32) | pkt->origTm_f;
 
+    uint32_t testerm = ((uint32_t)pkt->origTm_f);
+
+    FreeRTOS_printf(("\n\n received fraction; %d\n\n\n\n\n\n\n\n\n\n", pkt->txTm_f));
+
     uint32_t temp[12]; // 384-bit data broken down into 32-bit chunks
     memcpy(temp, pkt, sizeof(ntp_packet));
     FreeRTOS_ntohl_array_32(temp, 12);
@@ -142,14 +146,16 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
     // Combine seconds and fractions into a single 64-bit NTP timestamp'
     // FreeRTOS_printf(("All of the received data for the received packet r is:\n"));
     r->reftime = ((tstamp)pkt->refTm_s << 32) | pkt->refTm_f;
+    r->xmt = ((tstamp)pkt->txTm_s << 32) | (uint32_t)(pkt->txTm_f & 0xFFFFFFFF);
+    r->rec = ((tstamp)pkt->rxTm_s << 32) | (uint32_t)(pkt->rxTm_f & 0xFFFFFFFF);
 
-    r->rec = ((tstamp)pkt->rxTm_s << 32) | pkt->rxTm_f;
-    r->xmt = ((tstamp)pkt->txTm_s << 32) | pkt->txTm_f;
-
+    // FreeRTOS_printf(("\n\n received fraction; %d\n\n\n\n\n\n\n\n\n\n", pkt->txTm_f));
     // Set crypto fields to 0 or default values
     r->keyid = 0;
     r->mac = 0;          // Zero out the MAC digest
     r->dst = time_in_ms; // Set the timestamp to the ms passed since vTaskStartScheduler started
+
+    free(pkt);
 }
 
 /*

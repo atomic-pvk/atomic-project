@@ -17,4 +17,7 @@ extern Assoc_table *assoc_table;
 extern struct ntp_s s;
 extern struct ntp_c c;
 
+extern TickType_t lastTimeStampTick;
+extern tstamp lastTimeStampTstamp;
+
 #endif /* UDP_ECHO_CLIENT_DEMO_H */

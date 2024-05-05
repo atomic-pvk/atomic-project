@@ -432,4 +432,12 @@ void ntp_init();
 
 double sqrt(double number);
 
+double subtract_uint64_t(uint64_t x, uint64_t y);
+uint64_t add_uint64_t(uint64_t x, uint64_t y);
+
+void settime(tstamp newTime);
+tstamp gettime();
+
+void printTimestamp(tstamp timestamp, const char *comment);
+
 #endif

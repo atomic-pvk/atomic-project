@@ -13,6 +13,9 @@ Assoc_table *assoc_table;
 struct ntp_s s;
 struct ntp_c c;
 
+TickType_t lastTimeStampTick;
+tstamp lastTimeStampTstamp;
+
 void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize,
                                       UBaseType_t uxTaskPriority)
 {
@@ -157,14 +160,23 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
     FreeRTOS_printf(("received org time is: %d\n", r->org >> 32));
 
+    printTimestamp(r->xmt, "test before delay");
     // since we dont have local clock we just set the org to the first rec
     // x->org = r->xmt;
     x->xmt = r->xmt;
+    settime(r->xmt);
+    const TickType_t x1700ms = 1700UL / portTICK_PERIOD_MS;
+    vTaskDelay(x1700ms);
+    tstamp testTimestamp = gettime();
+
+    printTimestamp(testTimestamp, "test timestamp is:");
     free(r);
 
+    return;
+
     /*
-        get time from all 5 servers once!
-    */
+    get time from all 5 servers once!
+*/
 
     /*
         then just get all the times forever

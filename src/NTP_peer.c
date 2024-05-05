@@ -92,17 +92,46 @@ void packet(
          * order to avoid violating the Principle of Least Astonishment,
          * the delay is clamped not less than the system precision.
          */
+
         time_t rXmtS = (time_t)(r->xmt >> 32);
         uint32_t rXmtFrac = (uint32_t)(r->xmt & 0xFFFFFFFF);
+
         time_t rDstS = (time_t)(r->dst >> 32);
         uint32_t rDstFrac = (uint32_t)(r->dst & 0xFFFFFFFF);
         time_t rRecS = (time_t)(r->rec >> 32);
         uint32_t rRecFrac = (uint32_t)(r->rec & 0xFFFFFFFF);
         time_t rOrgS = (time_t)(r->org >> 32);
         uint32_t rOrgFrac = (uint32_t)(r->org & 0xFFFFFFFF);
+
+        FreeRTOS_printf(("\n a double is %u n", sizeof(double)));
+
+        FreeRTOS_printf(("\n\n lol r xmt: %s.%u\n", ctime(&rXmtS), rXmtFrac));
+        FreeRTOS_printf(("\n\n lol r dst: %s.%u\n", ctime(&rDstS), rDstFrac));
+
+        double tempOffset = subtract_uint64_t(r->xmt, r->dst);
+
+        FreeRTOS_printf(("\n\n\n\n tempOffset fuck is %d \n\n\n", tempOffset));
+
         if (p->pmode == M_BCST)
         {
-                offset = (LFP2D(rXmtS - rDstS) << 32) + LFP2D(rXmtFrac - rDstFrac);
+                // 123.456
+                // long long: 123
+                // 1235912412390123  = 2024 -
+                // #define LFP2D(a) ((double)(a) / FRAC)
+                // a / 4294967296 = dahuidhauid.239482490280
+
+                // offset = LFP2D(r->xmt - r->dst)
+
+                // time_t rXmtS = (time_t)(r->xmt >> 32);
+                // uint32_t rXmtFrac = (uint32_t)(r->xmt & 0xFFFFFFFF);
+
+                double tempOffset = subtract_uint64_t(r->xmt, r->dst);
+
+                FreeRTOS_printf(("\n\n\n\n tempOffset fuck is %d \n\n\n", tempOffset));
+
+                offset = LFP2D(tempOffset);
+
+                // offset = ((long long)LFP2D(rXmtS - rDstS) << 32) | ((long long)LFP2D(rXmtFrac - rDstFrac));
                 delay = BDELAY;
                 disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * 2 * BDELAY;
         }
@@ -116,7 +145,7 @@ void packet(
                             LOG2D(s.precision));
                 disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
         }
-        FreeRTOS_printf(("\n\n\noffset is %d\n\n\n", offset));
+        FreeRTOS_printf(("\n\n\noffset is %d\n\n\n", offset)); // = 0
         FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
         FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
         FreeRTOS_printf(("I AM CALLING CLOCK_FILTER\n"));
