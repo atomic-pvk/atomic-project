@@ -85,15 +85,11 @@ void assoc_table_init(Assoc_table *table, uint32_t *NTP_server_IPs)
 
 int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode, tstamp xmt)
 {
-    FreeRTOS_printf(("\n\ntrying to modify assoc\n\n"));
     // Check for duplicate entries
     for (int i = 0; i < table->size; i++)
     {
-        FreeRTOS_printf(("\n\n numbers we are comparing srcaddr: %d | entry srcaddr:%d\n\n", srcaddr, table->entries[i].srcaddr));
-
         if (table->entries[i].srcaddr == srcaddr)
         {
-            FreeRTOS_printf(("\n\nthis is the hmode we're adding to entry nummer %d: %d\n\n", i, hmode));
             table->entries[table->size].hmode = hmode;
             table->entries[table->size].xmt = xmt;
             return 1; // Entry already exists, do not add
@@ -104,7 +100,6 @@ int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode, tstamp xmt
         return 0;
     }
     // Add new entry
-    FreeRTOS_printf(("\n\n setting values for table srcaddr: %d | hmode:%d\n\n", srcaddr, hmode));
     table->entries[table->size].srcaddr = srcaddr;
     table->entries[table->size].hmode = hmode;
     table->entries[table->size].xmt = xmt;
@@ -327,7 +322,7 @@ void printTimestamp(tstamp timestamp, const char *comment)
     uint32_t fractions = (uint32_t)(timestamp & 0xFFFFFFFF);
 
     // double fractionAsSecond = fractions / (double)0xFFFFFFFF;
-    double fractionAsSecond = fractions / 4294967296.0; // / 4294967296.0 = 2^32
+    double fractionAsSecond = fractions / 4294967296.0; // / 4294967296.0 = 2^32 
 
     // time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
     // uint32_t frac = (uint32_t)(r->rec & 0xFFFFFFFF);

@@ -157,9 +157,6 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     xmit_packet(x);
     r = malloc(sizeof(ntp_r));
     r = recv_packet();
-
-    FreeRTOS_printf(("received org time is: %d\n", r->org >> 32));
-
     x->xmt = r->xmt;
     printTimestamp(x->xmt, "test before delay");
     // since we dont have local clock we just set the org to the first rec

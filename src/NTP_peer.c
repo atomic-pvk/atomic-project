@@ -108,7 +108,8 @@ void packet(
         FreeRTOS_printf(("\n\n lol r xmt: %s.%u\n", ctime(&rXmtS), rXmtFrac));
         FreeRTOS_printf(("\n\n lol r dst: %s.%u\n", ctime(&rDstS), rDstFrac));
 
-        double tempOffset = subtract_uint64_t(r->xmt, r->dst);
+        double tempOffset = r->xmt - r->dst;
+
 
         FreeRTOS_printf(("\n\n\n\n tempOffset fuck is %d \n\n\n", tempOffset));
 
@@ -153,7 +154,10 @@ void packet(
                 delay = max((subtract_uint64_t(LFP2D(subtract_uint64_t(r->dst, r->org)), LFP2D(subtract_uint64_t(r->rec, r->xmt)))), LOG2D(s.precision));
                 disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
         }
-        FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", offset);
+        double tempOffset2 = 3.124124;
+        double tempOffset3 = 3.123124;
+        double printedmessage = tempOffset2-tempOffset3;
+        FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", printedmessage);
 
         FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
         FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
