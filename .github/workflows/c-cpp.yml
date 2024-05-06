@@ -16,4 +16,4 @@ jobs:
     - name: Install clang-format
       run: sudo apt-get install -y clang-format
     - name: run check-format.sh
-      run: ./check-format.sh
+      run: ./check_format.sh
