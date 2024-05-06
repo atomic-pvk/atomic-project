@@ -10,6 +10,7 @@ General technical overview of local development setup.
 
 ## Requirements
 
+- Linux (or any system that supports Docker and TUN/TAP)
 - [Docker](https://docs.docker.com/engine/install/) (or [Docker desktop](https://www.docker.com/products/docker-desktop/))
 - Recommended: [Visual Studio Code](https://code.visualstudio.com/) with the [Remote Explorer](https://marketplace.visualstudio.com/items?itemName=ms-vscode.remote-explorer) extension.
 
