@@ -444,5 +444,6 @@ void uint64_to_str(uint64_t value, char *str);
 void double_to_str(double value, char *str, int precision);
 void FreeRTOS_printf_wrapper(const char *format, uint64_t value);
 void FreeRTOS_printf_wrapper_double(const char *format, double value);
+void print_uint64_as_32_parts(uint64_t);
 
 #endif

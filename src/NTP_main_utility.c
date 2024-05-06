@@ -1,5 +1,6 @@
 #include "NTPTask.h"
 #include "NTP_main_utility.h"
+#include <stdbool.h>
 
 static struct ntp_p *p; /* peer structure pointer */
 
@@ -41,23 +42,18 @@ struct ntp_p /* peer structure pointer or NULL */
     struct ntp_p *p; /* dummy peer structure pointer */
     p = malloc(sizeof(struct ntp_p));
 
-    FreeRTOS_printf(("searching for Association\n"));
 
     for (int i = 0; i < assoc_table->size; i++)
     {
         Assoc_info assoc = assoc_table->entries[i];
-        FreeRTOS_printf(("\n\nComparing r srcadr to assoc srcaddr. r got %d and assoc got %d\n\n", r->srcaddr, assoc.srcaddr));
         if (r->srcaddr == assoc.srcaddr)
         {
-            FreeRTOS_printf(("Association found\n"));
             p->srcaddr = assoc.srcaddr;
             p->hmode = assoc.hmode;
             p->xmt = assoc.xmt;
 
-            FreeRTOS_printf(("values: %d %d %d\n", p->srcaddr, p->hmode, p->xmt));
             time_t pXmtInSeconds = (time_t)((p->xmt >> 32) - 2208988800ull);
             uint32_t pXmtFrac = (uint32_t)(p->xmt & 0xFFFFFFFF);
-            FreeRTOS_printf(("\n\n found association p with xmt: %s.%u\n", ctime(&pXmtInSeconds), pXmtFrac));
             return (p);
         }
     }
@@ -98,23 +94,11 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
     r->srcaddr = NTP1_server_IP; // Set to zero if not known
     r->dstaddr = 0;              // Set to zero if not known
 
-    // 11100111
-    // 00100100 (correct!)
-
     // Extract version, leap, and mode from li_vn_mode
     // pkt->li_vn_mode = FreeRTOS_ntohl(pkt->li_vn_mode) << 24;
     r->leap = (pkt->li_vn_mode >> 6) & 0x3;    // Extract bits 0-1
     r->version = (pkt->li_vn_mode >> 3) & 0x7; // Extract bits 2-4
     r->mode = (pkt->li_vn_mode) & 0x7;         // Extract bits 5-7
-
-    // LLVVVMMM
-    // LLVVVMMM & 111 = MMM
-    // LLVVVMMM >> 3 & 111= VVV
-    // LLVVVMMM >> 6 & 11 = LL
-
-    // r->version = (pkt->li_vn_mode >> 3) & 0x07; // Extract bits 3-5
-    // r->leap = (pkt->li_vn_mode >> 6) & 0x03;    // Extract bits 6-7
-    // r->mode = pkt->li_vn_mode & 0x07;           // Extract bits 0-2
 
     // uint8_t li_vn_mode;      // Eight bits. li, vn, and mode.
     //                          // li.   Two bits.   Leap indicator.
@@ -128,8 +112,6 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
     r->org = ((tstamp)pkt->origTm_s << 32) | pkt->origTm_f;
 
     uint32_t testerm = ((uint32_t)pkt->origTm_f);
-
-    FreeRTOS_printf(("\n\n received fraction; %d\n\n\n\n\n\n\n\n\n\n", pkt->txTm_f));
 
     uint32_t temp[12]; // 384-bit data broken down into 32-bit chunks
     memcpy(temp, pkt, sizeof(ntp_packet));
@@ -247,24 +229,6 @@ void xmit_packet(
     /* setup ntp_packet *pkt */
     ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
     memset(pkt, 0, sizeof(ntp_packet));           // Clear the packet struct
-    // memcpy(pkt, x, sizeof(ntp_packet));           // Copy the transmit packet to the packet struct
-
-    // // Setting li_vn_mode combining leap, version, and mode
-    // pkt->li_vn_mode = (x->leap & 0x03) << 6 | (x->version & 0x07) << 3 | (x->mode & 0x07);
-
-    // // uint32_t origTm_s;       // 32 bits. Originate time-stamp seconds.
-    // // uint32_t origTm_f;       // 32 bits. Originate time-stamp fraction of a second.
-
-    // // Directly mapping other straightforward fields
-    // pkt->stratum = x->stratum;
-    // pkt->poll = x->poll;
-    // pkt->precision = x->precision;
-
-    // // Assuming simple direct assignments for demonstration purposes
-    // // Transformations might be necessary depending on actual data types and requirements
-    // pkt->refId = x->srcaddr; // Just an example mapping
-
-    // // Serialize the packet to be ready for sending
 
     // set xmit time to current time!
     x->xmt = gettime();

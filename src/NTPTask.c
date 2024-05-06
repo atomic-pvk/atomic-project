@@ -158,7 +158,8 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     r = malloc(sizeof(ntp_r));
     r = recv_packet();
     x->xmt = r->xmt;
-    printTimestamp(x->xmt, "test before delay");
+    printTimestamp(r->rec, "test before delay");
+
     // since we dont have local clock we just set the org to the first rec
     // x->org = r->xmt;
     settime(x->xmt);

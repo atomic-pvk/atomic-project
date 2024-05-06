@@ -108,10 +108,11 @@ void packet(
         FreeRTOS_printf(("\n\n lol r xmt: %s.%u\n", ctime(&rXmtS), rXmtFrac));
         FreeRTOS_printf(("\n\n lol r dst: %s.%u\n", ctime(&rDstS), rDstFrac));
 
-        double tempOffset = r->xmt - r->dst;
+        time_t tempOffset = rDstS - rXmtS;
+        FreeRTOS_printf(("\n\n\n\n tempOffset SS fuck is %d \n\n\n", tempOffset));
+        uint32_t tempOffsetf = (uint32_t)rDstFrac - (uint32_t)rXmtFrac;
+        FreeRTOS_printf(("\n\n\n\n tempOffset FF fuck is %d \n\n\n", tempOffsetf));
 
-
-        FreeRTOS_printf(("\n\n\n\n tempOffset fuck is %d \n\n\n", tempOffset));
 
         if (p->pmode == M_BCST)
         {
@@ -149,19 +150,22 @@ void packet(
                 //         disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
                 //
 
-                offset = add_uint64_t(LFP2D(subtract_uint64_t(r->rec, r->org)), LFP2D(subtract_uint64_t(r->dst, r->xmt))) / 2;
+                offset = (double)add_uint64_t(LFP2D((double)subtract_uint64_t(r->rec, r->org)), LFP2D((double)subtract_uint64_t(r->dst, r->xmt))) / 2;
 
-                delay = max((subtract_uint64_t(LFP2D(subtract_uint64_t(r->dst, r->org)), LFP2D(subtract_uint64_t(r->rec, r->xmt)))), LOG2D(s.precision));
+                delay = max((double)(subtract_uint64_t(LFP2D((double)subtract_uint64_t(r->dst, r->org)), LFP2D((double)subtract_uint64_t(r->rec, r->xmt)))), LOG2D(s.precision));
                 disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
         }
-        double tempOffset2 = 3.124124;
-        double tempOffset3 = 3.123124;
-        double printedmessage = tempOffset2-tempOffset3;
-        FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", printedmessage);
+        // double tempOffset2 = 5;
+        // double tempOffset3 = 2;
+        // double printedmessage = tempOffset2/tempOffset3;
+        // FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", printedmessage);
 
-        FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
-        FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
-        FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
+        FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", offset);
+        FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", delay);
+        FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", disp);
+        // FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
+        // FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
+        // FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
         FreeRTOS_printf(("I AM CALLING CLOCK_FILTER\n"));
         clock_filter(p, offset, delay, disp);
 }
@@ -453,7 +457,6 @@ void receive(
          * rejected.  There could be different lists for authenticated
          * clients and unauthenticated clients.
          */
-        FreeRTOS_printf(("trying access\n"));
         if (!access(r))
                 return; /* access denied */
 
@@ -508,7 +511,6 @@ void receive(
          * Find association and dispatch code.  If there is no
          * association to match, the value of p->hmode is assumed NULL.
          */
-        FreeRTOS_printf(("calling find_assoc\n"));
         p = find_assoc(r);
         switch (table[(unsigned int)(p->hmode)][(unsigned int)(r->mode) - 1]) // PACKET MODE IS INDEXED FROM 1
         {                                                                     // WHEN TABLE IS INDEXED FROM 0
@@ -626,10 +628,8 @@ void receive(
          * No match; just discard the packet.
          */
         case DSCRD:
-                FreeRTOS_printf(("I AM IN DSCRD CASE\n"));
                 return; /* orphan abandoned */
         }
-        FreeRTOS_printf(("I am past the cases in receive\n"));
         /*
          * Next comes a rigorous schedule of timestamp checking.  If the
          * transmit timestamp is zero, the server is horribly broken.
@@ -646,12 +646,9 @@ void receive(
          */
         time_t pXmtInSeconds = (time_t)((p->xmt >> 32) - 2208988800ull);
         uint32_t pXmtFrac = (uint32_t)(p->xmt & 0xFFFFFFFF);
-        FreeRTOS_printf(("\n\n found association p is xmt: %s.%u\n", ctime(&pXmtInSeconds), pXmtFrac));
-        FreeRTOS_printf(("\n\n current received r xmt: %s.%u\n", ctime(&rXmtInSeconds), rXmtFrac));
 
         if ((rXmtInSeconds == pXmtInSeconds) && (rXmtFrac == pXmtFrac))
         {
-                FreeRTOS_printf(("xmt is same in p and r\n"));
                 return; /* duplicate packet */
         }
 
@@ -663,9 +660,6 @@ void receive(
          */
         time_t rOrgInSeconds = (time_t)((r->org >> 32) - 2208988800ull);
         uint32_t rOrgFrac = (uint32_t)(r->org & 0xFFFFFFFF);
-        FreeRTOS_printf(("I am gonna check r->mode"));
-        FreeRTOS_printf(("\n\n found association p is xmt: %s.%u\n", ctime(&pXmtInSeconds), pXmtFrac));
-        FreeRTOS_printf(("\n\n current received r org: %s.%u\n", ctime(&rOrgInSeconds), rOrgFrac));
         synch = TRUE;
         if (r->mode != M_BCST)
         {
@@ -695,8 +689,6 @@ void receive(
         if (!synch)
                 return; /* unsynch */
 
-        FreeRTOS_printf(("synch is true\n"));
-
         /*
          * The timestamps are valid and the receive packet matches the
          * last one sent.  If the packet is a crypto-NAK, the server
@@ -715,7 +707,6 @@ void receive(
          * to avoid a bait-and-switch attack, which was possible in past
          * versions.
          */
-        FreeRTOS_printf(("access 2\n"));
         if (!AUTH(p->keyid || (p->flags & P_NOTRUST), auth))
                 return; /* bad auth */
 
