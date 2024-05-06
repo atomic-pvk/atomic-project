@@ -303,13 +303,15 @@ tstamp gettime()
 
     // Construct the new timestamp without directly manipulating 64-bit values
     // print newSeconds and tempFractions separately (use ctime on newSeconds)
-    FreeRTOS_printf(("\n\n 2 Time according to newSeconds: %s.%u\n", ctime(&newSeconds), tempFractions));
+    // FreeRTOS_printf(("\n\n 2 Time according to newSeconds: %s.%.10f\n", ctime(&newSeconds), tempFractions));
 
     tstamp newTimeStamp = ((tstamp)newSeconds << 32) | (uint32_t)(tempFractions & 0xFFFFFFFF);
 
     // .536963481 seconds
     // .536963481
     // .536963497
+    // .536961241
+    // .536961249
     // .3546543389
 
     return newTimeStamp;
@@ -323,12 +325,14 @@ void printTimestamp(tstamp timestamp, const char *comment)
     // double fractionAsSecond = fractions / (double)0xFFFFFFFF;
     time_t seconds = (time_t)((timestamp >> 32) - 2208988800ull);
     uint32_t fractions = (uint32_t)(timestamp & 0xFFFFFFFF);
-    double fractionAsSecond = fractions / (double)0xFFFFFFFF;
+
+    // double fractionAsSecond = fractions / (double)0xFFFFFFFF;
+    double fractionAsSecond = fractions / 4294967296.0; // / 4294967296.0 = 2^32
 
     // time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
     // uint32_t frac = (uint32_t)(r->rec & 0xFFFFFFFF);
     // FreeRTOS_printf(("\n\n Time according to %s: %s.%u\n", pcHostNames[i], ctime(&timeInSeconds), frac));
 
     // Print the timestamp with the comment
-    FreeRTOS_printf(("%s Timestamp: %s.%d seconds\n", comment, ctime(&seconds), fractionAsSecond));
+    FreeRTOS_printf(("%s Timestamp: %s.%.10f seconds\n", comment, ctime(&seconds), fractionAsSecond));
 }

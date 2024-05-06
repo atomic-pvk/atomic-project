@@ -160,11 +160,11 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
     FreeRTOS_printf(("received org time is: %d\n", r->org >> 32));
 
-    printTimestamp(r->xmt, "test before delay");
+    x->xmt = r->xmt;
+    printTimestamp(x->xmt, "test before delay");
     // since we dont have local clock we just set the org to the first rec
     // x->org = r->xmt;
-    x->xmt = r->xmt;
-    settime(r->xmt);
+    settime(x->xmt);
     const TickType_t x1700ms = 1700UL / portTICK_PERIOD_MS;
     vTaskDelay(x1700ms);
     tstamp testTimestamp = gettime();
