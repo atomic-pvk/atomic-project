@@ -212,8 +212,9 @@ extern "C"
 #define CMSDK_TIMER_CTRL_IRQEN_Msk (0x01ul << CMSDK_TIMER_CTRL_IRQEN_Pos) /* CMSDK_TIMER CTRL: IRQEN Mask */
 
 #define CMSDK_TIMER_CTRL_SELEXTCLK_Pos 2 /* CMSDK_TIMER CTRL: SELEXTCLK Position */
-#define CMSDK_TIMER_CTRL_SELEXTCLK_Msk (0x01ul << CMSDK_TIMER_CTRL_SELEXTCLK_Pos) /* CMSDK_TIMER CTRL: SELEXTCLK Mask \
-                                                                                   */
+#define CMSDK_TIMER_CTRL_SELEXTCLK_Msk                                             \
+    (0x01ul << CMSDK_TIMER_CTRL_SELEXTCLK_Pos) /* CMSDK_TIMER CTRL: SELEXTCLK Mask \
+                                                */
 
 #define CMSDK_TIMER_CTRL_SELEXTEN_Pos 1 /* CMSDK_TIMER CTRL: SELEXTEN Position */
 #define CMSDK_TIMER_CTRL_SELEXTEN_Msk (0x01ul << CMSDK_TIMER_CTRL_SELEXTEN_Pos) /* CMSDK_TIMER CTRL: SELEXTEN Mask */
@@ -222,8 +223,9 @@ extern "C"
 #define CMSDK_TIMER_CTRL_EN_Msk (0x01ul << CMSDK_TIMER_CTRL_EN_Pos) /* CMSDK_TIMER CTRL: EN Mask */
 
 #define CMSDK_TIMER_VAL_CURRENT_Pos 0 /* CMSDK_TIMER VALUE: CURRENT Position */
-#define CMSDK_TIMER_VAL_CURRENT_Msk (0xFFFFFFFFul << CMSDK_TIMER_VAL_CURRENT_Pos) /* CMSDK_TIMER VALUE: CURRENT Mask \
-                                                                                   */
+#define CMSDK_TIMER_VAL_CURRENT_Msk                                                  \
+    (0xFFFFFFFFul << CMSDK_TIMER_VAL_CURRENT_Pos) /* CMSDK_TIMER VALUE: CURRENT Mask \
+                                                   */
 
 #define CMSDK_TIMER_RELOAD_VAL_Pos 0 /* CMSDK_TIMER RELOAD: RELOAD Position */
 #define CMSDK_TIMER_RELOAD_VAL_Msk (0xFFFFFFFFul << CMSDK_TIMER_RELOAD_VAL_Pos) /* CMSDK_TIMER RELOAD: RELOAD Mask */
@@ -261,8 +263,9 @@ extern "C"
 #define CMSDK_DUALTIMER1_LOAD_Msk (0xFFFFFFFFul << CMSDK_DUALTIMER1_LOAD_Pos) /* CMSDK_DUALTIMER1 LOAD: LOAD Mask */
 
 #define CMSDK_DUALTIMER1_VALUE_Pos 0 /* CMSDK_DUALTIMER1 VALUE: VALUE Position */
-#define CMSDK_DUALTIMER1_VALUE_Msk (0xFFFFFFFFul << CMSDK_DUALTIMER1_VALUE_Pos) /* CMSDK_DUALTIMER1 VALUE: VALUE Mask \
-                                                                                 */
+#define CMSDK_DUALTIMER1_VALUE_Msk                                                     \
+    (0xFFFFFFFFul << CMSDK_DUALTIMER1_VALUE_Pos) /* CMSDK_DUALTIMER1 VALUE: VALUE Mask \
+                                                  */
 
 #define CMSDK_DUALTIMER1_CTRL_EN_Pos 7 /* CMSDK_DUALTIMER1 CTRL_EN: CTRL Enable Position */
 #define CMSDK_DUALTIMER1_CTRL_EN_Msk \
@@ -308,8 +311,9 @@ extern "C"
 #define CMSDK_DUALTIMER2_LOAD_Msk (0xFFFFFFFFul << CMSDK_DUALTIMER2_LOAD_Pos) /* CMSDK_DUALTIMER2 LOAD: LOAD Mask */
 
 #define CMSDK_DUALTIMER2_VALUE_Pos 0 /* CMSDK_DUALTIMER2 VALUE: VALUE Position */
-#define CMSDK_DUALTIMER2_VALUE_Msk (0xFFFFFFFFul << CMSDK_DUALTIMER2_VALUE_Pos) /* CMSDK_DUALTIMER2 VALUE: VALUE Mask \
-                                                                                 */
+#define CMSDK_DUALTIMER2_VALUE_Msk                                                     \
+    (0xFFFFFFFFul << CMSDK_DUALTIMER2_VALUE_Pos) /* CMSDK_DUALTIMER2 VALUE: VALUE Mask \
+                                                  */
 
 #define CMSDK_DUALTIMER2_CTRL_EN_Pos 7 /* CMSDK_DUALTIMER2 CTRL_EN: CTRL Enable Position */
 #define CMSDK_DUALTIMER2_CTRL_EN_Msk \
@@ -505,8 +509,9 @@ extern "C"
     (0x01ul << CMSDK_SYSCON_LOCKUPRST_RESETOP_Pos) /* CMSDK_SYSCON SYS_CTRL: LOCKUP RESET ENABLE Mask */
 
 #define CMSDK_SYSCON_EMICTRL_SIZE_Pos 24
-#define CMSDK_SYSCON_EMICTRL_SIZE_Msk (0x00001ul << CMSDK_SYSCON_EMICTRL_SIZE_Pos) /* CMSDK_SYSCON EMICTRL: SIZE Mask \
-                                                                                    */
+#define CMSDK_SYSCON_EMICTRL_SIZE_Msk                                               \
+    (0x00001ul << CMSDK_SYSCON_EMICTRL_SIZE_Pos) /* CMSDK_SYSCON EMICTRL: SIZE Mask \
+                                                  */
 
 #define CMSDK_SYSCON_EMICTRL_TACYC_Pos 16
 #define CMSDK_SYSCON_EMICTRL_TACYC_Msk \
@@ -697,8 +702,9 @@ extern "C"
 #define CMSDK_Watchdog_INTEGTESTEN_Msk \
     (0x1ul << CMSDK_Watchdog_INTEGTESTEN_Pos) /* CMSDK_Watchdog INTEGTESTEN: Integration Test Enable Mask */
 
-#define CMSDK_Watchdog_INTEGTESTOUTSET_Pos 1 /* CMSDK_Watchdog INTEGTESTOUTSET: Integration Test Output Set Position \
-                                              */
+#define CMSDK_Watchdog_INTEGTESTOUTSET_Pos                                    \
+    1 /* CMSDK_Watchdog INTEGTESTOUTSET: Integration Test Output Set Position \
+       */
 #define CMSDK_Watchdog_INTEGTESTOUTSET_Msk                                                                            \
     (0x1ul << CMSDK_Watchdog_INTEGTESTOUTSET_Pos) /* CMSDK_Watchdog INTEGTESTOUTSET: Integration Test Output Set Mask \
                                                    */
