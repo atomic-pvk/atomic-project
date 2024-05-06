@@ -127,7 +127,7 @@ void packet(
 
                 double tempOffset = subtract_uint64_t(r->xmt, r->dst);
 
-                FreeRTOS_printf(("\n\n\n\n tempOffset fuck is %d \n\n\n", tempOffset));
+                FreeRTOS_printf_wrapper_double("\n\n\n\n tempOffset fuck is %s \n\n\n", tempOffset);
 
                 offset = LFP2D(tempOffset);
 
@@ -137,15 +137,25 @@ void packet(
         }
         else
         {
-                offset = (LFP2D(r->rec - r->org) + LFP2D(r->dst -
-                                                         r->xmt)) /
-                         2;
-                delay = max(LFP2D(r->dst - r->org) - LFP2D(r->rec -
-                                                           r->xmt),
-                            LOG2D(s.precision));
+
+                //               {
+                //         offset = (LFP2D(r->rec - r->org) + LFP2D(r->dst -
+                //                                                  r->xmt)) /
+                //                  2;
+                //         delay = max(LFP2D(r->dst - r->org) - LFP2D(r->rec -
+                //                                                    r->xmt),
+                //                     LOG2D(s.precision));
+                //         disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
+                //
+
+                offset = add_uint64_t(LFP2D(subtract_uint64_t(r->rec, r->org)), LFP2D(subtract_uint64_t(r->dst, r->xmt))) / 2;
+
+                delay = max((subtract_uint64_t(LFP2D(subtract_uint64_t(r->dst, r->org)), LFP2D(subtract_uint64_t(r->rec, r->xmt)))), LOG2D(s.precision));
                 disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
         }
-        FreeRTOS_printf(("\n\n\noffset is %d\n\n\n", offset)); // = 0
+        FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", offset);
+
+        FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
         FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
         FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
         FreeRTOS_printf(("I AM CALLING CLOCK_FILTER\n"));

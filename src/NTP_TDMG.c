@@ -138,7 +138,7 @@ double sqrt(double number)
     return (low + high) / 2;
 }
 
-double subtract_uint64_t(uint64_t x, uint64_t y)
+uint64_t subtract_uint64_t(uint64_t x, uint64_t y)
 {
     time_t xS = (time_t)(x >> 32);
     uint32_t xFrac = (uint32_t)(x & 0xFFFFFFFF);
@@ -335,4 +335,116 @@ void printTimestamp(tstamp timestamp, const char *comment)
 
     // Print the timestamp with the comment
     FreeRTOS_printf(("%s Timestamp: %s.%.10f seconds\n", comment, ctime(&seconds), fractionAsSecond));
+}
+
+#define MAX_UINT64_DIGITS 20 // Maximum digits in uint64_t
+
+void uint64_to_str(uint64_t value, char *str)
+{
+    char temp[MAX_UINT64_DIGITS];
+    int i = 0;
+
+    // Handle 0 explicitly, otherwise empty string is printed for 0
+    if (value == 0)
+    {
+        str[0] = '0';
+        str[1] = '\0';
+        return;
+    }
+
+    // Process individual digits
+    while (value != 0)
+    {
+        temp[i++] = (value % 10) + '0'; // get next digit
+        value = value / 10;             // remove it from the number
+    }
+
+    // Reverse the string
+    int j = 0;
+    while (i > 0)
+    {
+        str[j++] = temp[--i];
+    }
+    str[j] = '\0'; // Null-terminate string
+}
+
+void FreeRTOS_printf_wrapper(const char *format, uint64_t value)
+{
+    char buffer[MAX_UINT64_DIGITS + 50]; // Additional space for message text
+    char numberStr[MAX_UINT64_DIGITS];
+    uint64_to_str(value, numberStr);
+    sprintf(buffer, format, numberStr);
+    FreeRTOS_printf(("%s\n", buffer));
+}
+
+#define MAX_DOUBLE_DIGITS 30 // A buffer size that should handle most cases
+
+void double_to_str(double value, char *str, int precision)
+{
+    if (precision > 9)
+        precision = 9; // Limit precision to 9 digits for simplicity
+
+    // Handle negative numbers
+    int index = 0;
+    if (value < 0)
+    {
+        str[index++] = '-';
+        value = -value; // Make the value positive for easier processing
+    }
+
+    // Extract integer part
+    uint64_t int_part = (uint64_t)value;
+    double fractional_part = value - (double)int_part;
+
+    // Convert integer part to string
+    char int_str[MAX_DOUBLE_DIGITS];
+    uint64_to_str(int_part, int_str);
+    for (int i = 0; int_str[i] != '\0'; i++)
+    {
+        str[index++] = int_str[i];
+    }
+
+    // Process fractional part if precision is greater than 0
+    if (precision > 0)
+    {
+        str[index++] = '.'; // add decimal point
+
+        // Convert fractional part to a string based on the specified precision
+        double multiplier = 1.0;
+        for (int i = 0; i < precision; i++)
+        {
+            multiplier *= 10.0;
+        }
+
+        uint64_t fractional_digits = (uint64_t)(fractional_part * multiplier + 0.5); // Round the fractional part
+
+        char frac_str[MAX_DOUBLE_DIGITS];
+        uint64_to_str(fractional_digits, frac_str);
+
+        // Add leading zeros if necessary
+        int frac_digits_count = 0;
+        while (frac_str[frac_digits_count] != '\0')
+            frac_digits_count++;
+
+        while (frac_digits_count < precision)
+        {
+            str[index++] = '0'; // add leading zero
+            precision--;
+        }
+
+        // Append the rest of the fractional digits
+        for (int i = 0; i < frac_digits_count; i++)
+        {
+            str[index++] = frac_str[i];
+        }
+    }
+
+    str[index] = '\0'; // Null-terminate the string
+}
+
+void FreeRTOS_printf_wrapper_double(const char *format, double value)
+{
+    char buffer[MAX_DOUBLE_DIGITS + 50]; // Additional space for message text
+    double_to_str(value, buffer, 6);     // Example with 6 decimal places
+    FreeRTOS_printf(("%s\n", buffer));
 }

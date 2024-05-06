@@ -93,7 +93,7 @@ void FreeRTOS_ntohl_array_32(uint32_t *array, size_t length)
     }
 }
 
-void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
+void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
 {
     r->srcaddr = NTP1_server_IP; // Set to zero if not known
     r->dstaddr = 0;              // Set to zero if not known
@@ -124,8 +124,6 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
     r->poll = (char)pkt->poll;
     r->precision = (s_char)pkt->precision;
 
-    time_t motherfucker = (time_t)((pkt->origTm_s) - 2208988800ull);
-
     // we do this before ntohl
     r->org = ((tstamp)pkt->origTm_s << 32) | pkt->origTm_f;
 
@@ -152,8 +150,8 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, uint64_t time_in_ms)
     // FreeRTOS_printf(("\n\n received fraction; %d\n\n\n\n\n\n\n\n\n\n", pkt->txTm_f));
     // Set crypto fields to 0 or default values
     r->keyid = 0;
-    r->mac = 0;          // Zero out the MAC digest
-    r->dst = time_in_ms; // Set the timestamp to the ms passed since vTaskStartScheduler started
+    r->mac = 0;   // Zero out the MAC digest
+    r->dst = dst; // Set the timestamp to the ms passed since vTaskStartScheduler started
 
     free(pkt);
 }
@@ -186,8 +184,8 @@ struct ntp_r /* receive packet pointer*/
 
     if (iReturned > 0)
     {
-        // TODO: Clock local time when packet is recieved (tstamp dst)
-        TickType_t time_in_ms = xTaskGetTickCount();
+        // get the time when the packet was received
+        tstamp dst = gettime();
 
         struct ntp_r *r = malloc(sizeof(ntp_r)); // Allocate memory for the receive packet
         memset(r, 0, sizeof(ntp_r));             // Clear the receive packet struct
@@ -203,7 +201,7 @@ struct ntp_r /* receive packet pointer*/
 
         // do conversion
         // ntp_packet -> ntp_r
-        create_ntp_r(r, pkt, (uint64_t)time_in_ms);
+        create_ntp_r(r, pkt, dst);
 
         return r;
     }
@@ -267,6 +265,9 @@ void xmit_packet(
     // pkt->refId = x->srcaddr; // Just an example mapping
 
     // // Serialize the packet to be ready for sending
+
+    // set xmit time to current time!
+    x->xmt = gettime();
 
     translate_ntp_x_to_ntp_packet(x, pkt);
     unsigned char buffer[sizeof(ntp_packet)];

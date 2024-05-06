@@ -67,6 +67,8 @@ CFLAGS += -Wno-builtin-declaration-mismatch -Werror
 
 CFLAGS += -mfloat-abi=soft
 
+CFLAGS += -lc -lrdimon
+
 ifeq ($(DEBUG), 1)
     CFLAGS += -ggdb3 -Og
 else

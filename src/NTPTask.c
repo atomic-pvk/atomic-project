@@ -172,11 +172,9 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     printTimestamp(testTimestamp, "test timestamp is:");
     free(r);
 
-    return;
-
     /*
-    get time from all 5 servers once!
-*/
+        get time from all 5 servers once!
+    */
 
     /*
         then just get all the times forever
@@ -202,22 +200,25 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             time_t orgtimeInSeconds = (time_t)((x->xmt >> 32) - 2208988800ull);
             uint32_t orgfrac = (uint32_t)(x->xmt & 0xFFFFFFFF);
             FreeRTOS_printf(("\n\n sent x xmt to : %s.%u\n", ctime(&orgtimeInSeconds), orgfrac));
+
             xmit_packet(x);
             r = malloc(sizeof(ntp_r));
             r = recv_packet();
-            time_t rtimeInSeconds = (time_t)((r->org >> 32) - 2208988800ull);
-            uint32_t rfrac = (uint32_t)(r->org & 0xFFFFFFFF);
-            FreeRTOS_printf(("\n\n\n\n\n\n\n  res r org to : %s.%u\n", ctime(&rtimeInSeconds), rfrac));
 
-            FreeRTOS_printf(("calling receive\n"));
+            printTimestamp(r->org, "before calling receive res r org to :");
+
+            // time_t rtimeInSeconds = (time_t)((r->org >> 32) - 2208988800ull);
+            // uint32_t rfrac = (uint32_t)(r->org & 0xFFFFFFFF);
+            // FreeRTOS_printf(("\n before calling receive res r org to : %s.%u\n", ctime(&rtimeInSeconds), rfrac));
+
             receive(r);
             // r->rec = FreeRTOS_ntohl(r->rec);
             // time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);
 
-            // print rec in time, it is 64 bits where 32 first bits are seconds and 32 last bits are fractions of seconds
-            time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
-            uint32_t frac = (uint32_t)(r->rec & 0xFFFFFFFF);
-            FreeRTOS_printf(("\n\n Time according to %s: %s.%u\n", pcHostNames[i], ctime(&timeInSeconds), frac));
+            // call printTimestamp to print the rec time, include pcHostNames[i] in comment to function
+            char message[80]; // Ensure the buffer is large enough for the resulting string
+            snprintf(message, sizeof(message), "rec time for %s is :", pcHostNames[i]);
+            printTimestamp(r->rec, message);
 
             TickType_t test = xTaskGetTickCount();
             FreeRTOS_printf(("\n\n TICKS for %s: %d\n", pcHostNames[i], test));

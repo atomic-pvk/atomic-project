@@ -432,12 +432,17 @@ void ntp_init();
 
 double sqrt(double number);
 
-double subtract_uint64_t(uint64_t x, uint64_t y);
+uint64_t subtract_uint64_t(uint64_t x, uint64_t y);
 uint64_t add_uint64_t(uint64_t x, uint64_t y);
 
 void settime(tstamp newTime);
 tstamp gettime();
 
 void printTimestamp(tstamp timestamp, const char *comment);
+
+void uint64_to_str(uint64_t value, char *str);
+void double_to_str(double value, char *str, int precision);
+void FreeRTOS_printf_wrapper(const char *format, uint64_t value);
+void FreeRTOS_printf_wrapper_double(const char *format, double value);
 
 #endif
