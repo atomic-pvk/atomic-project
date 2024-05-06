@@ -1,15 +1,15 @@
 #!/bin/bash
 
+# Start searching from the root of the project directory
 start_dir="."
-echo "Starting format check in directory: $start_dir"
 
-file_count=$(find $start_dir -type f \( -iname "*.cpp" -or -iname "*.hpp" -or -iname "*.c" -or -iname "*.h" \) -not -path "./external/*" | wc -l)
-echo "Total files to check: $file_count"
-
-find $start_dir -type f \( -iname "*.cpp" -or -iname "*.hpp" -or -iname "*.c" -or -iname "*.h" \) -not -path "./external/*" -exec echo "Processing file: {}" \; -exec clang-format -style=file -output-replacements-xml {} + | grep "<replacement " >/dev/null
-if [ $? -ne 1 ]; then
-    echo "Code formatting differs from clang-format's style"
-    exit 1
-else
-    echo "All files formatted correctly."
-fi
+# Find all C++ and C header and source files, check if they need formatting
+find $start_dir -type f \( -iname "*.cpp" -or -iname "*.hpp" -or -iname "*.c" -or -iname "*.h" \) -exec sh -c '
+    for file do
+        clang-format -style=file -output-replacements-xml "$file" | grep "<replacement " >/dev/null
+        if [ $? -eq 0 ]; then
+            echo "File requires formatting: $file"
+            exit 1
+        fi
+    done
+' sh {} +
