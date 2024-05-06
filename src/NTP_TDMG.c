@@ -1,8 +1,7 @@
 #include "NTP_TDMG.h"
 
-#include "NTP_main_utility.h"
-
 #include "NTPTask.h"
+#include "NTP_main_utility.h"
 
 // Socket_t xSocket;
 // struct freertos_sockaddr xDestinationAddress;
@@ -77,8 +76,7 @@ void assoc_table_init(Assoc_table *table, uint32_t *NTP_server_IPs)
 
     for (int i = 0; i < NMAX; i++)
     {
-        table->entries[i].peer = mobilize(NTP_server_IPs[i], IPADDR, VERSION, MODE, KEYID,
-                                          P_FLAGS);
+        table->entries[i].peer = mobilize(NTP_server_IPs[i], IPADDR, VERSION, MODE, KEYID, P_FLAGS);
     }
 }
 
@@ -91,7 +89,7 @@ int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode, tstamp xmt
         {
             table->entries[table->size].hmode = hmode;
             table->entries[table->size].xmt = xmt;
-            return 1; // Entry already exists, do not add
+            return 1;  // Entry already exists, do not add
         }
     }
     if (table->size >= NMAX)
@@ -142,33 +140,33 @@ uint64_t subtract_uint64_t(uint64_t x, uint64_t y)
     int borrow = 0;
     if (xFrac < yFrac)
     {
-        borrow = 1; // Need to borrow from the high part
+        borrow = 1;  // Need to borrow from the high part
     }
 
     uint32_t low = xFrac - yFrac;
     if (borrow)
     {
-        low += 1U << 31; // Correctly adjust for borrow in 32-bit arithmetic
+        low += 1U << 31;  // Correctly adjust for borrow in 32-bit arithmetic
         low += 1U << 31;
     }
 
     uint32_t high = xS - yS - borrow;
 
-    uint64_t result = ((uint64_t)high << 32) | low; // Assemble the high and low parts back into a 64-bit integer
+    uint64_t result = ((uint64_t)high << 32) | low;  // Assemble the high and low parts back into a 64-bit integer
 
     return result;
 }
 
 uint64_t add_uint64_t(uint64_t x, uint64_t y)
 {
-    uint32_t xHigh = (uint32_t)(x >> 32);       // High 32 bits of x
-    uint32_t xLow = (uint32_t)(x & 0xFFFFFFFF); // Low 32 bits of x
-    uint32_t yHigh = (uint32_t)(y >> 32);       // High 32 bits of y
-    uint32_t yLow = (uint32_t)(y & 0xFFFFFFFF); // Low 32 bits of y
+    uint32_t xHigh = (uint32_t)(x >> 32);        // High 32 bits of x
+    uint32_t xLow = (uint32_t)(x & 0xFFFFFFFF);  // Low 32 bits of x
+    uint32_t yHigh = (uint32_t)(y >> 32);        // High 32 bits of y
+    uint32_t yLow = (uint32_t)(y & 0xFFFFFFFF);  // Low 32 bits of y
 
     // Add the low parts and check for overflow
     uint32_t sumLow = xLow + yLow;
-    uint32_t carry = sumLow < xLow ? 1 : 0; // If overflow occurred, set carry
+    uint32_t carry = sumLow < xLow ? 1 : 0;  // If overflow occurred, set carry
 
     // Add the high parts and include the carry
     uint32_t sumHigh = xHigh + yHigh + carry;
@@ -297,8 +295,8 @@ tstamp gettime()
     // Calculate new fraction value and handle overflow
     uint32_t tempFractions = currentFractions + newFractions;
     if (tempFractions < currentFractions)
-    {                        // Check for overflow using wrap-around condition
-        numSecondsInTicks++; // Increment the seconds part due to overflow
+    {                         // Check for overflow using wrap-around condition
+        numSecondsInTicks++;  // Increment the seconds part due to overflow
     }
 
     // Update the seconds part
@@ -330,7 +328,7 @@ void printTimestamp(tstamp timestamp, const char *comment)
     uint32_t fractions = (timestamp & 0xFFFFFFFF);
 
     // double fractionAsSecond = fractions / (double)0xFFFFFFFF;
-    double fractionAsSecond = fractions / 4294967296.0; // / 4294967296.0 = 2^32 
+    double fractionAsSecond = fractions / 4294967296.0;  // / 4294967296.0 = 2^32
 
     // time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
     // uint32_t frac = (uint32_t)(r->rec & 0xFFFFFFFF);
@@ -340,7 +338,7 @@ void printTimestamp(tstamp timestamp, const char *comment)
     FreeRTOS_printf(("%s Timestamp: %s.%.10d seconds\n", comment, ctime(&seconds), fractionAsSecond));
 }
 
-#define MAX_UINT64_DIGITS 20 // Maximum digits in uint64_t
+#define MAX_UINT64_DIGITS 20  // Maximum digits in uint64_t
 
 void uint64_to_str(uint64_t value, char *str)
 {
@@ -358,8 +356,8 @@ void uint64_to_str(uint64_t value, char *str)
     // Process individual digits
     while (value != 0)
     {
-        temp[i++] = (value % 10) + '0'; // get next digit
-        value = value / 10;             // remove it from the number
+        temp[i++] = (value % 10) + '0';  // get next digit
+        value = value / 10;              // remove it from the number
     }
 
     // Reverse the string
@@ -368,31 +366,30 @@ void uint64_to_str(uint64_t value, char *str)
     {
         str[j++] = temp[--i];
     }
-    str[j] = '\0'; // Null-terminate string
+    str[j] = '\0';  // Null-terminate string
 }
 
 void FreeRTOS_printf_wrapper(const char *format, uint64_t value)
 {
-    char buffer[MAX_UINT64_DIGITS + 50]; // Additional space for message text
+    char buffer[MAX_UINT64_DIGITS + 50];  // Additional space for message text
     char numberStr[MAX_UINT64_DIGITS];
     uint64_to_str(value, numberStr);
     sprintf(buffer, format, numberStr);
     FreeRTOS_printf(("%s\n", buffer));
 }
 
-#define MAX_DOUBLE_DIGITS 30 // A buffer size that should handle most cases
+#define MAX_DOUBLE_DIGITS 30  // A buffer size that should handle most cases
 
 void double_to_str(double value, char *str, int precision)
 {
-    if (precision > 9)
-        precision = 9; // Limit precision to 9 digits for simplicity
+    if (precision > 9) precision = 9;  // Limit precision to 9 digits for simplicity
 
     // Handle negative numbers
     int index = 0;
     if (value < 0)
     {
         str[index++] = '-';
-        value = -value; // Make the value positive for easier processing
+        value = -value;  // Make the value positive for easier processing
     }
 
     // Extract integer part
@@ -410,7 +407,7 @@ void double_to_str(double value, char *str, int precision)
     // Process fractional part if precision is greater than 0
     if (precision > 0)
     {
-        str[index++] = '.'; // add decimal point
+        str[index++] = '.';  // add decimal point
 
         // Convert fractional part to a string based on the specified precision
         double multiplier = 1.0;
@@ -419,19 +416,18 @@ void double_to_str(double value, char *str, int precision)
             multiplier *= 10.0;
         }
 
-        uint64_t fractional_digits = (uint64_t)(fractional_part * multiplier + 0.5); // Round the fractional part
+        uint64_t fractional_digits = (uint64_t)(fractional_part * multiplier + 0.5);  // Round the fractional part
 
         char frac_str[MAX_DOUBLE_DIGITS];
         uint64_to_str(fractional_digits, frac_str);
 
         // Add leading zeros if necessary
         int frac_digits_count = 0;
-        while (frac_str[frac_digits_count] != '\0')
-            frac_digits_count++;
+        while (frac_str[frac_digits_count] != '\0') frac_digits_count++;
 
         while (frac_digits_count < precision)
         {
-            str[index++] = '0'; // add leading zero
+            str[index++] = '0';  // add leading zero
             precision--;
         }
 
@@ -442,20 +438,20 @@ void double_to_str(double value, char *str, int precision)
         }
     }
 
-    str[index] = '\0'; // Null-terminate the string
+    str[index] = '\0';  // Null-terminate the string
 }
 
 void FreeRTOS_printf_wrapper_double(const char *format, double value)
 {
-    char buffer[MAX_DOUBLE_DIGITS + 50]; // Additional space for message text
-    double_to_str(value, buffer, 6);     // Example with 6 decimal places
+    char buffer[MAX_DOUBLE_DIGITS + 50];  // Additional space for message text
+    double_to_str(value, buffer, 6);      // Example with 6 decimal places
     FreeRTOS_printf(("%s\n", buffer));
 }
 
 void print_uint64_as_32_parts(uint64_t number)
 {
-    uint32_t lower_part = (uint32_t)number;         // Extracts the lower 32 bits
-    uint32_t upper_part = (uint32_t)(number >> 32); // Shifts right by 32 bits and extracts the upper 32 bits
+    uint32_t lower_part = (uint32_t)number;          // Extracts the lower 32 bits
+    uint32_t upper_part = (uint32_t)(number >> 32);  // Shifts right by 32 bits and extracts the upper 32 bits
 
     printf("Upper 32 bits: %u\n", upper_part);
     printf("Lower 32 bits: %u\n", lower_part);

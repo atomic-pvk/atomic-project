@@ -1,14 +1,14 @@
 
 #include "NTP_poll.h"
 
-#include "NTP_peer.h"
-#include "NTP_main_utility.h"
 #include "NTPTask.h"
+#include "NTP_main_utility.h"
+#include "NTP_peer.h"
 // A.5.7.1.  poll()
 /*
  * poll() - determine when to send a packet for association p->
  */
-void poll(struct ntp_p *p) // peer structure pointer
+void poll(struct ntp_p *p)  // peer structure pointer
 {
     int hpoll;
     int oreach;
@@ -25,8 +25,7 @@ void poll(struct ntp_p *p) // peer structure pointer
     if (p->hmode == M_BCST)
     {
         p->outdate = c.t;
-        if (s.p != NULL)
-            peer_xmit(p);
+        if (s.p != NULL) peer_xmit(p);
         poll_update(p, hpoll);
         return;
     }
@@ -49,8 +48,7 @@ void poll(struct ntp_p *p) // peer structure pointer
         }
         else if (s.n < MINCLOCK)
         {
-            if (p->ttl < TTLMAX)
-                p->ttl++;
+            if (p->ttl < TTLMAX) p->ttl++;
             peer_xmit(p);
         }
         p->unreach++;
@@ -59,7 +57,6 @@ void poll(struct ntp_p *p) // peer structure pointer
     }
     if (p->burst == 0)
     {
-
         /*
          * We are not in a burst.  Shift the reachability
          * register to the left.  Hopefully, some time before
@@ -69,11 +66,9 @@ void poll(struct ntp_p *p) // peer structure pointer
         oreach = p->reach;
         p->outdate = c.t;
         p->reach = p->reach << 1;
-        if (!(p->reach & 0x7))
-            clock_filter(p, 0, 0, MAXDISP);
+        if (!(p->reach & 0x7)) clock_filter(p, 0, 0, MAXDISP);
         if (!p->reach)
         {
-
             /*
              * The server is unreachable, so bump the
              * unreach counter.  If the unreach threshold
@@ -94,7 +89,6 @@ void poll(struct ntp_p *p) // peer structure pointer
         }
         else
         {
-
             /*
              * The server is reachable.  Set the poll
              * interval to the system poll interval.  Send a
@@ -102,8 +96,7 @@ void poll(struct ntp_p *p) // peer structure pointer
              */
             p->unreach = 0;
             hpoll = s.poll;
-            if (p->flags & P_BURST && fit(p))
-                p->burst = BCOUNT;
+            if (p->flags & P_BURST && fit(p)) p->burst = BCOUNT;
         }
     }
     else
@@ -118,8 +111,7 @@ void poll(struct ntp_p *p) // peer structure pointer
     /*
      * Do not transmit if in broadcast client mode.
      */
-    if (p->hmode != M_BCLN)
-        peer_xmit(p);
+    if (p->hmode != M_BCLN) peer_xmit(p);
     poll_update(p, hpoll);
 }
 
@@ -134,9 +126,8 @@ void poll(struct ntp_p *p) // peer structure pointer
  * potential race can occur, possibly causing an incorrect interval for
  * the next poll.  This is considered so unlikely as to be negligible.
  */
-void poll_update(
-    struct ntp_p *p, /* peer structure pointer */
-    int poll)        /* poll interval (log2 s) */
+void poll_update(struct ntp_p *p, /* peer structure pointer */
+                 int poll)        /* poll interval (log2 s) */
 {
     /*
      * This routine is called by both the poll() and packet()
@@ -161,17 +152,14 @@ void poll_update(
          * While not shown here, the reference implementation
          * randomizes the poll interval by a small factor.
          */
-        p->nextdate = p->outdate + (1 << max(min(p->ppoll,
-                                                 p->hpoll),
-                                             MINPOLL));
+        p->nextdate = p->outdate + (1 << max(min(p->ppoll, p->hpoll), MINPOLL));
     }
 
     /*
      * It might happen that the due time has already passed.  If so,
      * make it one second in the future.
      */
-    if (p->nextdate <= c.t)
-        p->nextdate = c.t + 1;
+    if (p->nextdate <= c.t) p->nextdate = c.t + 1;
 }
 
 // A.5.7.3.  peer_xmit()
@@ -179,8 +167,7 @@ void poll_update(
 /*
  * transmit() - transmit a packet for association p
  */
-void peer_xmit(
-    struct ntp_p *p // peer structure pointer)
+void peer_xmit(struct ntp_p *p  // peer structure pointer)
 )
 {
     struct ntp_x x; /* transmit packet */

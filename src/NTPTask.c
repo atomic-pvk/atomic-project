@@ -16,8 +16,7 @@ struct ntp_c c;
 TickType_t lastTimeStampTick;
 tstamp lastTimeStampTstamp;
 
-void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize,
-                                      UBaseType_t uxTaskPriority)
+void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize, UBaseType_t uxTaskPriority)
 {
     BaseType_t x;
 
@@ -27,8 +26,8 @@ void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize,
                 "Echo0",                            /* Just a text name for the task to aid debugging. */
                 usTaskStackSize,                    /* The stack size is defined in FreeRTOSIPConfig.h. */
                 (void *)x,                          /* The task parameter, not used in this case. */
-                uxTaskPriority,                     /* The priority assigned to the task is defined in FreeRTOSConfig.h. */
-                NULL);                              /* The task handle is not used. */
+                uxTaskPriority, /* The priority assigned to the task is defined in FreeRTOSConfig.h. */
+                NULL);          /* The task handle is not used. */
 }
 
 static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
@@ -47,12 +46,8 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     configASSERT(xSocket != FREERTOS_INVALID_SOCKET);
 
     // Array of hostname strings
-    const char *pcHostNames[NMAX] = {
-        "sth1.ntp.se", // first one should be closest to user
-        "sth2.ntp.se",
-        "svl1.ntp.se",
-        "mmo1.ntp.se",
-        "lul1.ntp.se"};
+    const char *pcHostNames[NMAX] = {"sth1.ntp.se",  // first one should be closest to user
+                                     "sth2.ntp.se", "svl1.ntp.se", "mmo1.ntp.se", "lul1.ntp.se"};
 
     uint32_t NTP_server_IPs[NMAX];
     uint8_t DNSok;
@@ -80,9 +75,9 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     }
 
     /* Setup destination address */
-    xDestinationAddress.sin_family = FREERTOS_AF_INET4;         // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
-    xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP; // destination IP
-    xDestinationAddress.sin_port = FreeRTOS_htons(123);         // dest port
+    xDestinationAddress.sin_family = FREERTOS_AF_INET4;  // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
+    xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;  // destination IP
+    xDestinationAddress.sin_port = FreeRTOS_htons(123);          // dest port
     xDestinationAddress.sin_len = (uint8_t)sizeof(struct freertos_sockaddr);
 
     // struct ntp_p *p; /* peer structure pointer */
@@ -148,10 +143,10 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;
     FreeRTOS_printf(("\n\n Getting first initial reference time from IP (which is %s): %lu.%lu.%lu.%lu \n\n",
                      pcHostNames[0],
-                     NTP1_server_IP & 0xFF,           // Extract the fourth byte
-                     (NTP1_server_IP >> 8) & 0xFF,    // Extract the third byte
-                     (NTP1_server_IP >> 16) & 0xFF,   // Extract the second byte
-                     (NTP1_server_IP >> 24) & 0xFF)); // Extract the first byte
+                     NTP1_server_IP & 0xFF,            // Extract the fourth byte
+                     (NTP1_server_IP >> 8) & 0xFF,     // Extract the third byte
+                     (NTP1_server_IP >> 16) & 0xFF,    // Extract the second byte
+                     (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
 
     // send packet
     xmit_packet(x);
@@ -187,12 +182,11 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             x->srcaddr = NTP1_server_IP;
             xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;
 
-            FreeRTOS_printf(("\n\n Getting from IP (which is %s): %lu.%lu.%lu.%lu \n\n",
-                             pcHostNames[i],
-                             NTP1_server_IP & 0xFF,           // Extract the fourth byte
-                             (NTP1_server_IP >> 8) & 0xFF,    // Extract the third byte
-                             (NTP1_server_IP >> 16) & 0xFF,   // Extract the second byte
-                             (NTP1_server_IP >> 24) & 0xFF)); // Extract the first byte
+            FreeRTOS_printf(("\n\n Getting from IP (which is %s): %lu.%lu.%lu.%lu \n\n", pcHostNames[i],
+                             NTP1_server_IP & 0xFF,            // Extract the fourth byte
+                             (NTP1_server_IP >> 8) & 0xFF,     // Extract the third byte
+                             (NTP1_server_IP >> 16) & 0xFF,    // Extract the second byte
+                             (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
 
             // send packet
             time_t orgtimeInSeconds = (time_t)((x->xmt >> 32) - 2208988800ull);
@@ -214,7 +208,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             // time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);
 
             // call printTimestamp to print the rec time, include pcHostNames[i] in comment to function
-            char message[80]; // Ensure the buffer is large enough for the resulting string
+            char message[80];  // Ensure the buffer is large enough for the resulting string
             snprintf(message, sizeof(message), "rec time for %s is :", pcHostNames[i]);
             printTimestamp(r->rec, message);
 

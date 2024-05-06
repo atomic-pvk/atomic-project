@@ -45,8 +45,7 @@
  */
 #define BEGIN_CLEAR(p) ((char *)&((p)->begin_clear))
 #define END_CLEAR(p) ((char *)&((p)->end_clear))
-#define LEN_CLEAR (END_CLEAR((struct ntp_p *)0) - \
-                   BEGIN_CLEAR((struct ntp_p *)0))
+#define LEN_CLEAR (END_CLEAR((struct ntp_p *)0) - BEGIN_CLEAR((struct ntp_p *)0))
 
 void receive(struct ntp_r *);                              /* receive packet */
 void packet(struct ntp_p *, struct ntp_r *);               /* process packet */

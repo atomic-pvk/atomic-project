@@ -25,22 +25,19 @@
  */
 
 #include <FreeRTOS.h>
-#include <task.h>
-
 #include <FreeRTOSConfig.h>
-
-#include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
+#include <task.h>
 
-void vApplicationStackOverflowHook( TaskHandle_t pxTask,
-                                    char * pcTaskName );
-void vApplicationMallocFailedHook( void );
-void main_tcp_echo_client_tasks( void );
-void vApplicationIdleHook( void );
-void vApplicationTickHook( void );
+void vApplicationStackOverflowHook(TaskHandle_t pxTask, char* pcTaskName);
+void vApplicationMallocFailedHook(void);
+void main_tcp_echo_client_tasks(void);
+void vApplicationIdleHook(void);
+void vApplicationTickHook(void);
 
-extern void initialise_monitor_handles( void );
+extern void initialise_monitor_handles(void);
 
 int main()
 {
@@ -50,7 +47,7 @@ int main()
 
 /*-----------------------------------------------------------*/
 
-void vApplicationMallocFailedHook( void )
+void vApplicationMallocFailedHook(void)
 {
     /* Called if a call to pvPortMalloc() fails because there is insufficient
      * free memory available in the FreeRTOS heap.  pvPortMalloc() is called
@@ -59,30 +56,29 @@ void vApplicationMallocFailedHook( void )
      * configTOTAL_HEAP_SIZE configuration constant in FreeRTOSConfig.h. */
     taskDISABLE_INTERRUPTS();
 
-    for( ; ; )
+    for (;;)
     {
     }
 }
 /*-----------------------------------------------------------*/
 
-void vApplicationStackOverflowHook( TaskHandle_t pxTask,
-                                    char * pcTaskName )
+void vApplicationStackOverflowHook(TaskHandle_t pxTask, char* pcTaskName)
 {
-    ( void ) pcTaskName;
-    ( void ) pxTask;
+    (void)pcTaskName;
+    (void)pxTask;
 
     /* Run time stack overflow checking is performed if
      * configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
      * function is called if a stack overflow is detected. */
     taskDISABLE_INTERRUPTS();
 
-    for( ; ; )
+    for (;;)
     {
     }
 }
 /*-----------------------------------------------------------*/
 
-void vApplicationIdleHook( void )
+void vApplicationIdleHook(void)
 {
     volatile size_t xFreeHeapSpace;
 
@@ -96,12 +92,10 @@ void vApplicationIdleHook( void )
 }
 /*-----------------------------------------------------------*/
 
-void vApplicationTickHook( void )
-{
-}
+void vApplicationTickHook(void) {}
 /*-----------------------------------------------------------*/
 
-void vAssertCalled( void )
+void vAssertCalled(void)
 {
     volatile unsigned long looping = 0;
 
@@ -109,7 +103,7 @@ void vAssertCalled( void )
     {
         /* Use the debugger to set ul to a non-zero value in order to step out
          *      of this function to determine why it was called. */
-        while( looping == 0LU )
+        while (looping == 0LU)
         {
             portNOP();
         }
@@ -117,12 +111,11 @@ void vAssertCalled( void )
     taskEXIT_CRITICAL();
 }
 /*-----------------------------------------------------------*/
-void vLoggingPrintf( const char * pcFormat,
-                     ... )
+void vLoggingPrintf(const char* pcFormat, ...)
 {
     va_list arg;
 
-    va_start( arg, pcFormat );
-    vprintf( pcFormat, arg );
-    va_end( arg );
+    va_start(arg, pcFormat);
+    vprintf(pcFormat, arg);
+    va_end(arg);
 }

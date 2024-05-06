@@ -10,8 +10,8 @@
 #define BCOUNT 8   /* packets in a burst */
 #define BTIME 2    /* burst interval (s) */
 
-void poll(struct ntp_p *);      /* poll process */
-void poll_update(struct ntp_p *, int);        /* update the poll interval */
-void peer_xmit(struct ntp_p *); /* transmit a packet */
+void poll(struct ntp_p *);             /* poll process */
+void poll_update(struct ntp_p *, int); /* update the poll interval */
+void peer_xmit(struct ntp_p *);        /* transmit a packet */
 
 #endif /* NTP_POLL_H */

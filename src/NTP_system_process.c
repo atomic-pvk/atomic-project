@@ -61,7 +61,6 @@ void clock_select()
     high = -2e9;
     for (allow = 0; 2 * allow < n; allow++)
     {
-
         /*
          * Scan the chime list from lowest to highest to find
          * the lower endpoint.
@@ -76,8 +75,7 @@ void clock_select()
                 low = s.m[i].edge;
                 break;
             }
-            if (s.m[i].type == 0)
-                found++;
+            if (s.m[i].type == 0) found++;
         }
 
         /*
@@ -93,8 +91,7 @@ void clock_select()
                 high = s.m[i].edge;
                 break;
             }
-            if (s.m[i].type == 0)
-                found++;
+            if (s.m[i].type == 0) found++;
         }
         /*
          * If the number of midpoints is greater than the number
@@ -104,11 +101,9 @@ void clock_select()
          * around again.  If not and the intersection is
          * non-empty, declare success.
          */
-        if (found > allow)
-            continue;
+        if (found > allow) continue;
 
-        if (high > low)
-            break;
+        if (high > low) break;
     }
 
     FreeRTOS_printf(("we are in clock select 2\n"));
@@ -121,8 +116,7 @@ void clock_select()
     s.n = 0;
     for (i = 0; i < n; i++)
     {
-        if (s.m[i].edge < low || s.m[i].edge > high)
-            continue;
+        if (s.m[i].edge < low || s.m[i].edge > high) continue;
 
         p = s.m[i].p;
         s.v[n].p = p;
@@ -136,9 +130,8 @@ void clock_select()
      * require four survivors, but for the demonstration here, one
      * is acceptable.
      */
-    if (s.n < NSANE)
-        FreeRTOS_printf(("nsane survivors dead\n"));
-        return;
+    if (s.n < NSANE) FreeRTOS_printf(("nsane survivors dead\n"));
+    return;
 
     FreeRTOS_printf(("we are in clock select 3\n"));
     /*
@@ -158,8 +151,7 @@ void clock_select()
         for (i = 0; i < s.n; i++)
         {
             p = s.v[i].p;
-            if (p->jitter < min)
-                min = p->jitter;
+            if (p->jitter < min) min = p->jitter;
             dtemp = 0;
             for (j = 0; j < n; j++)
             {
@@ -183,8 +175,7 @@ void clock_select()
          * if the number of survivors is less than or equal to
          * NMIN (3).
          */
-        if (max < min || n <= NMIN)
-            break;
+        if (max < min || n <= NMIN) break;
 
         /*
          * Delete survivor qmax from the list and go around
@@ -213,20 +204,16 @@ void clock_select()
 /*
  * root_dist() - calculate root distance
  */
-double
-root_dist(
-    struct ntp_p *p /* peer structure pointer */
+double root_dist(struct ntp_p *p /* peer structure pointer */
 )
 {
-
     /*
      * The root synchronization distance is the maximum error due to
      * all causes of the local clock relative to the primary server.
      * It is defined as half the total delay plus total dispersion
      * plus peer jitter.
      */
-    return (max(MINDISP, p->rootdelay + p->delay) / 2 +
-            p->rootdisp + p->disp + PHI * (c.t - p->t) + p->jitter);
+    return (max(MINDISP, p->rootdelay + p->delay) / 2 + p->rootdisp + p->disp + PHI * (c.t - p->t) + p->jitter);
 }
 
 // A.5.5.3.  accept()
@@ -234,24 +221,21 @@ root_dist(
 /*
  * accept() - test if association p is acceptable for synchronization
  */
-int accept(
-    struct ntp_p *p /* peer structure pointer */
+int accept(struct ntp_p *p /* peer structure pointer */
 )
 {
     /*
      * A stratum error occurs if (1) the server has never been
      * synchronized, (2) the server stratum is invalid.
      */
-    if (p->leap == NOSYNC || p->stratum >= MAXSTRAT)
-        return (FALSE);
+    if (p->leap == NOSYNC || p->stratum >= MAXSTRAT) return (FALSE);
 
     /*
      * A distance error occurs if the root distance exceeds the
      * distance threshold plus an increment equal to one poll
      * interval.
      */
-    if (root_dist(p) > MAXDIST + PHI * LOG2D(s.poll))
-        return (FALSE);
+    if (root_dist(p) > MAXDIST + PHI * LOG2D(s.poll)) return (FALSE);
 
     /*
      * A loop error occurs if the remote peer is synchronized to the
@@ -259,14 +243,12 @@ int accept(
      * system peer.  Note this is the behavior for IPv4; for IPv6
      * the MD5 hash is used instead.
      */
-    if (p->refid == p->dstaddr || p->refid == s.refid)
-        return (FALSE);
+    if (p->refid == p->dstaddr || p->refid == s.refid) return (FALSE);
 
     /*
      * An unreachable error occurs if the server is unreachable.
      */
-    if (p->reach == 0)
-        return (FALSE);
+    if (p->reach == 0) return (FALSE);
 
     return (TRUE);
 }
@@ -276,8 +258,7 @@ int accept(
 /*
  * clock_update() - update the system clock
  */
-void clock_update(
-    struct ntp_p *p /* peer structure pointer */
+void clock_update(struct ntp_p *p /* peer structure pointer */
 )
 {
     double dtemp;
@@ -287,8 +268,7 @@ void clock_update(
      * system peer change, avoid it.  We never use an old sample or
      * the same sample twice.
      */
-    if (s.t >= p->t)
-        return;
+    if (s.t >= p->t) return;
 
     /*
      * Combine the survivor offsets and update the system clock; the
@@ -298,59 +278,56 @@ void clock_update(
     clock_combine(s, c);
     switch (local_clock(p, s.offset))
     {
-    /*
-     * The offset is too large and probably bogus.  Complain to the
-     * system log and order the operator to set the clock manually
-     * within PANIC range.  The reference implementation includes a
-     * command line option to disable this check and to change the
-     * panic threshold from the default 1000 s as required.
-     */
-    case PANIC:
-        exit(0);
+        /*
+         * The offset is too large and probably bogus.  Complain to the
+         * system log and order the operator to set the clock manually
+         * within PANIC range.  The reference implementation includes a
+         * command line option to disable this check and to change the
+         * panic threshold from the default 1000 s as required.
+         */
+        case PANIC:
+            exit(0);
 
-    /*
-     * The offset is more than the step threshold (0.125 s by
-     * default).  After a step, all associations now have
-     * inconsistent time values, so they are reset and started
-     * fresh.  The step threshold can be changed in the reference
-     * implementation in order to lessen the chance the clock might
-     * be stepped backwards.  However, there may be serious
-     * consequences, as noted in the white papers at the NTP project
-     * site.
-     */
-    case STEP:
-        while (/* all associations */ 0)
-            clear(p, X_STEP);
-        s.stratum = MAXSTRAT;
-        s.poll = MINPOLL;
-        break;
+        /*
+         * The offset is more than the step threshold (0.125 s by
+         * default).  After a step, all associations now have
+         * inconsistent time values, so they are reset and started
+         * fresh.  The step threshold can be changed in the reference
+         * implementation in order to lessen the chance the clock might
+         * be stepped backwards.  However, there may be serious
+         * consequences, as noted in the white papers at the NTP project
+         * site.
+         */
+        case STEP:
+            while (/* all associations */ 0) clear(p, X_STEP);
+            s.stratum = MAXSTRAT;
+            s.poll = MINPOLL;
+            break;
 
-    /*
-     * The offset was less than the step threshold, which is the
-     * normal case.  Update the system variables from the peer
-     * variables.  The lower clamp on the dispersion increase is to
-     * avoid timing loops and clockhopping when highly precise
-     * sources are in play.  The clamp can be changed from the
-     * default .01 s in the reference implementation.
-     */
-    case SLEW:
-        s.leap = p->leap;
-        s.stratum = p->stratum + 1;
-        s.refid = p->refid;
-        s.reftime = p->reftime;
-        s.rootdelay = p->rootdelay + p->delay;
-        dtemp = SQRT(SQUARE(p->jitter) + SQUARE(s.jitter));
-        dtemp += max(p->disp + PHI * (c.t - p->t) +
-                         fabs(p->offset),
-                     MINDISP);
-        s.rootdisp = p->rootdisp + dtemp;
-        break;
-    /*
-     * Some samples are discarded while, for instance, a direct
-     * frequency measurement is being made.
-     */
-    case IGNORE:
-        break;
+        /*
+         * The offset was less than the step threshold, which is the
+         * normal case.  Update the system variables from the peer
+         * variables.  The lower clamp on the dispersion increase is to
+         * avoid timing loops and clockhopping when highly precise
+         * sources are in play.  The clamp can be changed from the
+         * default .01 s in the reference implementation.
+         */
+        case SLEW:
+            s.leap = p->leap;
+            s.stratum = p->stratum + 1;
+            s.refid = p->refid;
+            s.reftime = p->reftime;
+            s.rootdelay = p->rootdelay + p->delay;
+            dtemp = SQRT(SQUARE(p->jitter) + SQUARE(s.jitter));
+            dtemp += max(p->disp + PHI * (c.t - p->t) + fabs(p->offset), MINDISP);
+            s.rootdisp = p->rootdisp + dtemp;
+            break;
+        /*
+         * Some samples are discarded while, for instance, a direct
+         * frequency measurement is being made.
+         */
+        case IGNORE:
+            break;
     }
 }
 

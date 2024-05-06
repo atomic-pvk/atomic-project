@@ -42,8 +42,7 @@
 #define configASSERT_DEFINED 1
 extern void vAssertCalled(void);
 #define configASSERT(x) \
-    if ((x) == 0)       \
-    vAssertCalled()
+    if ((x) == 0) vAssertCalled()
 
 #define configUSE_PREEMPTION 1
 #define configUSE_TIME_SLICING 1

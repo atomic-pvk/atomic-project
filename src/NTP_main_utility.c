@@ -1,16 +1,17 @@
-#include "NTPTask.h"
 #include "NTP_main_utility.h"
+
 #include <stdbool.h>
+
+#include "NTPTask.h"
 
 static struct ntp_p *p; /* peer structure pointer */
 
-struct ntp_p *mobilize(
-    uint32_t srcaddr, /* IP source address, change from ipaddr to uint32_t */
-    uint32_t dstaddr, /* IP destination address, change from ipaddr to uint32_t */
-    int version,      /* version */
-    int mode,         /* host mode */
-    int keyid,        /* key identifier */
-    int flags         /* peer flags */
+struct ntp_p *mobilize(uint32_t srcaddr, /* IP source address, change from ipaddr to uint32_t */
+                       uint32_t dstaddr, /* IP destination address, change from ipaddr to uint32_t */
+                       int version,      /* version */
+                       int mode,         /* host mode */
+                       int keyid,        /* key identifier */
+                       int flags         /* peer flags */
 )
 {
     struct ntp_p *p; /* peer process pointer */
@@ -33,15 +34,14 @@ struct ntp_p *mobilize(
 /*
  * find_assoc() - find a matching association
  */
-struct ntp_p /* peer structure pointer or NULL */
-    *
-    find_assoc(
-        struct ntp_r *r /* receive packet pointer */
-    )
+struct
+    ntp_p /* peer structure pointer or NULL */
+        *
+        find_assoc(struct ntp_r *r /* receive packet pointer */
+        )
 {
     struct ntp_p *p; /* dummy peer structure pointer */
     p = malloc(sizeof(struct ntp_p));
-
 
     for (int i = 0; i < assoc_table->size; i++)
     {
@@ -63,9 +63,7 @@ struct ntp_p /* peer structure pointer or NULL */
 /*
  * md5() - compute message digest
  */
-digest
-md5(
-    int keyid /* key identifier */
+digest md5(int keyid /* key identifier */
 )
 {
     /*
@@ -91,14 +89,14 @@ void FreeRTOS_ntohl_array_32(uint32_t *array, size_t length)
 
 void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
 {
-    r->srcaddr = NTP1_server_IP; // Set to zero if not known
-    r->dstaddr = 0;              // Set to zero if not known
+    r->srcaddr = NTP1_server_IP;  // Set to zero if not known
+    r->dstaddr = 0;               // Set to zero if not known
 
     // Extract version, leap, and mode from li_vn_mode
     // pkt->li_vn_mode = FreeRTOS_ntohl(pkt->li_vn_mode) << 24;
-    r->leap = (pkt->li_vn_mode >> 6) & 0x3;    // Extract bits 0-1
-    r->version = (pkt->li_vn_mode >> 3) & 0x7; // Extract bits 2-4
-    r->mode = (pkt->li_vn_mode) & 0x7;         // Extract bits 5-7
+    r->leap = (pkt->li_vn_mode >> 6) & 0x3;     // Extract bits 0-1
+    r->version = (pkt->li_vn_mode >> 3) & 0x7;  // Extract bits 2-4
+    r->mode = (pkt->li_vn_mode) & 0x7;          // Extract bits 5-7
 
     // uint8_t li_vn_mode;      // Eight bits. li, vn, and mode.
     //                          // li.   Two bits.   Leap indicator.
@@ -113,15 +111,15 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
 
     uint32_t testerm = ((uint32_t)pkt->origTm_f);
 
-    uint32_t temp[12]; // 384-bit data broken down into 32-bit chunks
+    uint32_t temp[12];  // 384-bit data broken down into 32-bit chunks
     memcpy(temp, pkt, sizeof(ntp_packet));
     FreeRTOS_ntohl_array_32(temp, 12);
-    memcpy(pkt, temp, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
+    memcpy(pkt, temp, sizeof(ntp_packet));  // Copy the received packet to the receive packet struct
 
     r->rootdelay = (tdist)pkt->rootDelay;
     r->rootdisp = (tdist)pkt->rootDispersion;
 
-    r->refid = (char)pkt->refId; // May require handling depending on refId's nature
+    r->refid = (char)pkt->refId;  // May require handling depending on refId's nature
 
     // Combine seconds and fractions into a single 64-bit NTP timestamp'
     // FreeRTOS_printf(("All of the received data for the received packet r is:\n"));
@@ -132,8 +130,8 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
     // FreeRTOS_printf(("\n\n received fraction; %d\n\n\n\n\n\n\n\n\n\n", pkt->txTm_f));
     // Set crypto fields to 0 or default values
     r->keyid = 0;
-    r->mac = 0;   // Zero out the MAC digest
-    r->dst = dst; // Set the timestamp to the ms passed since vTaskStartScheduler started
+    r->mac = 0;    // Zero out the MAC digest
+    r->dst = dst;  // Set the timestamp to the ms passed since vTaskStartScheduler started
 
     free(pkt);
 }
@@ -144,12 +142,13 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
  *
  * recv_packet - receive packet from network
  */
-struct ntp_r /* receive packet pointer*/
-    *
-    recv_packet()
+struct
+    ntp_r /* receive packet pointer*/
+        *
+        recv_packet()
 {
-    ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
-    memset(pkt, 0, sizeof(ntp_packet));           // Clear the packet struct
+    ntp_packet *pkt = malloc(sizeof(ntp_packet));  // Allocate memory for the packet
+    memset(pkt, 0, sizeof(ntp_packet));            // Clear the packet struct
     int32_t iReturned;
     struct freertos_sockaddr xSourceAddress;
     socklen_t xAddressLength = sizeof(xSourceAddress);
@@ -157,27 +156,22 @@ struct ntp_r /* receive packet pointer*/
 
     FreeRTOS_printf(("Receiving packet...\n"));
 
-    iReturned = FreeRTOS_recvfrom(xSocket,
-                                  bufferRecv,
-                                  sizeof(ntp_packet),
-                                  0,
-                                  &xSourceAddress,
-                                  &xAddressLength);
+    iReturned = FreeRTOS_recvfrom(xSocket, bufferRecv, sizeof(ntp_packet), 0, &xSourceAddress, &xAddressLength);
 
     if (iReturned > 0)
     {
         // get the time when the packet was received
         tstamp dst = gettime();
 
-        struct ntp_r *r = malloc(sizeof(ntp_r)); // Allocate memory for the receive packet
-        memset(r, 0, sizeof(ntp_r));             // Clear the receive packet struct
+        struct ntp_r *r = malloc(sizeof(ntp_r));  // Allocate memory for the receive packet
+        memset(r, 0, sizeof(ntp_r));              // Clear the receive packet struct
 
         // Flip the bits
 
-        uint32_t temp[12]; // 384-bit data broken down into 32-bit chunks
+        uint32_t temp[12];  // 384-bit data broken down into 32-bit chunks
         memcpy(temp, bufferRecv, sizeof(ntp_packet));
         // FreeRTOS_ntohl_array_32(temp, 12);
-        memcpy(pkt, temp, sizeof(ntp_packet)); // Copy the received packet to the receive packet struct
+        memcpy(pkt, temp, sizeof(ntp_packet));  // Copy the received packet to the receive packet struct
 
         FreeRTOS_printf(("Packet received\n"));
 
@@ -197,7 +191,6 @@ struct ntp_r /* receive packet pointer*/
 
 void translate_ntp_x_to_ntp_packet(ntp_x *x, ntp_packet *pkt)
 {
-
     // Combine leap, version, and mode into li_vn_mode
     pkt->li_vn_mode = (x->leap & 0x03) << 6 | (x->version & 0x07) << 3 | (x->mode & 0x07);
 
@@ -222,20 +215,19 @@ void translate_ntp_x_to_ntp_packet(ntp_x *x, ntp_packet *pkt)
 /*
  * xmit_packet - transmit packet to network
  */
-void xmit_packet(
-    struct ntp_x *x /* transmit packet pointer */
+void xmit_packet(struct ntp_x *x /* transmit packet pointer */
 )
 {
     /* setup ntp_packet *pkt */
-    ntp_packet *pkt = malloc(sizeof(ntp_packet)); // Allocate memory for the packet
-    memset(pkt, 0, sizeof(ntp_packet));           // Clear the packet struct
+    ntp_packet *pkt = malloc(sizeof(ntp_packet));  // Allocate memory for the packet
+    memset(pkt, 0, sizeof(ntp_packet));            // Clear the packet struct
 
     // set xmit time to current time!
     x->xmt = gettime();
 
     translate_ntp_x_to_ntp_packet(x, pkt);
     unsigned char buffer[sizeof(ntp_packet)];
-    memcpy(buffer, pkt, sizeof(ntp_packet)); // Here the packet is fully prepared and can be sent
+    memcpy(buffer, pkt, sizeof(ntp_packet));  // Here the packet is fully prepared and can be sent
 
     /* Send the string to the UDP socket.  ulFlags is set to 0, so the standard
     semantics are used.  That means the data from cString[] is copied
@@ -252,12 +244,7 @@ void xmit_packet(
     int32_t iReturned;
     socklen_t xAddressLength = sizeof(xDestinationAddress);
 
-    iReturned = FreeRTOS_sendto(xSocket,
-                                buffer,
-                                sizeof(buffer),
-                                0,
-                                &xDestinationAddress,
-                                xAddressLength);
+    iReturned = FreeRTOS_sendto(xSocket, buffer, sizeof(buffer), 0, &xDestinationAddress, xAddressLength);
 
     if (iReturned == sizeof(buffer))
     {
@@ -289,8 +276,7 @@ void xmit_packet(
 /*
  * get_time - read system time and convert to NTP format
  */
-tstamp
-get_time()
+tstamp get_time()
 {
     struct timeval unix_time;
 
@@ -308,8 +294,7 @@ get_time()
 /*
  * step_time() - step system time to given offset value
  */
-void step_time(
-    double offset /* clock offset */
+void step_time(double offset /* clock offset */
 )
 {
     struct timeval unix_time;
@@ -330,8 +315,7 @@ void step_time(
 /*
  * adjust_time() - slew system clock to given offset value
  */
-void adjust_time(
-    double offset /* clock offset */
+void adjust_time(double offset /* clock offset */
 )
 {
     struct timeval unix_time;

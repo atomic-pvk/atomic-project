@@ -4,23 +4,20 @@
 #include "NTP_TDMG.h"
 
 // mobilize - allocates and initializes a new peer structure
-struct ntp_p *mobilize(
-    uint32_t srcaddr, // IP source address
-    uint32_t dstaddr, // IP destination address
-    int version,      // version
-    int mode,         // host mode
-    int keyid,        // key identifier
-    int flags         // peer flags
+struct ntp_p *mobilize(uint32_t srcaddr,  // IP source address
+                       uint32_t dstaddr,  // IP destination address
+                       int version,       // version
+                       int mode,          // host mode
+                       int keyid,         // key identifier
+                       int flags          // peer flags
 );
 
 // find_assoc - find a matching association
-struct ntp_p *find_assoc(
-    struct ntp_r *r // receive packet pointer
+struct ntp_p *find_assoc(struct ntp_r *r  // receive packet pointer
 );
 
 // md5 - compute message digest
-digest md5(
-    int keyid // key identifier
+digest md5(int keyid  // key identifier
 );
 
 // Kernel Input/Output Interface
@@ -29,8 +26,7 @@ digest md5(
 struct ntp_r *recv_packet(void);
 
 // xmit_packet - transmit packet to network
-void xmit_packet(
-    struct ntp_x *x // transmit packet pointer
+void xmit_packet(struct ntp_x *x  // transmit packet pointer
 );
 
 // Kernel System Clock Interface
@@ -39,13 +35,11 @@ void xmit_packet(
 tstamp get_time(void);
 
 // step_time - step system time to given offset value
-void step_time(
-    double offset // clock offset
+void step_time(double offset  // clock offset
 );
 
 // adjust_time - slew system clock to given offset value
-void adjust_time(
-    double offset // clock offset
+void adjust_time(double offset  // clock offset
 );
 
 #endif /* NTP_MAIN_UTILITY_H */

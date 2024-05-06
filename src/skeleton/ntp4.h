@@ -3,9 +3,9 @@
 // A.1.1.  Definitions, Constants, Parameters
 
 #include <math.h>     /* avoids complaints about sqrt() */
-#include <sys/time.h> /* for gettimeofday() and friends */
 #include <stdlib.h>   /* for malloc() and friends */
 #include <string.h>   /* for memset() */
+#include <sys/time.h> /* for gettimeofday() and friends */
 
 /*
  * Data types
@@ -39,15 +39,14 @@ typedef signed char s_char;        /* precision and poll interval (log2) */
 /*
  * Timestamp conversion macroni
  */
-#define FRIC 65536.                   /* 2^16 as a double */
-#define D2FP(r) ((tdist)((r) * FRIC)) /* NTP short */
+#define FRIC 65536.                 /* 2^16 as a double */
+#define D2FP(r) ((tdist)((r)*FRIC)) /* NTP short */
 #define FP2D(r) ((double)(r) / FRIC)
 
-#define FRAC 4294967296.                /* 2^32 as a double */
-#define D2LFP(a) ((tstamp)((a) * FRAC)) /* NTP timestamp */
+#define FRAC 4294967296.              /* 2^32 as a double */
+#define D2LFP(a) ((tstamp)((a)*FRAC)) /* NTP timestamp */
 #define LFP2D(a) ((double)(a) / FRAC)
-#define U2LFP(a) (((unsigned long long)((a).tv_sec + JAN_1970) << 32) + \
-                  (unsigned long long)((a).tv_usec / 1e6 * FRAC))
+#define U2LFP(a) (((unsigned long long)((a).tv_sec + JAN_1970) << 32) + (unsigned long long)((a).tv_usec / 1e6 * FRAC))
 
 /*
  * Arithmetic conversions
@@ -172,24 +171,24 @@ typedef signed char s_char;        /* precision and poll interval (log2) */
  */
 struct r
 {
-        ipaddr srcaddr;   /* source (remote) address */
-        ipaddr dstaddr;   /* destination (local) address */
-        char version;     /* version number */
-        char leap;        /* leap indicator */
-        char mode;        /* mode */
-        char stratum;     /* stratum */
-        char poll;        /* poll interval */
-        s_char precision; /* precision */
-        tdist rootdelay;  /* root delay */
-        tdist rootdisp;   /* root dispersion */
-        char refid;       /* reference ID */
-        tstamp reftime;   /* reference time */
-        tstamp org;       /* origin timestamp */
-        tstamp rec;       /* receive timestamp */
-        tstamp xmt;       /* transmit timestamp */
-        int keyid;        /* key ID */
-        digest mac;       /* message digest */
-        tstamp dst;       /* destination timestamp */
+    ipaddr srcaddr;   /* source (remote) address */
+    ipaddr dstaddr;   /* destination (local) address */
+    char version;     /* version number */
+    char leap;        /* leap indicator */
+    char mode;        /* mode */
+    char stratum;     /* stratum */
+    char poll;        /* poll interval */
+    s_char precision; /* precision */
+    tdist rootdelay;  /* root delay */
+    tdist rootdisp;   /* root dispersion */
+    char refid;       /* reference ID */
+    tstamp reftime;   /* reference time */
+    tstamp org;       /* origin timestamp */
+    tstamp rec;       /* receive timestamp */
+    tstamp xmt;       /* transmit timestamp */
+    int keyid;        /* key ID */
+    digest mac;       /* message digest */
+    tstamp dst;       /* destination timestamp */
 } r;
 
 /*
@@ -197,23 +196,23 @@ struct r
  */
 struct x
 {
-        ipaddr dstaddr;   /* source (local) address */
-        ipaddr srcaddr;   /* destination (remote) address */
-        char version;     /* version number */
-        char leap;        /* leap indicator */
-        char mode;        /* mode */
-        char stratum;     /* stratum */
-        char poll;        /* poll interval */
-        s_char precision; /* precision */
-        tdist rootdelay;  /* root delay */
-        tdist rootdisp;   /* root dispersion */
-        char refid;       /* reference ID */
-        tstamp reftime;   /* reference time */
-        tstamp org;       /* origin timestamp */
-        tstamp rec;       /* receive timestamp */
-        tstamp xmt;       /* transmit timestamp */
-        int keyid;        /* key ID */
-        digest dgst;      /* message digest */
+    ipaddr dstaddr;   /* source (local) address */
+    ipaddr srcaddr;   /* destination (remote) address */
+    char version;     /* version number */
+    char leap;        /* leap indicator */
+    char mode;        /* mode */
+    char stratum;     /* stratum */
+    char poll;        /* poll interval */
+    s_char precision; /* precision */
+    tdist rootdelay;  /* root delay */
+    tdist rootdisp;   /* root dispersion */
+    char refid;       /* reference ID */
+    tstamp reftime;   /* reference time */
+    tstamp org;       /* origin timestamp */
+    tstamp rec;       /* receive timestamp */
+    tstamp xmt;       /* transmit timestamp */
+    int keyid;        /* key ID */
+    digest dgst;      /* message digest */
 } x;
 
 // A.1.3.  Association Data Structures
@@ -225,10 +224,10 @@ struct x
  */
 struct f
 {
-        tstamp t;      /* update time */
-        double offset; /* clock ofset */
-        double delay;  /* roundtrip delay */
-        double disp;   /* dispersion */
+    tstamp t;      /* update time */
+    double offset; /* clock ofset */
+    double delay;  /* roundtrip delay */
+    double disp;   /* dispersion */
 } f;
 
 /*
@@ -237,54 +236,53 @@ struct f
  */
 struct p
 {
+    /*
+     * Variables set by configuration
+     */
+    ipaddr srcaddr; /* source (remote) address */
+    ipaddr dstaddr; /* destination (local) address */
+    char version;   /* version number */
+    char hmode;     /* host mode */
+    int keyid;      /* key identifier */
+    int flags;      /* option flags */
 
-        /*
-         * Variables set by configuration
-         */
-        ipaddr srcaddr; /* source (remote) address */
-        ipaddr dstaddr; /* destination (local) address */
-        char version;   /* version number */
-        char hmode;     /* host mode */
-        int keyid;      /* key identifier */
-        int flags;      /* option flags */
+    /*
+     * Variables set by received packet
+     */
+    char leap;          /* leap indicator */
+    char pmode;         /* peer mode */
+    char stratum;       /* stratum */
+    char ppoll;         /* peer poll interval */
+    double rootdelay;   /* root delay */
+    double rootdisp;    /* root dispersion */
+    char refid;         /* reference ID */
+    tstamp reftime;     /* reference time */
+#define begin_clear org /* beginning of clear area */
+    tstamp org;         /* originate timestamp */
+    tstamp rec;         /* receive timestamp */
+    tstamp xmt;         /* transmit timestamp */
 
-        /*
-         * Variables set by received packet
-         */
-        char leap;        /* leap indicator */
-        char pmode;       /* peer mode */
-        char stratum;     /* stratum */
-        char ppoll;       /* peer poll interval */
-        double rootdelay; /* root delay */
-        double rootdisp;  /* root dispersion */
-        char refid;       /* reference ID */
-        tstamp reftime;   /* reference time */
-#define begin_clear org   /* beginning of clear area */
-        tstamp org;       /* originate timestamp */
-        tstamp rec;       /* receive timestamp */
-        tstamp xmt;       /* transmit timestamp */
+    /*
+     * Computed data
+     */
+    double t;           /* update time */
+    struct f f[NSTAGE]; /* clock filter */
+    double offset;      /* peer offset */
+    double delay;       /* peer delay */
+    double disp;        /* peer dispersion */
+    double jitter;      /* RMS jitter */
 
-        /*
-         * Computed data
-         */
-        double t;           /* update time */
-        struct f f[NSTAGE]; /* clock filter */
-        double offset;      /* peer offset */
-        double delay;       /* peer delay */
-        double disp;        /* peer dispersion */
-        double jitter;      /* RMS jitter */
-
-        /*
-         * Poll process variables
-         */
-        char hpoll;       /* host poll interval */
-        int burst;        /* burst counter */
-        int reach;        /* reach register */
-        int ttl;          /* ttl (manycast) */
+    /*
+     * Poll process variables
+     */
+    char hpoll;           /* host poll interval */
+    int burst;            /* burst counter */
+    int reach;            /* reach register */
+    int ttl;              /* ttl (manycast) */
 #define end_clear unreach /* end of clear area */
-        int unreach;      /* unreach counter */
-        int outdate;      /* last poll time */
-        int nextdate;     /* next poll time */
+    int unreach;          /* unreach counter */
+    int outdate;          /* last poll time */
+    int nextdate;         /* next poll time */
 } p;
 
 // A.1.4.  System Data Structures
@@ -293,10 +291,10 @@ struct p
  * Chime list.  This is used by the intersection algorithm.
  */
 struct m
-{                    /* m is for Marzullo */
-        struct p *p; /* peer structure pointer */
-        int type;    /* high +1, mid 0, low -1 */
-        double edge; /* correctness interval edge */
+{                /* m is for Marzullo */
+    struct p *p; /* peer structure pointer */
+    int type;    /* high +1, mid 0, low -1 */
+    double edge; /* correctness interval edge */
 } m;
 
 /*
@@ -304,8 +302,8 @@ struct m
  */
 struct v
 {
-        struct p *p;   /* peer structure pointer */
-        double metric; /* sort metric */
+    struct p *p;   /* peer structure pointer */
+    double metric; /* sort metric */
 } v;
 
 /*
@@ -313,22 +311,22 @@ struct v
  */
 struct s
 {
-        tstamp t;         /* update time */
-        char leap;        /* leap indicator */
-        char stratum;     /* stratum */
-        char poll;        /* poll interval */
-        char precision;   /* precision */
-        double rootdelay; /* root delay */
-        double rootdisp;  /* root dispersion */
-        char refid;       /* reference ID */
-        tstamp reftime;   /* reference time */
-        struct m m[NMAX]; /* chime list */
-        struct v v[NMAX]; /* survivor list */
-        struct p *p;      /* association ID */
-        double offset;    /* combined offset */
-        double jitter;    /* combined jitter */
-        int flags;        /* option flags */
-        int n;            /* number of survivors */
+    tstamp t;         /* update time */
+    char leap;        /* leap indicator */
+    char stratum;     /* stratum */
+    char poll;        /* poll interval */
+    char precision;   /* precision */
+    double rootdelay; /* root delay */
+    double rootdisp;  /* root dispersion */
+    char refid;       /* reference ID */
+    tstamp reftime;   /* reference time */
+    struct m m[NMAX]; /* chime list */
+    struct v v[NMAX]; /* survivor list */
+    struct p *p;      /* association ID */
+    double offset;    /* combined offset */
+    double jitter;    /* combined jitter */
+    int flags;        /* option flags */
+    int n;            /* number of survivors */
 } s;
 
 // A.1.5.  Local Clock Data Structures
@@ -338,14 +336,14 @@ struct s
  */
 struct c
 {
-        tstamp t;      /* update time */
-        int state;     /* current state */
-        double offset; /* current offset */
-        double last;   /* previous offset */
-        int count;     /* jiggle counter */
-        double freq;   /* frequency */
-        double jitter; /* RMS jitter */
-        double wander; /* RMS wander */
+    tstamp t;      /* update time */
+    int state;     /* current state */
+    double offset; /* current offset */
+    double last;   /* previous offset */
+    int count;     /* jiggle counter */
+    double freq;   /* frequency */
+    double jitter; /* RMS jitter */
+    double wander; /* RMS wander */
 } c;
 
 // A.1.6.  Function Prototypes

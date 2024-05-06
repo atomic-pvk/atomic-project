@@ -1,8 +1,8 @@
 #ifndef NTP_VFO_H
 #define NTP_VFO_H
 
-#include "NTP_TDMG.h"
 #include "NTPTask.h"
+#include "NTP_TDMG.h"
 
 /*
  * Clock discipline parameters and constants
@@ -20,6 +20,6 @@
 
 int local_clock(struct ntp_p *, double); /* clock discipline */
 void rstclock(int, double, double);      /* clock state transition */
-void clock_adjust();                       /* one-second timer process */
+void clock_adjust();                     /* one-second timer process */
 
 #endif /* NTP_VFO_H */

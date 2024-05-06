@@ -37,13 +37,14 @@
 
 /* FreeRTOS includes. */
 #include <FreeRTOS.h>
+
 #include "task.h"
 
 /* Demo application includes. */
+#include "CMSIS/CMSDK_CM3.h"
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
 #include "NTPTask.h"
-#include "CMSIS/CMSDK_CM3.h"
 
 /* Echo client task parameters  */
 #define mainECHO_CLIENT_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE * 2) /* Not used in the linux port. */
@@ -83,38 +84,14 @@ static void prvMiscInitialisation(void);
  * defined here will be used if ipconfigUSE_DHCP is 0, or if ipconfigUSE_DHCP is
  * 1 but a DHCP server could not be contacted.  See the online documentation for
  * more information. */
-static const uint8_t ucIPAddress[4] =
-    {
-        configIP_ADDR0,
-        configIP_ADDR1,
-        configIP_ADDR2,
-        configIP_ADDR3};
-static const uint8_t ucNetMask[4] =
-    {
-        configNET_MASK0,
-        configNET_MASK1,
-        configNET_MASK2,
-        configNET_MASK3};
-static const uint8_t ucGatewayAddress[4] =
-    {
-        configGATEWAY_ADDR0,
-        configGATEWAY_ADDR1,
-        configGATEWAY_ADDR2,
-        configGATEWAY_ADDR3};
-static const uint8_t ucDNSServerAddress[4] =
-    {
-        configDNS_SERVER_ADDR0,
-        configDNS_SERVER_ADDR1,
-        configDNS_SERVER_ADDR2,
-        configDNS_SERVER_ADDR3};
-const uint8_t ucMACAddress[6] =
-    {
-        configMAC_ADDR0,
-        configMAC_ADDR1,
-        configMAC_ADDR2,
-        configMAC_ADDR3,
-        configMAC_ADDR4,
-        configMAC_ADDR5};
+static const uint8_t ucIPAddress[4] = {configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3};
+static const uint8_t ucNetMask[4] = {configNET_MASK0, configNET_MASK1, configNET_MASK2, configNET_MASK3};
+static const uint8_t ucGatewayAddress[4] = {configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2,
+                                            configGATEWAY_ADDR3};
+static const uint8_t ucDNSServerAddress[4] = {configDNS_SERVER_ADDR0, configDNS_SERVER_ADDR1, configDNS_SERVER_ADDR2,
+                                              configDNS_SERVER_ADDR3};
+const uint8_t ucMACAddress[6] = {configMAC_ADDR0, configMAC_ADDR1, configMAC_ADDR2,
+                                 configMAC_ADDR3, configMAC_ADDR4, configMAC_ADDR5};
 
 /* Use by the pseudo random number generator. */
 static UBaseType_t ulNextRand;
@@ -162,12 +139,12 @@ void main_tcp_echo_client_tasks(void)
 
 #if defined(ipconfigIPv4_BACKWARD_COMPATIBLE) && (ipconfigIPv4_BACKWARD_COMPATIBLE == 0)
     /* Initialise the interface descriptor for WinPCap. */
-    extern NetworkInterface_t *pxMPS2_FillInterfaceDescriptor(BaseType_t xEMACIndex,
-                                                              NetworkInterface_t * pxInterface);
+    extern NetworkInterface_t *pxMPS2_FillInterfaceDescriptor(BaseType_t xEMACIndex, NetworkInterface_t * pxInterface);
     pxMPS2_FillInterfaceDescriptor(0, &(xInterfaces[0]));
 
     /* === End-point 0 === */
-    FreeRTOS_FillEndPoint(&(xInterfaces[0]), &(xEndPoints[0]), ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, ucMACAddress);
+    FreeRTOS_FillEndPoint(&(xInterfaces[0]), &(xEndPoints[0]), ucIPAddress, ucNetMask, ucGatewayAddress,
+                          ucDNSServerAddress, ucMACAddress);
 #if (ipconfigUSE_DHCP != 0)
     {
         /* End-point 0 wants to use DHCPv4. */
@@ -206,8 +183,7 @@ BaseType_t xTasksAlreadyCreated = pdFALSE;
 /* Called by FreeRTOS+TCP when the network connects or disconnects.  Disconnect
  * events are only received if implemented in the MAC driver. */
 #if defined(ipconfigIPv4_BACKWARD_COMPATIBLE) && (ipconfigIPv4_BACKWARD_COMPATIBLE == 0)
-void vApplicationIPNetworkEventHook_Multi(eIPCallbackEvent_t eNetworkEvent,
-                                          struct xNetworkEndPoint *pxEndPoint)
+void vApplicationIPNetworkEventHook_Multi(eIPCallbackEvent_t eNetworkEvent, struct xNetworkEndPoint *pxEndPoint)
 #else
 void vApplicationIPNetworkEventHook(eIPCallbackEvent_t eNetworkEvent)
 #endif /* defined( ipconfigIPv4_BACKWARD_COMPATIBLE ) && ( ipconfigIPv4_BACKWARD_COMPATIBLE == 0 ) */
@@ -233,8 +209,7 @@ void vApplicationIPNetworkEventHook(eIPCallbackEvent_t eNetworkEvent)
             {
                 // vStartTCPEchoClientTasks_SingleTasks(mainECHO_CLIENT_TASK_STACK_SIZE,
                 //                                      mainECHO_CLIENT_TASK_PRIORITY);
-                vStartNTPClientTasks_SingleTasks(mainECHO_CLIENT_TASK_STACK_SIZE,
-                                                      mainECHO_CLIENT_TASK_PRIORITY);
+                vStartNTPClientTasks_SingleTasks(mainECHO_CLIENT_TASK_STACK_SIZE, mainECHO_CLIENT_TASK_PRIORITY);
             }
 #endif /* mainCREATE_TCP_ECHO_TASKS_SINGLE */
 
@@ -244,7 +219,8 @@ void vApplicationIPNetworkEventHook(eIPCallbackEvent_t eNetworkEvent)
 /* Print out the network configuration, which may have come from a DHCP
  * server. */
 #if defined(ipconfigIPv4_BACKWARD_COMPATIBLE) && (ipconfigIPv4_BACKWARD_COMPATIBLE == 0)
-        FreeRTOS_GetEndPointConfiguration(&ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress, pxNetworkEndPoints);
+        FreeRTOS_GetEndPointConfiguration(&ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress,
+                                          pxNetworkEndPoints);
 #else
         FreeRTOS_GetAddressConfiguration(&ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress);
 #endif /* defined( ipconfigIPv4_BACKWARD_COMPATIBLE ) && ( ipconfigIPv4_BACKWARD_COMPATIBLE == 0 ) */
@@ -299,11 +275,8 @@ static void prvMiscInitialisation(void)
     (void)xApplicationGetRandomNumber(&ulRandomNumbers[1]);
     (void)xApplicationGetRandomNumber(&ulRandomNumbers[2]);
     (void)xApplicationGetRandomNumber(&ulRandomNumbers[3]);
-    FreeRTOS_debug_printf(("Random numbers: %08X %08X %08X %08X\n",
-                           ulRandomNumbers[0],
-                           ulRandomNumbers[1],
-                           ulRandomNumbers[2],
-                           ulRandomNumbers[3]));
+    FreeRTOS_debug_printf(("Random numbers: %08X %08X %08X %08X\n", ulRandomNumbers[0], ulRandomNumbers[1],
+                           ulRandomNumbers[2], ulRandomNumbers[3]));
 }
 /*-----------------------------------------------------------*/
 
@@ -323,8 +296,7 @@ const char *pcApplicationHostnameHook(void)
 #if (ipconfigUSE_LLMNR != 0) || (ipconfigUSE_NBNS != 0)
 
 #if defined(ipconfigIPv4_BACKWARD_COMPATIBLE) && (ipconfigIPv4_BACKWARD_COMPATIBLE == 0)
-BaseType_t xApplicationDNSQueryHook_Multi(struct xNetworkEndPoint *pxEndPoint,
-                                          const char *pcName)
+BaseType_t xApplicationDNSQueryHook_Multi(struct xNetworkEndPoint *pxEndPoint, const char *pcName)
 #else
 BaseType_t xApplicationDNSQueryHook(const char *pcName)
 #endif /* defined( ipconfigIPv4_BACKWARD_COMPATIBLE ) && ( ipconfigIPv4_BACKWARD_COMPATIBLE == 0 ) */
@@ -358,10 +330,8 @@ BaseType_t xApplicationDNSQueryHook(const char *pcName)
  * THAT RETURNS A PSEUDO RANDOM NUMBER SO IS NOT INTENDED FOR USE IN PRODUCTION
  * SYSTEMS.
  */
-extern uint32_t ulApplicationGetNextSequenceNumber(uint32_t ulSourceAddress,
-                                                   uint16_t usSourcePort,
-                                                   uint32_t ulDestinationAddress,
-                                                   uint16_t usDestinationPort)
+extern uint32_t ulApplicationGetNextSequenceNumber(uint32_t ulSourceAddress, uint16_t usSourcePort,
+                                                   uint32_t ulDestinationAddress, uint16_t usDestinationPort)
 {
     (void)ulSourceAddress;
     (void)usSourcePort;
