@@ -4,11 +4,19 @@
 
 #include "NTPTask.h"
 
+#include "printf-master/printf.h"
+
 // Socket_t xSocket;
 // struct freertos_sockaddr xDestinationAddress;
 
 // struct ntp_s s;
 // struct ntp_c c;
+
+void _putchar(char character)
+{
+  // send char to console etc.
+}
+
 
 // void ntp_init(ntp_r *r , ntp_x *x , const char *pcHostNames[], uint32_t *NTP_server_IPs) {
 void ntp_init()
