@@ -65,19 +65,19 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 /*
  * Timestamp conversion macroni
  */
-#define FRIC 65536.                 /* 2^16 as a double */
-#define D2FP(r) ((tdist)((r)*FRIC)) /* NTP short */
+#define FRIC 65536.                   /* 2^16 as a double */
+#define D2FP(r) ((tdist)((r) * FRIC)) /* NTP short */
 #define FP2D(r) ((double)(r) / FRIC)
 
-#define FRAC 4294967296.              /* 2^32 as a double */
-#define D2LFP(a) ((tstamp)((a)*FRAC)) /* NTP timestamp */
+#define FRAC 4294967296.                /* 2^32 as a double */
+#define D2LFP(a) ((tstamp)((a) * FRAC)) /* NTP timestamp */
 #define LFP2D(a) ((double)(a) / FRAC)
 #define U2LFP(a) (((unsigned long long)((a).tv_sec + JAN_1970) << 32) + (unsigned long long)((a).tv_usec / 1e6 * FRAC))
 
 /*
  * Arithmetic conversions
  */
-#define LOG2D(a) ((a) < 0 ? 1. / (1L << -(a)) : 1L << (a)) /* poll, etc. */
+#define LOG2D(a) ((a) < 0 ? (double)(1. / (1L << -(a))) : (double)(1L << (a))) /* poll, etc. */
 #define SQUARE(x) (x * x)
 #define SQRT(x) (sqrt(x))
 // TODO THIS IS A DUMMY IMPLEMENTATION JUST TO MAKE THE CODE COMPILE
@@ -355,7 +355,7 @@ typedef struct ntp_s
     char leap;            /* leap indicator */
     char stratum;         /* stratum */
     char poll;            /* poll interval */
-    char precision;       /* precision */
+    s_char precision;     /* precision */
     double rootdelay;     /* root delay */
     double rootdisp;      /* root dispersion */
     char refid;           /* reference ID */
@@ -431,8 +431,8 @@ void ntp_init();
 
 double sqrt(double number);
 
-uint64_t subtract_uint64_t(uint64_t x, uint64_t y);
-uint64_t add_uint64_t(uint64_t x, uint64_t y);
+int64_t subtract_uint64_t(uint64_t x, uint64_t y);
+int64_t add_int64_t(int64_t x, int64_t y);
 
 void settime(tstamp newTime);
 tstamp gettime();

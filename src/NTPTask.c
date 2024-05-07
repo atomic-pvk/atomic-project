@@ -33,6 +33,7 @@ void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize, UBaseType_t uxTa
 static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 {
     // setup sleep
+    const TickType_t x100ms = 100UL / portTICK_PERIOD_MS;
     const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
     const TickType_t x10000ms = 10000UL / portTICK_PERIOD_MS;
 
@@ -95,7 +96,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     r->mode = MODE;
     r->stratum = MAXSTRAT;
     r->poll = MINPOLL;
-    r->precision = PRECISION;
+    r->precision = -18;
 
     memset(x, 0, sizeof(ntp_x));
     x->dstaddr = DSTADDR;
@@ -104,13 +105,13 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     x->mode = MODE;
     x->stratum = MAXSTRAT;
     x->poll = MINPOLL;
-    x->precision = PRECISION;
+    x->precision = -18;
 
     memset(&s, sizeof(ntp_s), 0);
     s.leap = NOSYNC;
     s.stratum = MAXSTRAT;
     s.poll = MINPOLL;
-    s.precision = PRECISION;
+    s.precision = -18;
     s.p = NULL;
 
     memset(&c, sizeof(ntp_c), 0);
@@ -158,16 +159,14 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     // since we dont have local clock we just set the org to the first rec
     // x->org = r->xmt;
     settime(x->xmt);
-    const TickType_t x1700ms = 1700UL / portTICK_PERIOD_MS;
-    vTaskDelay(x1700ms);
     tstamp testTimestamp = gettime();
 
-    printTimestamp(testTimestamp, "test timestamp is:");
+    printTimestamp(testTimestamp, "MARCUS TESTING GETTIME SHOULD BE +700 MS:");
     free(r);
 
     /*
-        get time from all 5 servers once!
-    */
+    get time from all 5 servers once!
+*/
 
     /*
         then just get all the times forever
@@ -193,6 +192,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             uint32_t orgfrac = (uint32_t)(x->xmt & 0xFFFFFFFF);
             FreeRTOS_printf(("\n\n sent x xmt to : %s.%u\n", ctime(&orgtimeInSeconds), orgfrac));
 
+            x->xmt = gettime();
             xmit_packet(x);
             r = malloc(sizeof(ntp_r));
             r = recv_packet();

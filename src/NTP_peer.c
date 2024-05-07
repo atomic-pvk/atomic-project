@@ -7,12 +7,17 @@
 
 // A.5.1.1.  packet()
 
-/*
-DUMMY SOLUTION
-table should be in the header file but the current configuration and dependency tree make it hard
-TODO
-*/
-
+double log2d(int a)
+{
+    if (a < 0)
+    {
+        return 1.0 / (1L << -a);
+    }
+    else
+    {
+        return (double)(1L << a);
+    }
+}
 /*
  * Dispatch matrix
  *              active  passv  client server bcast */
@@ -145,9 +150,8 @@ void packet(struct ntp_p *p, /* peer structure pointer */
         //         disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
         //
 
-        offset = (double)add_uint64_t(LFP2D((double)subtract_uint64_t(r->rec, r->org)),
-                                      LFP2D((double)subtract_uint64_t(r->dst, r->xmt))) /
-                 2;
+        offset = LFP2D(add_int64_t(subtract_uint64_t(r->rec, r->org), subtract_uint64_t(r->dst, r->xmt))) /
+                 2;  // TODO SHOULD BE DIVIED BY 2
 
         delay = max((double)(subtract_uint64_t(LFP2D((double)subtract_uint64_t(r->dst, r->org)),
                                                LFP2D((double)subtract_uint64_t(r->rec, r->xmt)))),
@@ -158,10 +162,15 @@ void packet(struct ntp_p *p, /* peer structure pointer */
     // double tempOffset3 = 2;
     // double printedmessage = tempOffset2/tempOffset3;
     // FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", printedmessage);
-
-    FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", offset);
-    FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", delay);
-    FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", disp);
+    print_uint64_as_32_parts(r->rec);
+    print_uint64_as_32_parts(r->org);
+    print_uint64_as_32_parts(r->dst);
+    print_uint64_as_32_parts(r->xmt);
+    FreeRTOS_printf_wrapper_double("",
+                                   add_int64_t(subtract_uint64_t(r->rec, r->org), subtract_uint64_t(r->dst, r->xmt)));
+    FreeRTOS_printf_wrapper_double("", offset);
+    FreeRTOS_printf_wrapper_double("", delay);
+    FreeRTOS_printf_wrapper_double("", disp);
     // FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
     // FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
     // FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));

@@ -130,12 +130,21 @@ double sqrt(double number)
     return (low + high) / 2;
 }
 
-uint64_t subtract_uint64_t(uint64_t x, uint64_t y)
+int64_t subtract_uint64_t(uint64_t x, uint64_t y)
 {
+    int neg = 0;
     uint32_t xFrac = (uint32_t)(x & 0xFFFFFFFF);
     uint32_t yFrac = (uint32_t)(y & 0xFFFFFFFF);
     uint32_t xS = (uint32_t)(x >> 32);
     uint32_t yS = (uint32_t)(y >> 32);
+
+    if (xS < yS || (xS == yS && xFrac < yFrac))
+    {
+        neg = 1;
+        uint64_t temp = x;
+        x = y;
+        y = temp;
+    }
 
     int borrow = 0;
     if (xFrac < yFrac)
@@ -153,26 +162,32 @@ uint64_t subtract_uint64_t(uint64_t x, uint64_t y)
     uint32_t high = xS - yS - borrow;
 
     uint64_t result = ((uint64_t)high << 32) | low;  // Assemble the high and low parts back into a 64-bit integer
+    result = (neg) ? -result : result;               // Apply the sign if necessary
 
     return result;
 }
 
-uint64_t add_uint64_t(uint64_t x, uint64_t y)
+int64_t add_int64_t(int64_t x, int64_t y)
 {
-    uint32_t xHigh = (uint32_t)(x >> 32);        // High 32 bits of x
-    uint32_t xLow = (uint32_t)(x & 0xFFFFFFFF);  // Low 32 bits of x
-    uint32_t yHigh = (uint32_t)(y >> 32);        // High 32 bits of y
-    uint32_t yLow = (uint32_t)(y & 0xFFFFFFFF);  // Low 32 bits of y
+    int32_t xFrac = (int32_t)(x & 0xFFFFFFFF);
+    int32_t yFrac = (int32_t)(y & 0xFFFFFFFF);
+    int32_t xS = (int32_t)(x >> 32);
+    int32_t yS = (int32_t)(y >> 32);
 
-    // Add the low parts and check for overflow
-    uint32_t sumLow = xLow + yLow;
-    uint32_t carry = sumLow < xLow ? 1 : 0;  // If overflow occurred, set carry
+    if (xFrac + yFrac < xFrac || xFrac + yFrac < yFrac)
+    {
+        xS++;
+    }
 
-    // Add the high parts and include the carry
-    uint32_t sumHigh = xHigh + yHigh + carry;
+    int32_t low = xFrac + yFrac;
+    // FreeRTOS_printf_wrapper("", xFrac);
+    // FreeRTOS_printf_wrapper("", yFrac);
+    // FreeRTOS_printf_wrapper_("", low);
 
-    // Combine the high and low parts into a 64-bit result
-    uint64_t result = ((uint64_t)sumHigh << 32) | sumLow;
+    int32_t high = xS + yS;
+    FreeRTOS_printf_wrapper_double("", high);
+
+    int64_t result = ((int64_t)high << 32) | low;  // Assemble the high and low parts back into a 64-bit integer
 
     return result;
 }
@@ -286,7 +301,7 @@ tstamp gettime()
     TickType_t numMilliseconds = tickDifference % 1000;
 
     // Convert milliseconds to fraction part of NTP timestamp
-    uint32_t newFractions = (numMilliseconds * 0xFFFFFFFF) / 1000;
+    uint32_t newFractions = numMilliseconds * (FRAC / 1000);
 
     // Extract current fractions and seconds from last timestamp
     uint32_t currentFractions = (uint32_t)(lastTimeStampTstamp & 0xFFFFFFFF);
@@ -328,14 +343,15 @@ void printTimestamp(tstamp timestamp, const char *comment)
     uint32_t fractions = (timestamp & 0xFFFFFFFF);
 
     // double fractionAsSecond = fractions / (double)0xFFFFFFFF;
-    double fractionAsSecond = fractions / 4294967296.0;  // / 4294967296.0 = 2^32
+    double fractionAsSecond = (double)fractions / FRAC;  // / 4294967296.0 = 2^32
 
     // time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
     // uint32_t frac = (uint32_t)(r->rec & 0xFFFFFFFF);
     // FreeRTOS_printf(("\n\n Time according to %s: %s.%u\n", pcHostNames[i], ctime(&timeInSeconds), frac));
 
     // Print the timestamp with the comment
-    FreeRTOS_printf(("%s Timestamp: %s.%.10d seconds\n", comment, ctime(&seconds), fractionAsSecond));
+    FreeRTOS_printf(("%s Timestamp: %s. seconds\n", comment, ctime(&seconds)));
+    FreeRTOS_printf_wrapper_double("", fractionAsSecond);
 }
 
 #define MAX_UINT64_DIGITS 20  // Maximum digits in uint64_t
@@ -444,7 +460,7 @@ void double_to_str(double value, char *str, int precision)
 void FreeRTOS_printf_wrapper_double(const char *format, double value)
 {
     char buffer[MAX_DOUBLE_DIGITS + 50];  // Additional space for message text
-    double_to_str(value, buffer, 6);      // Example with 6 decimal places
+    double_to_str(value, buffer, 10);     // Example with 6 decimal places
     FreeRTOS_printf(("%s\n", buffer));
 }
 
