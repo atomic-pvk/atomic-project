@@ -13,9 +13,6 @@ Assoc_table *assoc_table;
 struct ntp_s s;
 struct ntp_c c;
 
-TickType_t lastTimeStampTick;
-tstamp lastTimeStampTstamp;
-
 void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize, UBaseType_t uxTaskPriority)
 {
     BaseType_t x;
@@ -34,6 +31,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 {
     // setup sleep
     const TickType_t x100ms = 100UL / portTICK_PERIOD_MS;
+    const TickType_t x700ms = 700UL / portTICK_PERIOD_MS;
     const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
     const TickType_t x10000ms = 10000UL / portTICK_PERIOD_MS;
 
@@ -107,14 +105,17 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     x->poll = MINPOLL;
     x->precision = -18;
 
-    memset(&s, sizeof(ntp_s), 0);
+    struct ntp_s s;
+    memset(&s, 0, sizeof(ntp_s));
     s.leap = NOSYNC;
     s.stratum = MAXSTRAT;
     s.poll = MINPOLL;
     s.precision = -18;
     s.p = NULL;
 
-    memset(&c, sizeof(ntp_c), 0);
+    struct ntp_c c;
+    memset(&c, 0, sizeof(ntp_c));
+    c.lastTimeStampTick = 0;
 
     if (/* frequency file */ 0)
     {
@@ -126,12 +127,12 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
         rstclock(NSET, 0, 0);
     }
     c.jitter = LOG2D(s.precision);
+    FreeRTOS_printf_wrapper_double("", c.jitter);
+    assoc_table_init(NTP_server_IPs);
 
     // do parameters
 
     // ntp_init(); // does nothing atm
-
-    assoc_table_init(assoc_table, NTP_server_IPs);
 
     // stupid but just test
     free(r);
@@ -154,14 +155,19 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     r = malloc(sizeof(ntp_r));
     r = recv_packet();
     x->xmt = r->xmt;
-    printTimestamp(r->rec, "test before delay");
 
     // since we dont have local clock we just set the org to the first rec
     // x->org = r->xmt;
     settime(x->xmt);
-    tstamp testTimestamp = gettime();
+    gettime(1);
+    // printTimestamp(c.t, "c.t org");
+    // vTaskDelay(x100ms);
+    // gettime();
+    // printTimestamp(c.t, "c.t + 0.100");
+    // vTaskDelay(x700ms);
+    // gettime();
+    // printTimestamp(c.t, "c.t + 0.700");
 
-    printTimestamp(testTimestamp, "MARCUS TESTING GETTIME SHOULD BE +700 MS:");
     free(r);
 
     /*
@@ -174,7 +180,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     uint32_t ulCount = 0UL;
     for (;;)
     {
-        for (int i = 0; i < NMAX; i++)
+        for (int i = 0; i < 3; i++)
         {
             // set the destination IP to the current NTP server
             NTP1_server_IP = NTP_server_IPs[i];
@@ -187,36 +193,19 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
                              (NTP1_server_IP >> 16) & 0xFF,    // Extract the second byte
                              (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
 
-            // send packet
             time_t orgtimeInSeconds = (time_t)((x->xmt >> 32) - 2208988800ull);
             uint32_t orgfrac = (uint32_t)(x->xmt & 0xFFFFFFFF);
             FreeRTOS_printf(("\n\n sent x xmt to : %s.%u\n", ctime(&orgtimeInSeconds), orgfrac));
 
-            x->xmt = gettime();
-            xmit_packet(x);
-            r = malloc(sizeof(ntp_r));
-            r = recv_packet();
+            xmit_packet(x);             // send packet
+            r = malloc(sizeof(ntp_r));  // allocate memory for the response
+            r = recv_packet();          // receive packet
 
             printTimestamp(r->org, "before calling receive res r org to :");
 
-            // time_t rtimeInSeconds = (time_t)((r->org >> 32) - 2208988800ull);
-            // uint32_t rfrac = (uint32_t)(r->org & 0xFFFFFFFF);
-            // FreeRTOS_printf(("\n before calling receive res r org to : %s.%u\n", ctime(&rtimeInSeconds), rfrac));
+            receive(r);  // handle the response
 
-            receive(r);
-            // r->rec = FreeRTOS_ntohl(r->rec);
-            // time_t timeInSeconds = (time_t)(r->rec - 2208988800ull);
-
-            // call printTimestamp to print the rec time, include pcHostNames[i] in comment to function
-            char message[80];  // Ensure the buffer is large enough for the resulting string
-            snprintf(message, sizeof(message), "rec time for %s is :", pcHostNames[i]);
-            printTimestamp(r->rec, message);
-
-            TickType_t test = xTaskGetTickCount();
-            FreeRTOS_printf(("\n\n TICKS for %s: %d\n", pcHostNames[i], test));
-
-            // free the memory
-            free(r);
+            free(r);  // free the memory
         }
 
         FreeRTOS_printf(("\n\nSleeping for 10 seconds before next get\n\n"));

@@ -192,7 +192,8 @@ void peer_xmit(struct ntp_p *p  // peer structure pointer)
     x.reftime = s.reftime;
     x.org = p->org;
     x.rec = p->rec;
-    x.xmt = get_time();
+    // gettime(0);
+    x.xmt = c.t;
     p->xmt = x.xmt;
 
     /*

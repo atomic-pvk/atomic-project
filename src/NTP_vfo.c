@@ -18,10 +18,16 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
     int rval;
     double etemp, dtemp;
 
+    FreeRTOS_printf(("\n LOCAL CLOCK \n\n\n"));
+
     /*
      * If the offset is too large, give up and go home.
      */
-    if (fabs(offset) > PANICT) return (PANIC);
+    if (fabs(offset) > PANICT)
+    {
+        FreeRTOS_printf(("Too large offset\n"));
+        return (PANIC);
+    }
 
     /*
      * Clock state machine transition function.  This is where the

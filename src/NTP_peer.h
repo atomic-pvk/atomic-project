@@ -1,7 +1,11 @@
 #ifndef NTP_PEER_H
 #define NTP_PEER_H
 
+#include "NTPTask.h"
 #include "NTP_TDMG.h"
+#include "NTP_main_utility.h"
+#include "NTP_poll.h"
+#include "NTP_system_process.h"
 
 /*
  * A crypto-NAK packet includes the NTP header followed by a MAC

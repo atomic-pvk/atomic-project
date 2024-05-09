@@ -1,10 +1,5 @@
 #include "NTP_peer.h"
 
-#include "NTPTask.h"
-#include "NTP_main_utility.h"
-#include "NTP_poll.h"
-#include "NTP_system_process.h"
-
 // A.5.1.1.  packet()
 
 double log2d(int a)
@@ -55,9 +50,9 @@ void packet(struct ntp_p *p, /* peer structure pointer */
         p->stratum = r->stratum;
     p->pmode = r->mode;
     p->ppoll = r->poll;
-    p->rootdelay = FP2D(r->rootdelay);
     p->rootdisp = FP2D(r->rootdisp);
     p->refid = r->refid;
+    FreeRTOS_printf_wrapper_double("disp is %d\n", r->refid);
     p->reftime = r->reftime;
 
     /*
@@ -69,12 +64,7 @@ void packet(struct ntp_p *p, /* peer structure pointer */
         return; /* unsynchronized */
     }
 
-    /*
-     * Verify valid root distance.
-     */
     if (r->rootdelay / 2 + r->rootdisp >= MAXDISP || p->reftime > r->xmt) return; /* invalid header values */
-
-    FreeRTOS_printf(("I am calling poll_update\n"));
 
     poll_update(p, p->hpoll);
     p->reach |= 1;
@@ -94,87 +84,37 @@ void packet(struct ntp_p *p, /* peer structure pointer */
      * order to avoid violating the Principle of Least Astonishment,
      * the delay is clamped not less than the system precision.
      */
-
-    time_t rXmtS = (time_t)(r->xmt >> 32);
-    uint32_t rXmtFrac = (uint32_t)(r->xmt & 0xFFFFFFFF);
-
-    time_t rDstS = (time_t)(r->dst >> 32);
-    uint32_t rDstFrac = (uint32_t)(r->dst & 0xFFFFFFFF);
-    time_t rRecS = (time_t)(r->rec >> 32);
-    uint32_t rRecFrac = (uint32_t)(r->rec & 0xFFFFFFFF);
-    time_t rOrgS = (time_t)(r->org >> 32);
-    uint32_t rOrgFrac = (uint32_t)(r->org & 0xFFFFFFFF);
-
-    FreeRTOS_printf(("\n a double is %u n", sizeof(double)));
-
-    FreeRTOS_printf(("\n\n lol r xmt: %s.%u\n", ctime(&rXmtS), rXmtFrac));
-    FreeRTOS_printf(("\n\n lol r dst: %s.%u\n", ctime(&rDstS), rDstFrac));
-
-    time_t tempOffset = rDstS - rXmtS;
-    FreeRTOS_printf(("\n\n\n\n tempOffset SS fuck is %d \n\n\n", tempOffset));
-    uint32_t tempOffsetf = (uint32_t)rDstFrac - (uint32_t)rXmtFrac;
-    FreeRTOS_printf(("\n\n\n\n tempOffset FF fuck is %d \n\n\n", tempOffsetf));
-
     if (p->pmode == M_BCST)
     {
-        // 123.456
-        // long long: 123
-        // 1235912412390123  = 2024 -
-        // #define LFP2D(a) ((double)(a) / FRAC)
-        // a / 4294967296 = dahuidhauid.239482490280
-
-        // offset = LFP2D(r->xmt - r->dst)
-
-        // time_t rXmtS = (time_t)(r->xmt >> 32);
-        // uint32_t rXmtFrac = (uint32_t)(r->xmt & 0xFFFFFFFF);
-
-        double tempOffset = subtract_uint64_t(r->xmt, r->dst);
-
-        FreeRTOS_printf_wrapper_double("\n\n\n\n tempOffset fuck is %s \n\n\n", tempOffset);
-
-        offset = LFP2D(tempOffset);
-
-        // offset = ((long long)LFP2D(rXmtS - rDstS) << 32) | ((long long)LFP2D(rXmtFrac - rDstFrac));
+        offset = LFP2D(subtract_uint64_t(r->xmt, r->dst));
         delay = BDELAY;
         disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * 2 * BDELAY;
     }
     else
     {
-        //               {
-        //         offset = (LFP2D(r->rec - r->org) + LFP2D(r->dst -
-        //                                                  r->xmt)) /
-        //                  2;
-        //         delay = max(LFP2D(r->dst - r->org) - LFP2D(r->rec -
-        //                                                    r->xmt),
-        //                     LOG2D(s.precision));
-        //         disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
-        //
+        offset = LFP2D(add_int64_t(subtract_uint64_t(r->rec, r->org), subtract_uint64_t(r->dst, r->xmt))) / 2;
 
-        offset = LFP2D(add_int64_t(subtract_uint64_t(r->rec, r->org), subtract_uint64_t(r->dst, r->xmt))) /
-                 2;  // TODO SHOULD BE DIVIED BY 2
-
-        delay = max((double)(subtract_uint64_t(LFP2D((double)subtract_uint64_t(r->dst, r->org)),
-                                               LFP2D((double)subtract_uint64_t(r->rec, r->xmt)))),
+        delay = max(LFP2D(subtract_uint64_t((subtract_uint64_t(r->dst, r->org)), (subtract_uint64_t(r->rec, r->xmt)))),
                     LOG2D(s.precision));
-        disp = LOG2D(r->precision) + LOG2D(s.precision) + PHI * LFP2D(r->dst - r->org);
+        disp = LOG2D(r->precision) + LOG2D(s.precision) + LFP2D(PHI * subtract_uint64_t(r->dst, r->org));
     }
-    // double tempOffset2 = 5;
-    // double tempOffset3 = 2;
-    // double printedmessage = tempOffset2/tempOffset3;
-    // FreeRTOS_printf_wrapper_double("\n\n\n lets see if offset is working naaow: %s", printedmessage);
-    print_uint64_as_32_parts(r->rec);
-    print_uint64_as_32_parts(r->org);
-    print_uint64_as_32_parts(r->dst);
-    print_uint64_as_32_parts(r->xmt);
-    FreeRTOS_printf_wrapper_double("",
-                                   add_int64_t(subtract_uint64_t(r->rec, r->org), subtract_uint64_t(r->dst, r->xmt)));
-    FreeRTOS_printf_wrapper_double("", offset);
-    FreeRTOS_printf_wrapper_double("", delay);
-    FreeRTOS_printf_wrapper_double("", disp);
-    // FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
-    // FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
-    // FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
-    FreeRTOS_printf(("I AM CALLING CLOCK_FILTER\n"));
+    double local_delay = (r->dst - r->org) - (r->xmt - r->rec);
+    p->rootdelay = r->rootdelay + delay;
+
+    // FreeRTOS_printf(("\n\ntesting\n"));
+    // FreeRTOS_printf_wrapper_double("", LFP2D(PHI * subtract_uint64_t(r->dst, r->org)));
+    // FreeRTOS_printf_wrapper_double(
+    //     "", LOG2D(r->precision) + LOG2D(s.precision) + LFP2D(PHI * subtract_uint64_t(r->dst, r->org)));
+    // FreeRTOS_printf(("\n\noffset\n"));
+    // FreeRTOS_printf_wrapper_double("", offset);
+    // FreeRTOS_printf(("\n\ndelay\n"));
+    // FreeRTOS_printf_wrapper_double("", delay);
+    // FreeRTOS_printf(("\n\ndisp\n"));
+    // FreeRTOS_printf_wrapper_double("", disp);
+    // // FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
+    // // FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
+    // // FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
+    FreeRTOS_printf(("I AM CALLING CLOCK_FILTER\n\n"));
     clock_filter(p, offset, delay, disp);
 }
 
@@ -194,7 +134,7 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
     double dtemp;
     int i;
 
-    FreeRTOS_printf(("we are in clockf\n"));
+    FreeRTOS_printf(("\n\n\nCLOCK_FILTER\n\n\n"));
 
     /*
      * The clock filter contents consist of eight tuples (offset,
@@ -205,10 +145,14 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
      * place the (offset, delay, disp, time) in the vacated
      * rightmost tuple.
      */
+    // gettime(1);  // update c.t to the current time
+    double tmpDisp =
+        LFP2D(PHI * (subtract_uint64_t(c.t, p->t)));  // this is a static value so it should only be calculated once
+
     for (i = 1; i < NSTAGE; i++)
     {
         p->f[i] = p->f[i - 1];
-        p->f[i].disp += PHI * (c.t - p->t);
+        p->f[i].disp += tmpDisp;
         f[i] = p->f[i];
     }
     p->f[0].t = c.t;
@@ -217,34 +161,40 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
     p->f[0].disp = disp;
     f[0] = p->f[0];
 
-    FreeRTOS_printf(("we are in clockf after value set\n"));
-
     /*
      * Sort the temporary list of tuples by increasing f[].delay.
      * The first entry on the sorted list represents the best
      * sample, but it might be old.
      */
     dtemp = p->offset;
-    p->offset = f[0].offset;
-    p->delay = f[0].delay;
+    p->offset = offset;
+    p->delay = delay;
+
     for (i = 0; i < NSTAGE; i++)
     {
-        p->disp += f[i].disp / (2 ^ (i + 1));
+        int exp = i + 1;
+        unsigned int denominator = 1 << exp;
+        double result = f[i].disp / denominator;
+        p->disp += result;
         p->jitter += SQUARE(f[i].offset - f[0].offset);
     }
-    FreeRTOS_printf(("we are after clockf square loop%d\n", p->jitter));
+
     p->jitter = max(sqrt(p->jitter), LOG2D(s.precision));
-    FreeRTOS_printf(("we are in clockf 2%d\n", p->jitter));
 
     /*
      * Prime directive: use a sample only once and never a sample
      * older than the latest one, but anything goes before first
      * synchronized.
      */
-    FreeRTOS_printf(("we are in clockf 2\n"));
 
-    FreeRTOS_printf(("s leap is %d\n", s.leap));
-    if (f[0].t - p->t <= 0 && s.leap != NOSYNC) return;
+    if (subtract_uint64_t(f[0].t, p->t) <= 0 && s.leap != NOSYNC)
+    {
+        FreeRTOS_printf_wrapper_double("", subtract_uint64_t(f[0].t, p->t));
+        FreeRTOS_printf_wrapper_double("", f[0].t);
+        FreeRTOS_printf_wrapper_double("", p->t);
+        FreeRTOS_printf(("f[0].t - p->t <= 0\n"));
+        return;
+    }
 
     /*
      * Popcorn spike suppressor.  Compare the difference between the
@@ -253,12 +203,6 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
      * less than twice the system poll interval, dump the spike.
      * Otherwise, and if not in a burst, shake out the truechimers.
      */
-
-    FreeRTOS_printf(("before popcorn assoc_t size: %d\n", assoc_table->size));
-
-    FreeRTOS_printf(("fabs(p->offset - dtemp) is equal to: %d\n", fabs(p->offset - dtemp)));
-    FreeRTOS_printf(("SGATE * p->jitter is equal to: %d\n", SGATE * p->jitter));
-    FreeRTOS_printf(("f[0].t - p->t is equal to: %d\n", f[0].t - p->t));
     if (fabs(p->offset - dtemp) > SGATE * p->jitter && (f[0].t - p->t) < 2 * s.poll)
     {
         FreeRTOS_printf(("Popcorn spike found\n"));
@@ -268,7 +212,8 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
     p->t = f[0].t;
     if (p->burst == 0)
     {
-        FreeRTOS_printf(("I AM CALLING clock_select\n"));
+        FreeRTOS_printf(("p->burst == 0\n\n\n"));
+        assoc_table_update(p);
         clock_select();
     }
 
@@ -292,7 +237,7 @@ int fit(struct ntp_p *p /* peer structure pointer */
      * distance threshold plus an increment equal to one poll
      * interval.
      */
-    if (root_dist(p) > MAXDIST + PHI * LOG2D(s.poll)) return (FALSE);
+    if (root_dist(p) > MAXDIST + PHI * (double)LOG2D(s.poll)) return (FALSE);
 
     /*
      * A loop error occurs if the remote peer is synchronized to the
@@ -344,10 +289,10 @@ void clear(struct ntp_p *p, /* peer structure pointer */
     p->stratum = MAXSTRAT;
     p->ppoll = MAXPOLL;
     p->hpoll = MINPOLL;
-    p->disp = MAXDISP;
+    p->disp = MAXDISPAlg;
     p->jitter = LOG2D(s.precision);
     p->refid = kiss;
-    for (i = 0; i < NSTAGE; i++) p->f[i].disp = MAXDISP;
+    for (i = 0; i < NSTAGE; i++) p->f[i].disp = MAXDISPAlg;
 
     /*
      * Randomize the first poll just in case thousands of broadcast
@@ -392,7 +337,8 @@ void fast_xmit(struct ntp_r *r, /* receive packet pointer */
     x.reftime = s.reftime;
     x.org = r->xmt;
     x.rec = r->dst;
-    x.xmt = get_time();
+    // gettime(0);
+    x.xmt = c.t;
 
     /*
      * If the authentication code is A.NONE, include only the

@@ -8,6 +8,8 @@ services:
     ports:
       - "2222:22"
     restart: unless-stopped
+    stdin_open: true
+    tty: true
     volumes:
       - ./:/FreeRTOS
     # network_mode: host

@@ -1,12 +1,22 @@
 #include "NTP_system_process.h"
 
+#include "NTPTask.h"
 #include "NTP_peer.h"
 #include "NTP_vfo.h"
 
 // A.5.5.  System Process
 
 // A.5.5.1.  clock_select()
+// Comparison function to sort ntp_m by edge value (ascending)
+int compare_ntp_m(const void *a, const void *b)
+{
+    struct ntp_m *elem1 = (struct ntp_m *)a;
+    struct ntp_m *elem2 = (struct ntp_m *)b;
 
+    if (elem1->edge < elem2->edge) return -1;
+    if (elem1->edge > elem2->edge) return 1;
+    return 0;
+}
 /*
  * clock_select() - find the best clocks
  */
@@ -32,23 +42,57 @@ void clock_select()
     osys = s.p;
     s.p = NULL;
     n = 0;
-    while (fit(p))
+    int idx = 0;
+
+    struct ntp_m m1[NMAX], m2[NMAX], m3[NMAX];
+    memset(m1, 0, sizeof(m1));
+    memset(m2, 0, sizeof(m2));
+    memset(m3, 0, sizeof(m3));
+
+    for (int index = 0; index < assoc_table->size - 2; index++)  // TODO remove -2
     {
-        s.m[n].p = p;
-        s.m[n].type = +1;
-        s.m[n].edge = p->offset + root_dist(p);
-        n++;
-        s.m[n].p = p;
-        s.m[n].type = 0;
-        s.m[n].edge = p->offset;
-        n++;
-        s.m[n].p = p;
-        s.m[n].type = -1;
-        s.m[n].edge = p->offset - root_dist(p);
-        n++;
+        FreeRTOS_printf(("fit check %d\n\n\n", index));
+        p = assoc_table->peers[index];
+        if (fit(p))
+        {
+            FreeRTOS_printf(("fit true\n"));
+            m1[idx].p = p;
+            m1[idx].type = -1;
+            m1[idx].edge = p->offset - root_dist(p);
+            FreeRTOS_printf_wrapper_double("", m1[idx].edge);
+
+            m2[idx].p = p;
+            m2[idx].type = 0;
+            m2[idx].edge = p->offset;
+            FreeRTOS_printf_wrapper_double("", m2[idx].edge);
+
+            m3[idx].p = p;
+            m3[idx].type = +1;
+            m3[idx].edge = p->offset + root_dist(p);
+            FreeRTOS_printf_wrapper_double("", m3[idx].edge);
+
+            n += 3;
+            idx++;
+        }
     }
 
+    qsort(m1, idx, sizeof(struct ntp_m), compare_ntp_m);
+    qsort(m2, idx, sizeof(struct ntp_m), compare_ntp_m);
+    qsort(m3, idx, sizeof(struct ntp_m), compare_ntp_m);
+
     FreeRTOS_printf(("we are in clock select\n"));
+    for (int i = 0; i < idx; i++)
+    {
+        s.m[i] = m1[i];
+        s.m[i + idx] = m2[i];
+        s.m[i + idx * 2] = m3[i];
+    }
+    for (int i = 0; i < n; i++)
+    {
+        FreeRTOS_printf_wrapper_double("", s.m[i].edge);
+    }
+
+    print_uint64_as_32_parts(c.t);
 
     /*
      * Find the largest contiguous intersection of correctness
@@ -65,33 +109,44 @@ void clock_select()
          * Scan the chime list from lowest to highest to find
          * the lower endpoint.
          */
-        found = 0;
         chime = 0;
+        int lastchime = 0;
+
         for (i = 0; i < n; i++)
         {
             chime -= s.m[i].type;
-            if (chime >= n - found)
+
+            FreeRTOS_printf(("type check %d\n", s.m[i].type));
+            FreeRTOS_printf(("chime check %d\n\n\n", chime));
+            if (chime < lastchime)
             {
-                low = s.m[i].edge;
+                high = s.m[i].edge;
+                // FreeRTOS_printf_wrapper_double("", high);
+                // FreeRTOS_printf(("high\n"));
                 break;
             }
-            if (s.m[i].type == 0) found++;
+            lastchime = chime;
         }
 
         /*
          * Scan the chime list from highest to lowest to find
-         * the upper endpoint.
+         * the lower endpoint.
          */
         chime = 0;
-        for (i = n - 1; i >= 0; i--)
+        lastchime = 0;
+        for (i = 0; i < n; i++)
         {
             chime += s.m[i].type;
-            if (chime >= n - found)
+            // FreeRTOS_printf(("type check %d\n", s.m[i].type));
+            // FreeRTOS_printf(("chime check %d\n\n\n", chime));
+            if (chime == lastchime)
             {
-                high = s.m[i].edge;
+                low = s.m[i - 1].edge;
+                // FreeRTOS_printf_wrapper_double("", low);
+                // FreeRTOS_printf(("low\n"));
                 break;
             }
-            if (s.m[i].type == 0) found++;
+            lastchime = chime;
         }
         /*
          * If the number of midpoints is greater than the number
@@ -120,7 +175,7 @@ void clock_select()
 
         p = s.m[i].p;
         s.v[n].p = p;
-        s.v[n].metric = MAXDIST * p->stratum + root_dist(p);
+        s.v[n].metric = (double)(MAXDIST * p->stratum) + root_dist(p);
         s.n++;
     }
 
@@ -130,8 +185,11 @@ void clock_select()
      * require four survivors, but for the demonstration here, one
      * is acceptable.
      */
-    if (s.n < NSANE) FreeRTOS_printf(("nsane survivors dead\n"));
-    return;
+    if (s.n < NSANE)
+    {
+        FreeRTOS_printf(("nsane survivors dead\n"));
+        return;
+    }
 
     FreeRTOS_printf(("we are in clock select 3\n"));
     /*
@@ -213,7 +271,28 @@ double root_dist(struct ntp_p *p /* peer structure pointer */
      * It is defined as half the total delay plus total dispersion
      * plus peer jitter.
      */
-    return (max(MINDISP, p->rootdelay + p->delay) / 2 + p->rootdisp + p->disp + PHI * (c.t - p->t) + p->jitter);
+    // gettime(0);
+    // FreeRTOS_printf(("root_dist\n"));
+
+    // FreeRTOS_printf(("rootdelay\n"));
+    // FreeRTOS_printf_wrapper_double("", p->rootdelay);
+    // FreeRTOS_printf(("delay\n"));
+    // FreeRTOS_printf_wrapper_double("", p->delay);
+    // FreeRTOS_printf(("rootdisp\n"));
+    // FreeRTOS_printf_wrapper_double("", p->rootdisp);
+    // FreeRTOS_printf(("disp\n"));
+    // FreeRTOS_printf_wrapper_double("", p->disp);
+    // FreeRTOS_printf(("jitter\n"));
+    // FreeRTOS_printf_wrapper_double("", p->jitter);
+    // FreeRTOS_printf(("PHI\n"));
+    // FreeRTOS_printf_wrapper_double("", c.t);
+    // print_uint64_as_32_parts(c.t);
+    // printTimestamp(c.t, "c.t");
+    // FreeRTOS_printf_wrapper_double("", p->t);
+    // FreeRTOS_printf_wrapper_double("", PHI * LFP2D(subtract_uint64_t(c.t, p->t)));
+
+    return (max(MINDISP, p->rootdelay + p->delay) / 2 + p->rootdisp + p->disp +
+            PHI * LFP2D(subtract_uint64_t(c.t, p->t)) + p->jitter);
 }
 
 // A.5.5.3.  accept()
@@ -268,14 +347,18 @@ void clock_update(struct ntp_p *p /* peer structure pointer */
      * system peer change, avoid it.  We never use an old sample or
      * the same sample twice.
      */
-    if (s.t >= p->t) return;
-
+    if (s.t >= p->t)
+    {
+        FreeRTOS_printf(("s.t >= p->t, kill\n"));
+        return;
+    }
     /*
      * Combine the survivor offsets and update the system clock; the
      * local_clock() routine will tell us the good or bad news.
      */
     s.t = p->t;
-    clock_combine(s, c);
+    clock_combine();
+
     switch (local_clock(p, s.offset))
     {
         /*
@@ -341,6 +424,7 @@ void clock_combine()
     struct ntp_p *p; /* peer structure pointer */
     double x, y, z, w;
     int i;
+    FreeRTOS_printf(("\nCLOCK COMBINE \n\n\n"));
 
     /*
      * Combine the offsets of the clustering algorithm survivors
@@ -357,11 +441,17 @@ void clock_combine()
     for (i = 0; s.v[i].p != NULL; i++)
     {
         p = s.v[i].p;
+        FreeRTOS_printf(("\n"));
         x = root_dist(p);
+        FreeRTOS_printf(("\n"));
         y += 1 / x;
+        FreeRTOS_printf(("\n"));
         z += p->offset / x;
+        FreeRTOS_printf(("\n"));
         w += SQUARE(p->offset - s.v[0].p->offset) / x;
+        FreeRTOS_printf(("%d\n", i));
     }
     s.offset = z / y;
+    FreeRTOS_printf(("\n"));
     s.jitter = SQRT(w / y);
 }

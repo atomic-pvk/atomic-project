@@ -1,8 +1,7 @@
 #include "NTP_main_utility.h"
 
-#include <stdbool.h>
-
 #include "NTPTask.h"
+#include "NTP_peer.h"
 
 static struct ntp_p *p; /* peer structure pointer */
 
@@ -20,6 +19,7 @@ struct ntp_p *mobilize(uint32_t srcaddr, /* IP source address, change from ipadd
      * Allocate and initialize association memory
      */
     p = malloc(sizeof(struct ntp_p));
+    memset(p, 0, sizeof(ntp_p));
     p->srcaddr = srcaddr;
     p->dstaddr = dstaddr;
     p->version = version;
@@ -40,21 +40,12 @@ struct
         find_assoc(struct ntp_r *r /* receive packet pointer */
         )
 {
-    struct ntp_p *p; /* dummy peer structure pointer */
-    p = malloc(sizeof(struct ntp_p));
-
     for (int i = 0; i < assoc_table->size; i++)
     {
-        Assoc_info assoc = assoc_table->entries[i];
-        if (r->srcaddr == assoc.srcaddr)
+        ntp_p *assoc = assoc_table->peers[i];
+        if (r->srcaddr == assoc->srcaddr)
         {
-            p->srcaddr = assoc.srcaddr;
-            p->hmode = assoc.hmode;
-            p->xmt = assoc.xmt;
-
-            time_t pXmtInSeconds = (time_t)((p->xmt >> 32) - 2208988800ull);
-            uint32_t pXmtFrac = (uint32_t)(p->xmt & 0xFFFFFFFF);
-            return (p);
+            return (assoc);
         }
     }
     return (NULL);
@@ -116,14 +107,14 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
     FreeRTOS_ntohl_array_32(temp, 12);
     memcpy(pkt, temp, sizeof(ntp_packet));  // Copy the received packet to the receive packet struct
 
-    r->rootdelay = (tdist)pkt->rootDelay;
-    r->rootdisp = (tdist)pkt->rootDispersion;
+    r->rootdelay = pkt->rootDelay;
+    r->rootdisp = pkt->rootDispersion;
 
-    r->refid = (char)pkt->refId;  // May require handling depending on refId's nature
+    r->refid = pkt->refId;  // May require handling depending on refId's nature
 
     // Combine seconds and fractions into a single 64-bit NTP timestamp'
     // FreeRTOS_printf(("All of the received data for the received packet r is:\n"));
-    r->reftime = ((tstamp)pkt->refTm_s << 32) | pkt->refTm_f;
+    r->reftime = ((tstamp)pkt->refTm_s << 32) | (uint32_t)(pkt->refTm_f & 0xFFFFFFFF);
     r->xmt = ((tstamp)pkt->txTm_s << 32) | (uint32_t)(pkt->txTm_f & 0xFFFFFFFF);
     r->rec = ((tstamp)pkt->rxTm_s << 32) | (uint32_t)(pkt->rxTm_f & 0xFFFFFFFF);
 
@@ -161,7 +152,8 @@ struct
     if (iReturned > 0)
     {
         // get the time when the packet was received
-        tstamp dst = gettime();
+        // gettime(0);
+        tstamp dst = c.t;
 
         struct ntp_r *r = malloc(sizeof(ntp_r));  // Allocate memory for the receive packet
         memset(r, 0, sizeof(ntp_r));              // Clear the receive packet struct
@@ -223,7 +215,8 @@ void xmit_packet(struct ntp_x *x /* transmit packet pointer */
     memset(pkt, 0, sizeof(ntp_packet));            // Clear the packet struct
 
     // set xmit time to current time!
-    x->xmt = gettime();
+    // gettime(0);
+    x->xmt = c.t;
 
     translate_ntp_x_to_ntp_packet(x, pkt);
     unsigned char buffer[sizeof(ntp_packet)];
@@ -236,9 +229,9 @@ void xmit_packet(struct ntp_x *x /* transmit packet pointer */
     FreeRTOS_printf(("Sending packet...\n"));
 
     // Add the association to the table
-    if (!assoc_table_add(assoc_table, x->srcaddr, x->mode, x->xmt))
+    if (!assoc_table_add(x->srcaddr, x->mode, x->xmt))
     {
-        FreeRTOS_printf(("Error adding association to table, will not do shit\n"));
+        FreeRTOS_printf(("Error adding association to table\n"));
     }
 
     int32_t iReturned;
@@ -272,24 +265,6 @@ void xmit_packet(struct ntp_x *x /* transmit packet pointer */
  * illustration only and has not been verified.
  */
 #define JAN_1970 2208988800UL /* 1970 - 1900 in seconds */
-
-/*
- * get_time - read system time and convert to NTP format
- */
-tstamp get_time()
-{
-    struct timeval unix_time;
-
-    /*
-     * There are only two calls on this routine in the program.  One
-     * when a packet arrives from the network and the other when a
-     * packet is placed on the send queue.  Call the kernel time of
-     * day routine (such as gettimeofday()) and convert to NTP
-     * format.
-     */
-    // gettimeofday(&unix_time, NULL);
-    return (U2LFP(unix_time));
-}
 
 /*
  * step_time() - step system time to given offset value
@@ -329,14 +304,4 @@ void adjust_time(double offset /* clock offset */
     unix_time.tv_sec = time >> 32;
     unix_time.tv_usec = (long)(((time - unix_time.tv_sec) << 32) / FRAC * 1e6);
     // adjtime(&unix_time, NULL);
-}
-
-// Returns the current time according to the local clock in ntp-format
-void get_current_time()
-{
-    TickType_t current_ticks = xTaskGetTickCount();
-    // Get the last time polled from the server
-    // Get the tick-count when we got the last time from the server
-    // Calculate the difference between the current tick and the tick when we got the latest time
-    // Calculate the new time by adding the last time we got from the server with the difference in ticks
 }

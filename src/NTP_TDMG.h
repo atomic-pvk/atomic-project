@@ -44,8 +44,9 @@ G Global Constants
  * The precision and poll interval fields are signed log2 seconds.
  */
 
-typedef uint64_t tstamp; /* NTP timestamp format, 32 first bits reprsent seconds, secons 32 bits represent fractions */
-typedef uint32_t tdist;  /* NTP short format */
+typedef uint64_t
+    tstamp; /* NTP timestamp format, the first 32 bits represent seconds, the last 32 bits represent fractions */
+typedef uint32_t tdist; /* NTP short format */
 
 typedef uint32_t ipaddr; /* IPv4 or IPv6 address */
 // TODO use freertos ipaddr
@@ -77,7 +78,7 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 /*
  * Arithmetic conversions
  */
-#define LOG2D(a) ((a) < 0 ? (double)(1. / (1L << -(a))) : (double)(1L << (a))) /* poll, etc. */
+#define LOG2D(a) ((a) < 0 ? (1. / (1L << -(a))) : (1L << (a))) /* poll, etc. */
 #define SQUARE(x) (x * x)
 #define SQRT(x) (sqrt(x))
 // TODO THIS IS A DUMMY IMPLEMENTATION JUST TO MAKE THE CODE COMPILE
@@ -89,18 +90,19 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
  * instance, the reference implementation computes PRECISION on-the-fly
  * and provides performance tuning for the defines marked with % below.
  */
-#define VERSION 4   /* version number */
-#define MINDISP .01 /* % minimum dispersion (s) */
-#define MAXDISP 16  /* maximum dispersion (s) */
-#define MAXDIST 1   /* % distance threshold (s) */
-#define NOSYNC 0x3  /* leap unsync */
-#define MAXSTRAT 16 /* maximum stratum (infinity metric) */
-#define MINPOLL 6   /* % minimum poll interval (64 s)*/
-#define MAXPOLL 17  /* % maximum poll interval (36.4 h) */
-#define MINCLOCK 3  /* minimum manycast survivors */
-#define MAXCLOCK 10 /* maximum manycast candidates */
-#define TTLMAX 8    /* max ttl manycast */
-#define BEACON 15   /* max interval between beacons */
+#define VERSION 4     /* version number */
+#define MINDISP .01   /* % minimum dispersion (s) */
+#define MAXDISP 16    /* maximum dispersion (s) */
+#define MAXDISPAlg .5 /* maximum dispersion (s), a maxdisp of 16 seconds absolutely destroys the algs */
+#define MAXDIST 5     /* % distance threshold (s) */
+#define NOSYNC 0x3    /* leap unsync */
+#define MAXSTRAT 16   /* maximum stratum (infinity metric) */
+#define MINPOLL 6     /* % minimum poll interval (64 s)*/
+#define MAXPOLL 17    /* % maximum poll interval (36.4 h) */
+#define MINCLOCK 3    /* minimum manycast survivors */
+#define MAXCLOCK 10   /* maximum manycast candidates */
+#define TTLMAX 8      /* max ttl manycast */
+#define BEACON 15     /* max interval between beacons */
 
 // this is FreeRTOS_inet_addr("172.21.0.3")
 #define DSTADDR 50337196 /* destination (local) address */
@@ -219,7 +221,7 @@ typedef struct ntp_r
     s_char precision; /* precision */
     tdist rootdelay;  /* root delay */
     tdist rootdisp;   /* root dispersion */
-    char refid;       /* reference ID */
+    tdist refid;      /* reference ID */
     tstamp reftime;   /* reference time */
     tstamp org;       /* origin timestamp */
     tstamp rec;       /* receive timestamp */
@@ -246,7 +248,7 @@ typedef struct ntp_x
     s_char precision; /* precision */
     tdist rootdelay;  /* root delay */
     tdist rootdisp;   /* root dispersion */
-    char refid;       /* reference ID */
+    tdist refid;      /* reference ID */
     tstamp reftime;   /* reference time */
     tstamp org;       /* origin timestamp */
     tstamp rec;       /* receive timestamp */
@@ -295,7 +297,7 @@ typedef struct ntp_p
     char ppoll;         /* peer poll interval */
     double rootdelay;   /* root delay */
     double rootdisp;    /* root dispersion */
-    char refid;         /* reference ID */
+    tdist refid;        /* reference ID */
     tstamp reftime;     /* reference time */
 #define begin_clear org /* beginning of clear area */
     tstamp org;         /* originate timestamp */
@@ -305,7 +307,7 @@ typedef struct ntp_p
     /*
      * Computed data
      */
-    double t;               /* update time */
+    tstamp t;               /* update time */
     struct ntp_f f[NSTAGE]; /* clock filter */
     double offset;          /* peer offset */
     double delay;           /* peer delay */
@@ -358,7 +360,7 @@ typedef struct ntp_s
     s_char precision;     /* precision */
     double rootdelay;     /* root delay */
     double rootdisp;      /* root dispersion */
-    char refid;           /* reference ID */
+    tdist refid;          /* reference ID */
     tstamp reftime;       /* reference time */
     struct ntp_m m[NMAX]; /* chime list */
     struct ntp_v v[NMAX]; /* survivor list */
@@ -376,14 +378,15 @@ typedef struct ntp_s
  */
 typedef struct ntp_c
 {
-    tstamp t;      /* update time */
-    int state;     /* current state */
-    double offset; /* current offset */
-    double last;   /* previous offset */
-    int count;     /* jiggle counter */
-    double freq;   /* frequency */
-    double jitter; /* RMS jitter */
-    double wander; /* RMS wander */
+    tstamp t;                     /* update time */
+    int state;                    /* current state */
+    double offset;                /* current offset */
+    double last;                  /* previous offset */
+    int count;                    /* jiggle counter */
+    double freq;                  /* frequency */
+    double jitter;                /* RMS jitter */
+    double wander;                /* RMS wander */
+    TickType_t lastTimeStampTick; /* freertos tick*/
 } ntp_c;
 
 typedef struct ntp_packet
@@ -409,22 +412,15 @@ typedef struct ntp_packet
 } ntp_packet;
 
 // Association Data Structures used in the assoc table to find associations between peers and addresses
-typedef struct Assoc_info
-{
-    uint32_t srcaddr;
-    char hmode;
-    tstamp xmt;
-    ntp_p *peer;
-} Assoc_info;
-
 typedef struct Assoc_table
 {
-    Assoc_info *entries;
+    ntp_p **peers;
     int size;
 } Assoc_table;
 
-void assoc_table_init(Assoc_table *, uint32_t *);
-int assoc_table_add(Assoc_table *, uint32_t, char, tstamp);
+void assoc_table_init(uint32_t *);
+int assoc_table_add(uint32_t, char, tstamp);
+void assoc_table_update(ntp_p *);
 
 // void ntp_init(ntp_r *, ntp_x *, const char *[], uint32_t *);
 void ntp_init();
@@ -435,7 +431,7 @@ int64_t subtract_uint64_t(uint64_t x, uint64_t y);
 int64_t add_int64_t(int64_t x, int64_t y);
 
 void settime(tstamp newTime);
-tstamp gettime();
+void gettime(int override);
 
 void printTimestamp(tstamp timestamp, const char *comment);
 

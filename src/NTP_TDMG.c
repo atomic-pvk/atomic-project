@@ -69,39 +69,44 @@ void ntp_init()
     // memset(&c, sizeof(ntp_c), 0);
 }
 
-void assoc_table_init(Assoc_table *table, uint32_t *NTP_server_IPs)
+void assoc_table_init(uint32_t *NTP_server_IPs)
 {
-    table->entries = (Assoc_info *)malloc(NMAX * sizeof(Assoc_info));
-    table->size = 0;
+    assoc_table->peers = (ntp_p **)malloc(NMAX * sizeof(ntp_p));
+    assoc_table->size = NMAX;
 
     for (int i = 0; i < NMAX; i++)
     {
-        table->entries[i].peer = mobilize(NTP_server_IPs[i], IPADDR, VERSION, MODE, KEYID, P_FLAGS);
+        assoc_table->peers[i] = mobilize(NTP_server_IPs[i], IPADDR, VERSION, MODE, KEYID, P_FLAGS);
     }
 }
 
-int assoc_table_add(Assoc_table *table, uint32_t srcaddr, char hmode, tstamp xmt)
+int assoc_table_add(uint32_t srcaddr, char hmode, tstamp xmt)
 {
-    // Check for duplicate entries
-    for (int i = 0; i < table->size; i++)
+    // Check for duplicate peers
+    for (int i = 0; i < assoc_table->size; i++)
     {
-        if (table->entries[i].srcaddr == srcaddr)
+        if (assoc_table->peers[i]->srcaddr == srcaddr && assoc_table->peers[i]->hmode == hmode)
         {
-            table->entries[table->size].hmode = hmode;
-            table->entries[table->size].xmt = xmt;
-            return 1;  // Entry already exists, do not add
+            printTimestamp(xmt, "xmt in assoc_table_add\n");
+            FreeRTOS_printf(("index %d\n", i));
+            assoc_table->peers[i]->xmt = xmt;
+            assoc_table->peers[i]->t = xmt;
+            return 1;  // Entry already exists
         }
     }
-    if (table->size >= NMAX)
+    return 0;
+}
+
+void assoc_table_update(ntp_p *p)
+{
+    for (int i = 0; i < assoc_table->size; i++)
     {
-        return 0;
+        if (assoc_table->peers[i]->srcaddr == p->srcaddr && assoc_table->peers[i]->hmode == p->hmode)
+        {
+            assoc_table->peers[i] = p;
+            return;
+        }
     }
-    // Add new entry
-    table->entries[table->size].srcaddr = srcaddr;
-    table->entries[table->size].hmode = hmode;
-    table->entries[table->size].xmt = xmt;
-    table->size++;
-    return 1;
 }
 
 double sqrt(double number)
@@ -194,105 +199,24 @@ int64_t add_int64_t(int64_t x, int64_t y)
 
 void settime(tstamp newTime)
 {
-    lastTimeStampTstamp = newTime;
-    lastTimeStampTick = xTaskGetTickCount();
+    c.t = newTime;
+    c.lastTimeStampTick = xTaskGetTickCount();
 
     // print the tick now
-    FreeRTOS_printf(("\n Tick is now: %d\n", lastTimeStampTick));
+    FreeRTOS_printf(("\n Tick is now: %d\n", c.lastTimeStampTick));
 }
 
-// tstamp gettime()
-// {
-//     TickType_t currentTick = xTaskGetTickCount();
-//     TickType_t tickDifference = currentTick - lastTimeStampTick;
-
-//     uint32_t secondsDifference = tickDifference / 1000;
-//     uint32_t fractionsDifference = (tickDifference % 1000) * (0xFFFFFFFF / 1000);
-
-//     // Check if fractionsDifference is larger than one second
-//     if (fractionsDifference > 0xFFFFFFFF)
-//     {
-//         // Increment secondsDifference by 1
-//         secondsDifference += 1;
-//         // Subtract one second from fractionsDifference
-//         fractionsDifference -= 0x100000000;
-//     }
-
-//     uint64_t secondsPart = (uint64_t)secondsDifference << 32;
-//     uint64_t fractionsPart = fractionsDifference;
-
-//     uint64_t newTime = add_uint64_t(lastTimeStampTstamp, secondsPart);
-//     newTime = add_uint64_t(newTime, fractionsPart);
-
-//     return newTime;
-// }
-
-// tstamp gettime()
-// {
-//     TickType_t currentTick = xTaskGetTickCount();
-//     TickType_t tickDifference = currentTick - lastTimeStampTick;
-
-//     uint32_t secondsDifference = tickDifference / 1000;
-//     uint32_t fractionsDifference = (tickDifference % 1000) * (0xFFFFFFFF / 1000);
-
-//     // Ensure the correct calculation of fractionsDifference
-//     fractionsDifference = (uint64_t)(tickDifference % 1000) * (0xFFFFFFFF / 1000);
-
-//     // No need to check if fractionsDifference > 0xFFFFFFFF after fixing scaling
-//     // As fractionsDifference is correctly scaled it should not exceed 0xFFFFFFFF
-//     // This check and adjustment become unnecessary:
-//     // if (fractionsDifference > 0xFFFFFFFF)
-//     // {
-//     //     secondsDifference += 1;
-//     //     fractionsDifference -= 0x100000000;
-//     // }
-
-//     uint64_t secondsPart = (uint64_t)secondsDifference << 32;
-//     uint64_t fractionsPart = fractionsDifference;
-
-//     uint64_t newTime = add_uint64_t(lastTimeStampTstamp, secondsPart);
-//     newTime = add_uint64_t(newTime, fractionsPart);
-
-//     return newTime;
-// }
-
-// tstamp gettime()
-// {
-//     TickType_t currentTick = xTaskGetTickCount();
-
-//     // print the tick now
-//     FreeRTOS_printf(("\n Tick is now: %d\n", currentTick));
-
-//     uint64_t tickDifference = currentTick - lastTimeStampTick;
-//     lastTimeStampTick = currentTick; // Update last tick
-
-//     uint32_t secondsDifference = tickDifference / 1000;
-//     uint64_t fractionsDifference = (tickDifference % 1000) * (0xFFFFFFFF / 1000);
-
-//     // Properly handle the case where fractions roll over one second
-//     if (fractionsDifference >= 0x100000000ULL)
-//     {
-//         secondsDifference += 1;
-//         fractionsDifference -= 0x100000000ULL;
-//     }
-
-//     uint64_t secondsPart = (uint64_t)secondsDifference << 32;
-//     uint64_t fractionsPart = fractionsDifference;
-
-//     uint64_t newTime = add_uint64_t(lastTimeStampTstamp, secondsPart);
-//     newTime = add_uint64_t(newTime, fractionsPart);
-
-//     lastTimeStampTstamp = newTime; // Update last timestamp
-
-//     return newTime;
-// }
-
-tstamp gettime()
+void gettime(int override)
 {
     TickType_t currentTick = xTaskGetTickCount();
 
     // calculate the difference between the current tick and the last tick
-    TickType_t tickDifference = currentTick - lastTimeStampTick;
+    TickType_t tickDifference = currentTick - c.lastTimeStampTick;
+
+    FreeRTOS_printf_wrapper_double("", tickDifference);
+    FreeRTOS_printf(("Tick diff\n\n"));
+    if (tickDifference < 10 && !override) return;  // Ignore small differences
+    FreeRTOS_printf(("changing local time...\n\n"));
 
     // calculate tickDifference / 1000 as integer division
     TickType_t numSecondsInTicks = tickDifference / 1000;
@@ -304,33 +228,25 @@ tstamp gettime()
     uint32_t newFractions = numMilliseconds * (FRAC / 1000);
 
     // Extract current fractions and seconds from last timestamp
-    uint32_t currentFractions = (uint32_t)(lastTimeStampTstamp & 0xFFFFFFFF);
-    uint32_t currentSeconds = (uint32_t)(lastTimeStampTstamp >> 32);
+    uint32_t currentFractions = (uint32_t)(c.t & 0xFFFFFFFF);
+    uint32_t currentSeconds = (uint32_t)(c.t >> 32);
 
     // Calculate new fraction value and handle overflow
     uint32_t tempFractions = currentFractions + newFractions;
     if (tempFractions < currentFractions)
-    {                         // Check for overflow using wrap-around condition
+    {  // Check for overflow using wrap-around condition
+        FreeRTOS_printf(("Overflow detected\n\n\n\n\n\n\n"));
         numSecondsInTicks++;  // Increment the seconds part due to overflow
     }
 
     // Update the seconds part
     tstamp newSeconds = currentSeconds + numSecondsInTicks;
 
-    // Construct the new timestamp without directly manipulating 64-bit values
-    // print newSeconds and tempFractions separately (use ctime on newSeconds)
-    // FreeRTOS_printf(("\n\n 2 Time according to newSeconds: %s.%.10f\n", ctime(&newSeconds), tempFractions));
-
+    // Construct the new timestamp
     tstamp newTimeStamp = ((tstamp)newSeconds << 32) | (uint32_t)(tempFractions & 0xFFFFFFFF);
 
-    // .536963481 seconds
-    // .536963481
-    // .536963497
-    // .536961241
-    // .536961249
-    // .3546543389
-
-    return newTimeStamp;
+    c.lastTimeStampTick = currentTick;
+    c.t = newTimeStamp;
 }
 
 void printTimestamp(tstamp timestamp, const char *comment)
@@ -460,7 +376,7 @@ void double_to_str(double value, char *str, int precision)
 void FreeRTOS_printf_wrapper_double(const char *format, double value)
 {
     char buffer[MAX_DOUBLE_DIGITS + 50];  // Additional space for message text
-    double_to_str(value, buffer, 10);     // Example with 6 decimal places
+    double_to_str(value, buffer, 6);      // Example with 6 decimal places
     FreeRTOS_printf(("%s\n", buffer));
 }
 
