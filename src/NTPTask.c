@@ -54,14 +54,22 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     for (int i = 0; i < NMAX; i++)
     {
         DNSok = 0;
+        int retry = 0;
         while (DNSok == 0)
         {
+            if (retry >= 10)
+            {
+                FreeRTOS_printf(("\n\nDNS lookup failed, killing process.\n\n"));
+                return;
+            }
+
             /* get the IP of the NTP server with FreeRTOS_gethostbyname */
             NTP_server_IPs[i] = FreeRTOS_gethostbyname(pcHostNames[i]);
 
             if (NTP_server_IPs[i] == 0)
             {
                 FreeRTOS_printf(("\n\nDNS lookup failed, trying again in 1 second. \n\n"));
+                retry++;
                 vTaskDelay(x1000ms);
             }
             else
@@ -79,23 +87,19 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     xDestinationAddress.sin_port = FreeRTOS_htons(123);          // dest port
     xDestinationAddress.sin_len = (uint8_t)sizeof(struct freertos_sockaddr);
 
-    // struct ntp_p *p; /* peer structure pointer */
-    struct ntp_p *p; /* peer structure pointer */
-
     struct ntp_r *r;
     r = malloc(sizeof(ntp_r));
+    // memset(r, 0, sizeof(ntp_r));
+    // r->dstaddr = DSTADDR;
+    // r->version = VERSION;
+    // r->leap = NOSYNC;
+    // r->mode = MODE;
+    // r->stratum = MAXSTRAT;
+    // r->poll = MINPOLL;
+    // r->precision = -18;
+
     struct ntp_x *x;
     x = malloc(sizeof(ntp_x));
-
-    memset(r, 0, sizeof(ntp_r));
-    r->dstaddr = DSTADDR;
-    r->version = VERSION;
-    r->leap = NOSYNC;
-    r->mode = MODE;
-    r->stratum = MAXSTRAT;
-    r->poll = MINPOLL;
-    r->precision = -18;
-
     memset(x, 0, sizeof(ntp_x));
     x->dstaddr = DSTADDR;
     x->version = VERSION;
@@ -130,12 +134,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     FreeRTOS_printf_wrapper_double("", c.jitter);
     assoc_table_init(NTP_server_IPs);
 
-    // do parameters
-
-    // ntp_init(); // does nothing atm
-
-    // stupid but just test
-    free(r);
+    // memset(r, 0, sizeof(ntp_r));
 
     /*
         get time from one NTP server, use as start reference
@@ -152,35 +151,18 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
     // send packet
     xmit_packet(x);
-    r = malloc(sizeof(ntp_r));
     r = recv_packet();
     x->xmt = r->xmt;
 
-    // since we dont have local clock we just set the org to the first rec
-    // x->org = r->xmt;
     settime(x->xmt);
     gettime(1);
-    // printTimestamp(c.t, "c.t org");
-    // vTaskDelay(x100ms);
-    // gettime();
-    // printTimestamp(c.t, "c.t + 0.100");
-    // vTaskDelay(x700ms);
-    // gettime();
-    // printTimestamp(c.t, "c.t + 0.700");
 
-    free(r);
+    memset(r, 0, sizeof(ntp_r));
 
-    /*
-    get time from all 5 servers once!
-*/
-
-    /*
-        then just get all the times forever
-    */
     uint32_t ulCount = 0UL;
     for (;;)
     {
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < NMAX; i++)
         {
             // set the destination IP to the current NTP server
             NTP1_server_IP = NTP_server_IPs[i];
@@ -193,19 +175,13 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
                              (NTP1_server_IP >> 16) & 0xFF,    // Extract the second byte
                              (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
 
-            time_t orgtimeInSeconds = (time_t)((x->xmt >> 32) - 2208988800ull);
-            uint32_t orgfrac = (uint32_t)(x->xmt & 0xFFFFFFFF);
-            FreeRTOS_printf(("\n\n sent x xmt to : %s.%u\n", ctime(&orgtimeInSeconds), orgfrac));
-
-            xmit_packet(x);             // send packet
-            r = malloc(sizeof(ntp_r));  // allocate memory for the response
-            r = recv_packet();          // receive packet
-
-            printTimestamp(r->org, "before calling receive res r org to :");
+            xmit_packet(x);     // send packet
+            r = recv_packet();  // receive packet
+            x->xmt = r->xmt;
 
             receive(r);  // handle the response
 
-            free(r);  // free the memory
+            memset(r, 0, sizeof(ntp_r));
         }
 
         FreeRTOS_printf(("\n\nSleeping for 10 seconds before next get\n\n"));

@@ -145,9 +145,9 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
      * place the (offset, delay, disp, time) in the vacated
      * rightmost tuple.
      */
-    // gettime(1);  // update c.t to the current time
-    double tmpDisp =
-        LFP2D(PHI * (subtract_uint64_t(c.t, p->t)));  // this is a static value so it should only be calculated once
+    gettime(1);  // update c.localTime to the current time
+    double tmpDisp = LFP2D(
+        PHI * (subtract_uint64_t(c.localTime, p->t)));  // this is a static value so it should only be calculated once
 
     for (i = 1; i < NSTAGE; i++)
     {
@@ -155,7 +155,7 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
         p->f[i].disp += tmpDisp;
         f[i] = p->f[i];
     }
-    p->f[0].t = c.t;
+    p->f[0].t = c.localTime;
     p->f[0].offset = offset;
     p->f[0].delay = delay;
     p->f[0].disp = disp;
@@ -299,7 +299,7 @@ void clear(struct ntp_p *p, /* peer structure pointer */
      * clients have just been stirred up after a long absence of the
      * broadcast server.
      */
-    p->outdate = p->t = c.t;
+    p->outdate = p->t = c.localTime;
     p->nextdate = p->outdate + (random() & ((1 << MINPOLL) - 1));
 }
 
@@ -337,8 +337,9 @@ void fast_xmit(struct ntp_r *r, /* receive packet pointer */
     x.reftime = s.reftime;
     x.org = r->xmt;
     x.rec = r->dst;
-    // gettime(0);
-    x.xmt = c.t;
+
+    gettime(0);
+    x.xmt = c.localTime;
 
     /*
      * If the authentication code is A.NONE, include only the

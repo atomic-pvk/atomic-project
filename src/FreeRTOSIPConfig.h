@@ -118,7 +118,7 @@ extern void vLoggingPrintf(const char* pcFormatString, ...);
  * as the Win32 simulator only stores a fixed amount of information on the task
  * stack.  FreeRTOS includes optional stack overflow detection, see:
  * http://www.freertos.org/Stacks-and-stack-overflow-checking.html */
-#define ipconfigIP_TASK_STACK_SIZE_WORDS (configMINIMAL_STACK_SIZE * 5)
+#define ipconfigIP_TASK_STACK_SIZE_WORDS (configMINIMAL_STACK_SIZE * 20)
 
 /* If ipconfigUSE_NETWORK_EVENT_HOOK is set to 1 then FreeRTOS+TCP will call the
  * network event hook at the appropriate times.  If ipconfigUSE_NETWORK_EVENT_HOOK

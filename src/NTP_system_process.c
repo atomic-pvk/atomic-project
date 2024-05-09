@@ -17,15 +17,12 @@ int compare_ntp_m(const void *a, const void *b)
     if (elem1->edge > elem2->edge) return 1;
     return 0;
 }
-/*
- * clock_select() - find the best clocks
- */
-void clock_select()
+
+void cull(int n)
 {
-    struct ntp_p *p, *osys;  /* peer structure pointers */
-    double low, high;        /* correctness interval extents */
-    int allow, found, chime; /* used by intersection algorithm */
-    int n, i, j;
+    struct ntp_p *p;
+    n = 0;
+    int idx = 0;
 
     /*
      * We first cull the falsetickers from the server population,
@@ -39,10 +36,6 @@ void clock_select()
      * shown below, then sort the list by edge from lowest to
      * highest.
      */
-    osys = s.p;
-    s.p = NULL;
-    n = 0;
-    int idx = 0;
 
     struct ntp_m m1[NMAX], m2[NMAX], m3[NMAX];
     memset(m1, 0, sizeof(m1));
@@ -91,8 +84,21 @@ void clock_select()
     {
         FreeRTOS_printf_wrapper_double("", s.m[i].edge);
     }
+}
+/*
+ * clock_select() - find the best clocks
+ */
+void clock_select()
+{
+    struct ntp_p *p, *osys;  /* peer structure pointers */
+    double low, high;        /* correctness interval extents */
+    int allow, found, chime; /* used by intersection algorithm */
+    int n, i, j;
 
-    print_uint64_as_32_parts(c.t);
+    osys = s.p;
+    s.p = NULL;
+
+    cull(n);
 
     /*
      * Find the largest contiguous intersection of correctness
@@ -161,7 +167,6 @@ void clock_select()
         if (high > low) break;
     }
 
-    FreeRTOS_printf(("we are in clock select 2\n"));
     /*
      * Clustering algorithm.  Construct a list of survivors (p,
      * metric) from the chime list, where metric is dominated first
@@ -177,6 +182,8 @@ void clock_select()
         s.v[n].p = p;
         s.v[n].metric = (double)(MAXDIST * p->stratum) + root_dist(p);
         s.n++;
+        FreeRTOS_printf(("\nsurvivor found\n"));
+        FreeRTOS_printf_wrapper_double("", s.m[i].edge);
     }
 
     /*
@@ -191,7 +198,6 @@ void clock_select()
         return;
     }
 
-    FreeRTOS_printf(("we are in clock select 3\n"));
     /*
      * For each association p in turn, calculate the selection
      * jitter p->sjitter as the square root of the sum of squares
@@ -241,7 +247,6 @@ void clock_select()
          */
         s.n--;
     }
-    FreeRTOS_printf(("we are in clock select 4\n"));
 
     /*
      * Pick the best clock.  If the old system peer is on the list
@@ -250,9 +255,16 @@ void clock_select()
      * survivor on the list as the new system peer.
      */
     if (osys->stratum == s.v[0].p->stratum)
+    {
+        FreeRTOS_printf(("s.p = osys\n"));
         s.p = osys;
+    }
     else
+    {
+        FreeRTOS_printf(("s.p = s.v[0].p\n"));
         s.p = s.v[0].p;
+    }
+
     FreeRTOS_printf(("calling clock update\n"));
     clock_update(s.p);
 }
@@ -349,6 +361,8 @@ void clock_update(struct ntp_p *p /* peer structure pointer */
      */
     if (s.t >= p->t)
     {
+        FreeRTOS_printf_wrapper_double("", s.t);
+        FreeRTOS_printf_wrapper_double("", p->t);
         FreeRTOS_printf(("s.t >= p->t, kill\n"));
         return;
     }

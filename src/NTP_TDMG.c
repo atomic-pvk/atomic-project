@@ -200,6 +200,7 @@ int64_t add_int64_t(int64_t x, int64_t y)
 void settime(tstamp newTime)
 {
     c.t = newTime;
+    c.localTime = newTime;
     c.lastTimeStampTick = xTaskGetTickCount();
 
     // print the tick now
@@ -228,8 +229,8 @@ void gettime(int override)
     uint32_t newFractions = numMilliseconds * (FRAC / 1000);
 
     // Extract current fractions and seconds from last timestamp
-    uint32_t currentFractions = (uint32_t)(c.t & 0xFFFFFFFF);
-    uint32_t currentSeconds = (uint32_t)(c.t >> 32);
+    uint32_t currentFractions = (uint32_t)(c.localTime & 0xFFFFFFFF);
+    uint32_t currentSeconds = (uint32_t)(c.localTime >> 32);
 
     // Calculate new fraction value and handle overflow
     uint32_t tempFractions = currentFractions + newFractions;
@@ -246,7 +247,7 @@ void gettime(int override)
     tstamp newTimeStamp = ((tstamp)newSeconds << 32) | (uint32_t)(tempFractions & 0xFFFFFFFF);
 
     c.lastTimeStampTick = currentTick;
-    c.t = newTimeStamp;
+    c.localTime = newTimeStamp;
 }
 
 void printTimestamp(tstamp timestamp, const char *comment)

@@ -66,12 +66,12 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 /*
  * Timestamp conversion macroni
  */
-#define FRIC 65536.                 /* 2^16 as a double */
-#define D2FP(r) ((tdist)((r)*FRIC)) /* NTP short */
+#define FRIC 65536.                   /* 2^16 as a double */
+#define D2FP(r) ((tdist)((r) * FRIC)) /* NTP short */
 #define FP2D(r) ((double)(r) / FRIC)
 
-#define FRAC 4294967296.              /* 2^32 as a double */
-#define D2LFP(a) ((tstamp)((a)*FRAC)) /* NTP timestamp */
+#define FRAC 4294967296.                /* 2^32 as a double */
+#define D2LFP(a) ((tstamp)((a) * FRAC)) /* NTP timestamp */
 #define LFP2D(a) ((double)(a) / FRAC)
 #define U2LFP(a) (((unsigned long long)((a).tv_sec + JAN_1970) << 32) + (unsigned long long)((a).tv_usec / 1e6 * FRAC))
 
@@ -378,6 +378,7 @@ typedef struct ntp_s
  */
 typedef struct ntp_c
 {
+    tstamp localTime;             /* local based on ticks time */
     tstamp t;                     /* update time */
     int state;                    /* current state */
     double offset;                /* current offset */

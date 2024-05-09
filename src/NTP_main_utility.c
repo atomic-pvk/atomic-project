@@ -152,8 +152,8 @@ struct
     if (iReturned > 0)
     {
         // get the time when the packet was received
-        // gettime(0);
-        tstamp dst = c.t;
+        gettime(0);
+        tstamp dst = c.localTime;
 
         struct ntp_r *r = malloc(sizeof(ntp_r));  // Allocate memory for the receive packet
         memset(r, 0, sizeof(ntp_r));              // Clear the receive packet struct
@@ -215,8 +215,8 @@ void xmit_packet(struct ntp_x *x /* transmit packet pointer */
     memset(pkt, 0, sizeof(ntp_packet));            // Clear the packet struct
 
     // set xmit time to current time!
-    // gettime(0);
-    x->xmt = c.t;
+    gettime(0);
+    x->xmt = c.localTime;
 
     translate_ntp_x_to_ntp_packet(x, pkt);
     unsigned char buffer[sizeof(ntp_packet)];
