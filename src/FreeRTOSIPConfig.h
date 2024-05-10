@@ -98,7 +98,7 @@ extern void vLoggingPrintf(const char* pcFormatString, ...);
  * call to FreeRTOS_gethostbyname() will return immediately, without even creating
  * a socket. */
 #define ipconfigUSE_DNS_CACHE (1)
-#define ipconfigDNS_CACHE_NAME_LENGTH (16)
+#define ipconfigDNS_CACHE_NAME_LENGTH (20)
 #define ipconfigDNS_CACHE_ENTRIES (4)
 #define ipconfigDNS_REQUEST_ATTEMPTS (2)
 
@@ -118,7 +118,7 @@ extern void vLoggingPrintf(const char* pcFormatString, ...);
  * as the Win32 simulator only stores a fixed amount of information on the task
  * stack.  FreeRTOS includes optional stack overflow detection, see:
  * http://www.freertos.org/Stacks-and-stack-overflow-checking.html */
-#define ipconfigIP_TASK_STACK_SIZE_WORDS (configMINIMAL_STACK_SIZE * 20)
+#define ipconfigIP_TASK_STACK_SIZE_WORDS (configMINIMAL_STACK_SIZE * 25)
 
 /* If ipconfigUSE_NETWORK_EVENT_HOOK is set to 1 then FreeRTOS+TCP will call the
  * network event hook at the appropriate times.  If ipconfigUSE_NETWORK_EVENT_HOOK

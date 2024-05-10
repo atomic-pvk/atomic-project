@@ -46,7 +46,8 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
     // Array of hostname strings
     const char *pcHostNames[NMAX] = {"sth1.ntp.se",  // first one should be closest to user
-                                     "sth2.ntp.se", "svl1.ntp.se", "mmo1.ntp.se", "lul1.ntp.se"};
+                                     "sth2.ntp.se", "svl1.ntp.se",       "mmo1.ntp.se",
+                                     "lul1.ntp.se", "time-a-g.nist.gov", "time-a-wwv.nist.gov"};
 
     uint32_t NTP_server_IPs[NMAX];
     uint8_t DNSok;
@@ -75,11 +76,11 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             else
             {
                 // print successful and the hostname
-                FreeRTOS_printf(("\n\nDNS lookup successful for %s\n\n", pcHostNames[i]));
                 DNSok = 1;
             }
         }
     }
+    FreeRTOS_printf(("\n\nDNS lookup successful\n\n"));
 
     /* Setup destination address */
     xDestinationAddress.sin_family = FREERTOS_AF_INET4;  // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
@@ -109,7 +110,6 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     x->poll = MINPOLL;
     x->precision = -18;
 
-    struct ntp_s s;
     memset(&s, 0, sizeof(ntp_s));
     s.leap = NOSYNC;
     s.stratum = MAXSTRAT;
@@ -117,13 +117,12 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     s.precision = -18;
     s.p = NULL;
 
-    struct ntp_c c;
     memset(&c, 0, sizeof(ntp_c));
     c.lastTimeStampTick = 0;
 
-    if (/* frequency file */ 0)
+    if (FREQ_EXISTS)
     {
-        c.freq = /* freq */ 0;
+        c.freq = (double)SYSCLK_FRQ;
         rstclock(FSET, 0, 0);
     }
     else
@@ -131,7 +130,6 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
         rstclock(NSET, 0, 0);
     }
     c.jitter = LOG2D(s.precision);
-    FreeRTOS_printf_wrapper_double("", c.jitter);
     assoc_table_init(NTP_server_IPs);
 
     // memset(r, 0, sizeof(ntp_r));
@@ -151,13 +149,11 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
     // send packet
     xmit_packet(x);
-    r = recv_packet();
+    recv_packet(r);
     x->xmt = r->xmt;
 
     settime(x->xmt);
     gettime(1);
-
-    memset(r, 0, sizeof(ntp_r));
 
     uint32_t ulCount = 0UL;
     for (;;)
@@ -175,13 +171,12 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
                              (NTP1_server_IP >> 16) & 0xFF,    // Extract the second byte
                              (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
 
-            xmit_packet(x);     // send packet
-            r = recv_packet();  // receive packet
+            xmit_packet(x);  // send packet
+            recv_packet(r);  // receive packet
+            printTimestamp(r->rec, "r->rec");
             x->xmt = r->xmt;
 
             receive(r);  // handle the response
-
-            memset(r, 0, sizeof(ntp_r));
         }
 
         FreeRTOS_printf(("\n\nSleeping for 10 seconds before next get\n\n"));

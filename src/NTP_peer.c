@@ -52,7 +52,6 @@ void packet(struct ntp_p *p, /* peer structure pointer */
     p->ppoll = r->poll;
     p->rootdisp = FP2D(r->rootdisp);
     p->refid = r->refid;
-    FreeRTOS_printf_wrapper_double("disp is %d\n", r->refid);
     p->reftime = r->reftime;
 
     /*
@@ -114,7 +113,7 @@ void packet(struct ntp_p *p, /* peer structure pointer */
     // // FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
     // // FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
     // // FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
-    FreeRTOS_printf(("I AM CALLING CLOCK_FILTER\n\n"));
+    // FreeRTOS_printf(("I AM CALLING CLOCK_FILTER\n\n"));
     clock_filter(p, offset, delay, disp);
 }
 
@@ -134,7 +133,7 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
     double dtemp;
     int i;
 
-    FreeRTOS_printf(("\n\n\nCLOCK_FILTER\n\n\n"));
+    // FreeRTOS_printf(("\n\n\nCLOCK_FILTER\n\n\n"));
 
     /*
      * The clock filter contents consist of eight tuples (offset,
@@ -189,9 +188,9 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
 
     if (subtract_uint64_t(f[0].t, p->t) <= 0 && s.leap != NOSYNC)
     {
-        FreeRTOS_printf_wrapper_double("", subtract_uint64_t(f[0].t, p->t));
-        FreeRTOS_printf_wrapper_double("", f[0].t);
-        FreeRTOS_printf_wrapper_double("", p->t);
+        // FreeRTOS_printf_wrapper_double("", subtract_uint64_t(f[0].t, p->t));
+        // FreeRTOS_printf_wrapper_double("", f[0].t);
+        // FreeRTOS_printf_wrapper_double("", p->t);
         FreeRTOS_printf(("f[0].t - p->t <= 0\n"));
         return;
     }
@@ -230,6 +229,7 @@ int fit(struct ntp_p *p /* peer structure pointer */
      * A stratum error occurs if (1) the server has never been
      * synchronized, (2) the server stratum is invalid.
      */
+    FreeRTOS_printf(("fit 1\n"));
     if (p->leap == NOSYNC || p->stratum >= MAXSTRAT) return (FALSE);
 
     /*
@@ -237,6 +237,8 @@ int fit(struct ntp_p *p /* peer structure pointer */
      * distance threshold plus an increment equal to one poll
      * interval.
      */
+    FreeRTOS_printf(("fit 2\n"));
+
     if (root_dist(p) > MAXDIST + PHI * (double)LOG2D(s.poll)) return (FALSE);
 
     /*
@@ -245,11 +247,18 @@ int fit(struct ntp_p *p /* peer structure pointer */
      * system peer.  Note this is the behavior for IPv4; for IPv6
      * the MD5 hash is used instead.
      */
+    FreeRTOS_printf(("fit 3\n"));
+    FreeRTOS_printf(("p->refid: %d\n", p->refid));
+    FreeRTOS_printf(("p->dstaddr: %d\n", p->dstaddr));
+    FreeRTOS_printf(("s.refid: %d\n", s.refid));
+
     if (p->refid == p->dstaddr || p->refid == s.refid) return (FALSE);
 
     /*
      * An unreachable error occurs if the server is unreachable.
      */
+    FreeRTOS_printf(("fit 4\n"));
+
     if (p->reach == 0) return (FALSE);
 
     return (TRUE);
@@ -644,19 +653,5 @@ void receive(struct ntp_r *r /* receive packet pointer */
      * and prevent bad guys from disrupting the protocol or
      * injecting bogus data.  Earn some revenue.
      */
-    FreeRTOS_printf(("calling packet\n"));
     packet(p, r);
 }
-
-// double sqrt(double number) {
-//     double error = 0.00001;  // Define the precision of your answer
-//     double s = number;
-
-//     if(number == 0) return 0.0;
-
-//     while ((s - number / s) > error || (number / s - s) > error) {
-//         s = (s + number / s) / 2;
-//     }
-
-//     return s;
-// }

@@ -2,6 +2,7 @@
 #define UDP_ECHO_CLIENT_DEMO_H
 
 #include "NTP_TDMG.h"
+#include "freq.h"
 
 /*
  * Create the UDP echo client tasks.  This is the version where an echo request

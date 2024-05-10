@@ -85,12 +85,11 @@ int assoc_table_add(uint32_t srcaddr, char hmode, tstamp xmt)
     // Check for duplicate peers
     for (int i = 0; i < assoc_table->size; i++)
     {
-        if (assoc_table->peers[i]->srcaddr == srcaddr && assoc_table->peers[i]->hmode == hmode)
+        ntp_p *assoc = assoc_table->peers[i];
+        if (assoc->srcaddr == srcaddr && assoc->hmode == hmode)
         {
-            printTimestamp(xmt, "xmt in assoc_table_add\n");
-            FreeRTOS_printf(("index %d\n", i));
-            assoc_table->peers[i]->xmt = xmt;
-            assoc_table->peers[i]->t = xmt;
+            assoc->xmt = xmt;
+            assoc->t = xmt;
             return 1;  // Entry already exists
         }
     }
@@ -101,9 +100,10 @@ void assoc_table_update(ntp_p *p)
 {
     for (int i = 0; i < assoc_table->size; i++)
     {
-        if (assoc_table->peers[i]->srcaddr == p->srcaddr && assoc_table->peers[i]->hmode == p->hmode)
+        ntp_p *assoc = assoc_table->peers[i];
+        if (assoc->srcaddr == p->srcaddr && assoc->hmode == p->hmode)
         {
-            assoc_table->peers[i] = p;
+            assoc = p;
             return;
         }
     }
@@ -185,12 +185,8 @@ int64_t add_int64_t(int64_t x, int64_t y)
     }
 
     int32_t low = xFrac + yFrac;
-    // FreeRTOS_printf_wrapper("", xFrac);
-    // FreeRTOS_printf_wrapper("", yFrac);
-    // FreeRTOS_printf_wrapper_("", low);
 
     int32_t high = xS + yS;
-    FreeRTOS_printf_wrapper_double("", high);
 
     int64_t result = ((int64_t)high << 32) | low;  // Assemble the high and low parts back into a 64-bit integer
 
@@ -202,9 +198,6 @@ void settime(tstamp newTime)
     c.t = newTime;
     c.localTime = newTime;
     c.lastTimeStampTick = xTaskGetTickCount();
-
-    // print the tick now
-    FreeRTOS_printf(("\n Tick is now: %d\n", c.lastTimeStampTick));
 }
 
 void gettime(int override)
@@ -214,8 +207,8 @@ void gettime(int override)
     // calculate the difference between the current tick and the last tick
     TickType_t tickDifference = currentTick - c.lastTimeStampTick;
 
+    FreeRTOS_printf(("Tick diff\n"));
     FreeRTOS_printf_wrapper_double("", tickDifference);
-    FreeRTOS_printf(("Tick diff\n\n"));
     if (tickDifference < 10 && !override) return;  // Ignore small differences
     FreeRTOS_printf(("changing local time...\n\n"));
 
@@ -236,7 +229,7 @@ void gettime(int override)
     uint32_t tempFractions = currentFractions + newFractions;
     if (tempFractions < currentFractions)
     {  // Check for overflow using wrap-around condition
-        FreeRTOS_printf(("Overflow detected\n\n\n\n\n\n\n"));
+        FreeRTOS_printf(("Overflow detected\n\n"));
         numSecondsInTicks++;  // Increment the seconds part due to overflow
     }
 

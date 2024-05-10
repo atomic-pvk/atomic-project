@@ -1,6 +1,7 @@
 #include "NTP_vfo.h"
 // A.5.5.6.  local_clock()
 
+#include "NTPTask.h"
 #include "NTP_main_utility.h"
 #include "NTP_poll.h"
 
@@ -38,6 +39,7 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
     rval = SLEW;
     mu = p->t - s.t;
     freq = 0;
+    FreeRTOS_printf_wrapper_double("", fabs(offset));
     if (fabs(offset) > STEPT)
     {
         FreeRTOS_printf(("fabs(offset) > STEPT\n"));
@@ -242,6 +244,7 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
             }
         }
     }
+    FreeRTOS_printf(("rval %d\n", rval));
     return (rval);
 }
 

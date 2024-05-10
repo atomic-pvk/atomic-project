@@ -4,16 +4,16 @@
 #include "NTP_TDMG.h"
 
 // mobilize - allocates and initializes a new peer structure
-struct ntp_p *mobilize(uint32_t srcaddr,  // IP source address
-                       uint32_t dstaddr,  // IP destination address
-                       int version,       // version
-                       int mode,          // host mode
-                       int keyid,         // key identifier
-                       int flags          // peer flags
+ntp_p *mobilize(uint32_t srcaddr,  // IP source address
+                uint32_t dstaddr,  // IP destination address
+                int version,       // version
+                int mode,          // host mode
+                int keyid,         // key identifier
+                int flags          // peer flags
 );
 
 // find_assoc - find a matching association
-struct ntp_p *find_assoc(struct ntp_r *r  // receive packet pointer
+ntp_p *find_assoc(ntp_r *r  // receive packet pointer
 );
 
 // md5 - compute message digest
@@ -23,10 +23,10 @@ digest md5(int keyid  // key identifier
 // Kernel Input/Output Interface
 
 // recv_packet - receive packet from network
-struct ntp_r *recv_packet(void);
+void recv_packet(ntp_r *);
 
 // xmit_packet - transmit packet to network
-void xmit_packet(struct ntp_x *x  // transmit packet pointer
+void xmit_packet(ntp_x *x  // transmit packet pointer
 );
 
 // Kernel System Clock Interface

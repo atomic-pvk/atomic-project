@@ -109,7 +109,7 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 
 #define PHI 15e-6 /* % frequency tolerance (15 ppm) */
 #define NSTAGE 8  /* clock register stages */
-#define NMAX 5    /* maximum number of peers (number of ntp servers) */
+#define NMAX 7    /* maximum number of peers (number of ntp servers) */
 #define NSANE 1   /* % minimum intersection survivors */
 #define NMIN 3    /* % minimum cluster survivors */
 

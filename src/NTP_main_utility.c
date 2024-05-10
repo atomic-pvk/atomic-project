@@ -81,7 +81,7 @@ void FreeRTOS_ntohl_array_32(uint32_t *array, size_t length)
 void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
 {
     r->srcaddr = NTP1_server_IP;  // Set to zero if not known
-    r->dstaddr = 0;               // Set to zero if not known
+    r->dstaddr = DSTADDR;         // Set to zero if not known
 
     // Extract version, leap, and mode from li_vn_mode
     // pkt->li_vn_mode = FreeRTOS_ntohl(pkt->li_vn_mode) << 24;
@@ -98,9 +98,8 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
     r->precision = (s_char)pkt->precision;
 
     // we do this before ntohl
-    r->org = ((tstamp)pkt->origTm_s << 32) | pkt->origTm_f;
-
-    uint32_t testerm = ((uint32_t)pkt->origTm_f);
+    r->org = ((tstamp)pkt->origTm_s << 32) | (uint32_t)(pkt->origTm_f & 0xFFFFFFFF);
+    printTimestamp(r->org, "The original time is: ");
 
     uint32_t temp[12];  // 384-bit data broken down into 32-bit chunks
     memcpy(temp, pkt, sizeof(ntp_packet));
@@ -109,8 +108,9 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
 
     r->rootdelay = pkt->rootDelay;
     r->rootdisp = pkt->rootDispersion;
+    r->refid = pkt->refId;
 
-    r->refid = pkt->refId;  // May require handling depending on refId's nature
+    FreeRTOS_printf_wrapper_double("The original time is: ", r->refid);
 
     // Combine seconds and fractions into a single 64-bit NTP timestamp'
     // FreeRTOS_printf(("All of the received data for the received packet r is:\n"));
@@ -123,8 +123,6 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
     r->keyid = 0;
     r->mac = 0;    // Zero out the MAC digest
     r->dst = dst;  // Set the timestamp to the ms passed since vTaskStartScheduler started
-
-    free(pkt);
 }
 
 /*
@@ -133,10 +131,7 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
  *
  * recv_packet - receive packet from network
  */
-struct
-    ntp_r /* receive packet pointer*/
-        *
-        recv_packet()
+void recv_packet(ntp_r *r)
 {
     ntp_packet *pkt = malloc(sizeof(ntp_packet));  // Allocate memory for the packet
     memset(pkt, 0, sizeof(ntp_packet));            // Clear the packet struct
@@ -155,15 +150,11 @@ struct
         gettime(0);
         tstamp dst = c.localTime;
 
-        struct ntp_r *r = malloc(sizeof(ntp_r));  // Allocate memory for the receive packet
-        memset(r, 0, sizeof(ntp_r));              // Clear the receive packet struct
+        memset(r, 0, sizeof(ntp_r));  // Clear the receive packet struct
 
-        // Flip the bits
-
-        uint32_t temp[12];  // 384-bit data broken down into 32-bit chunks
-        memcpy(temp, bufferRecv, sizeof(ntp_packet));
-        // FreeRTOS_ntohl_array_32(temp, 12);
-        memcpy(pkt, temp, sizeof(ntp_packet));  // Copy the received packet to the receive packet struct
+        uint32_t temp[12];                             // 384-bit data broken down into 32-bit chunks
+        memcpy(temp, bufferRecv, sizeof(ntp_packet));  // Intermittent buffer to store the received packet
+        memcpy(pkt, temp, sizeof(ntp_packet));         // Copy the received packet to the receive packet struct
 
         FreeRTOS_printf(("Packet received\n"));
 
@@ -171,13 +162,14 @@ struct
         // ntp_packet -> ntp_r
         create_ntp_r(r, pkt, dst);
 
-        return r;
+        free(pkt);  // Free the memory allocated for the packet
     }
     else
     {
         FreeRTOS_printf(("Error receiving packet\n"));
 
-        return NULL;
+        free(pkt);                    // Free the memory allocated for the packet
+        memset(r, 0, sizeof(ntp_r));  // Clear the receive packet struct
     }
 }
 
@@ -207,7 +199,7 @@ void translate_ntp_x_to_ntp_packet(ntp_x *x, ntp_packet *pkt)
 /*
  * xmit_packet - transmit packet to network
  */
-void xmit_packet(struct ntp_x *x /* transmit packet pointer */
+void xmit_packet(ntp_x *x /* transmit packet pointer */
 )
 {
     /* setup ntp_packet *pkt */
@@ -248,7 +240,7 @@ void xmit_packet(struct ntp_x *x /* transmit packet pointer */
         FreeRTOS_printf(("Failed to send packet\n"));
     }
 
-    /* send packet x */
+    free(pkt);  // Free the memory allocated for the packet
 }
 
 // A.4.  Kernel System Clock Interface

@@ -18,10 +18,9 @@ int compare_ntp_m(const void *a, const void *b)
     return 0;
 }
 
-void cull(int n)
+void cull(int *n)
 {
     struct ntp_p *p;
-    n = 0;
     int idx = 0;
 
     /*
@@ -42,29 +41,26 @@ void cull(int n)
     memset(m2, 0, sizeof(m2));
     memset(m3, 0, sizeof(m3));
 
-    for (int index = 0; index < assoc_table->size - 2; index++)  // TODO remove -2
+    for (int index = 0; index < NMAX; index++)  // TODO remove -2
     {
-        FreeRTOS_printf(("fit check %d\n\n\n", index));
         p = assoc_table->peers[index];
         if (fit(p))
         {
-            FreeRTOS_printf(("fit true\n"));
+            FreeRTOS_printf(("true\n"));
+
             m1[idx].p = p;
             m1[idx].type = -1;
             m1[idx].edge = p->offset - root_dist(p);
-            FreeRTOS_printf_wrapper_double("", m1[idx].edge);
 
             m2[idx].p = p;
             m2[idx].type = 0;
             m2[idx].edge = p->offset;
-            FreeRTOS_printf_wrapper_double("", m2[idx].edge);
 
             m3[idx].p = p;
             m3[idx].type = +1;
             m3[idx].edge = p->offset + root_dist(p);
-            FreeRTOS_printf_wrapper_double("", m3[idx].edge);
 
-            n += 3;
+            *n += 3;
             idx++;
         }
     }
@@ -73,33 +69,20 @@ void cull(int n)
     qsort(m2, idx, sizeof(struct ntp_m), compare_ntp_m);
     qsort(m3, idx, sizeof(struct ntp_m), compare_ntp_m);
 
-    FreeRTOS_printf(("we are in clock select\n"));
     for (int i = 0; i < idx; i++)
     {
         s.m[i] = m1[i];
         s.m[i + idx] = m2[i];
         s.m[i + idx * 2] = m3[i];
     }
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < *n; i++)
     {
         FreeRTOS_printf_wrapper_double("", s.m[i].edge);
     }
 }
-/*
- * clock_select() - find the best clocks
- */
-void clock_select()
+
+void intersection(int n, double *low, double *high)
 {
-    struct ntp_p *p, *osys;  /* peer structure pointers */
-    double low, high;        /* correctness interval extents */
-    int allow, found, chime; /* used by intersection algorithm */
-    int n, i, j;
-
-    osys = s.p;
-    s.p = NULL;
-
-    cull(n);
-
     /*
      * Find the largest contiguous intersection of correctness
      * intervals.  Allow is the number of allowed falsetickers;
@@ -107,8 +90,9 @@ void clock_select()
      * are limited to the range +-(2 ^ 30) < +-2e9 by the timestamp
      * calculations.
      */
-    low = 2e9;
-    high = -2e9;
+    int i, allow, found, chime; /* used by intersection algorithm */
+    *low = 2e9;
+    *high = -2e9;
     for (allow = 0; 2 * allow < n; allow++)
     {
         /*
@@ -121,14 +105,9 @@ void clock_select()
         for (i = 0; i < n; i++)
         {
             chime -= s.m[i].type;
-
-            FreeRTOS_printf(("type check %d\n", s.m[i].type));
-            FreeRTOS_printf(("chime check %d\n\n\n", chime));
             if (chime < lastchime)
             {
-                high = s.m[i].edge;
-                // FreeRTOS_printf_wrapper_double("", high);
-                // FreeRTOS_printf(("high\n"));
+                *high = s.m[i].edge;
                 break;
             }
             lastchime = chime;
@@ -143,13 +122,9 @@ void clock_select()
         for (i = 0; i < n; i++)
         {
             chime += s.m[i].type;
-            // FreeRTOS_printf(("type check %d\n", s.m[i].type));
-            // FreeRTOS_printf(("chime check %d\n\n\n", chime));
             if (chime == lastchime)
             {
-                low = s.m[i - 1].edge;
-                // FreeRTOS_printf_wrapper_double("", low);
-                // FreeRTOS_printf(("low\n"));
+                *low = s.m[i - 1].edge;
                 break;
             }
             lastchime = chime;
@@ -164,8 +139,28 @@ void clock_select()
          */
         if (found > allow) continue;
 
-        if (high > low) break;
+        if (*high > *low) break;
     }
+}
+
+/*
+ * clock_select() - find the best clocks
+ */
+void clock_select()
+{
+    struct ntp_p *p, *osys; /* peer structure pointers */
+    double low, high;       /* correctness interval extents */
+    int n, i, j;
+
+    osys = s.p;
+    s.p = NULL;
+    n = 0;
+
+    cull(&n);
+
+    intersection(n, &low, &high);
+
+    // n = 0;
 
     /*
      * Clustering algorithm.  Construct a list of survivors (p,
@@ -173,14 +168,19 @@ void clock_select()
      * by stratum and then by root distance.  All other things being
      * equal, this is the order of preference.
      */
+    FreeRTOS_printf(("\ncluster alg\n"));
     s.n = 0;
     for (i = 0; i < n; i++)
     {
+        FreeRTOS_printf(("\nedge | high | low\n"));
+        FreeRTOS_printf_wrapper_double("", s.m[i].edge);
+        FreeRTOS_printf_wrapper_double("", high);
+        FreeRTOS_printf_wrapper_double("", low);
         if (s.m[i].edge < low || s.m[i].edge > high) continue;
 
         p = s.m[i].p;
-        s.v[n].p = p;
-        s.v[n].metric = (double)(MAXDIST * p->stratum) + root_dist(p);
+        s.v[s.n].p = p;
+        s.v[s.n].metric = (double)(MAXDIST * p->stratum) + root_dist(p);
         s.n++;
         FreeRTOS_printf(("\nsurvivor found\n"));
         FreeRTOS_printf_wrapper_double("", s.m[i].edge);
@@ -265,11 +265,11 @@ void clock_select()
         s.p = s.v[0].p;
     }
 
-    FreeRTOS_printf(("calling clock update\n"));
+    memset(s.m, 0, sizeof(s.m));  // Clear temporary response data
+
+    // FreeRTOS_printf(("calling clock update\n"));
     clock_update(s.p);
 }
-
-// A.5.5.2.  root_dist()
 
 /*
  * root_dist() - calculate root distance
@@ -283,26 +283,6 @@ double root_dist(struct ntp_p *p /* peer structure pointer */
      * It is defined as half the total delay plus total dispersion
      * plus peer jitter.
      */
-    // gettime(0);
-    // FreeRTOS_printf(("root_dist\n"));
-
-    // FreeRTOS_printf(("rootdelay\n"));
-    // FreeRTOS_printf_wrapper_double("", p->rootdelay);
-    // FreeRTOS_printf(("delay\n"));
-    // FreeRTOS_printf_wrapper_double("", p->delay);
-    // FreeRTOS_printf(("rootdisp\n"));
-    // FreeRTOS_printf_wrapper_double("", p->rootdisp);
-    // FreeRTOS_printf(("disp\n"));
-    // FreeRTOS_printf_wrapper_double("", p->disp);
-    // FreeRTOS_printf(("jitter\n"));
-    // FreeRTOS_printf_wrapper_double("", p->jitter);
-    // FreeRTOS_printf(("PHI\n"));
-    // FreeRTOS_printf_wrapper_double("", c.t);
-    // print_uint64_as_32_parts(c.t);
-    // printTimestamp(c.t, "c.t");
-    // FreeRTOS_printf_wrapper_double("", p->t);
-    // FreeRTOS_printf_wrapper_double("", PHI * LFP2D(subtract_uint64_t(c.t, p->t)));
-
     return (max(MINDISP, p->rootdelay + p->delay) / 2 + p->rootdisp + p->disp +
             PHI * LFP2D(subtract_uint64_t(c.t, p->t)) + p->jitter);
 }
@@ -359,6 +339,7 @@ void clock_update(struct ntp_p *p /* peer structure pointer */
      * system peer change, avoid it.  We never use an old sample or
      * the same sample twice.
      */
+    FreeRTOS_printf(("CLOCK UPDATE\n"));
     if (s.t >= p->t)
     {
         FreeRTOS_printf_wrapper_double("", s.t);
@@ -416,7 +397,7 @@ void clock_update(struct ntp_p *p /* peer structure pointer */
             s.reftime = p->reftime;
             s.rootdelay = p->rootdelay + p->delay;
             dtemp = SQRT(SQUARE(p->jitter) + SQUARE(s.jitter));
-            dtemp += max(p->disp + PHI * (c.t - p->t) + fabs(p->offset), MINDISP);
+            dtemp += max(p->disp + PHI * LFP2D(subtract_uint64_t(c.t, p->t)) + fabs(p->offset), MINDISP);
             s.rootdisp = p->rootdisp + dtemp;
             break;
         /*
@@ -455,17 +436,13 @@ void clock_combine()
     for (i = 0; s.v[i].p != NULL; i++)
     {
         p = s.v[i].p;
-        FreeRTOS_printf(("\n"));
         x = root_dist(p);
-        FreeRTOS_printf(("\n"));
         y += 1 / x;
-        FreeRTOS_printf(("\n"));
         z += p->offset / x;
-        FreeRTOS_printf(("\n"));
         w += SQUARE(p->offset - s.v[0].p->offset) / x;
-        FreeRTOS_printf(("%d\n", i));
     }
     s.offset = z / y;
-    FreeRTOS_printf(("\n"));
     s.jitter = SQRT(w / y);
+    FreeRTOS_printf_wrapper_double("", s.offset);
+    FreeRTOS_printf_wrapper_double("", s.jitter);
 }
