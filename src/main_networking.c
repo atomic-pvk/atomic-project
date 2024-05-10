@@ -110,7 +110,7 @@ static NetworkEndPoint_t xEndPoints[4];
 
 /*-----------------------------------------------------------*/
 
-void main_tcp_echo_client_tasks(void)
+void main_udp_ntp_tasks(void)
 {
     const uint32_t ulLongTime_ms = pdMS_TO_TICKS(1000UL);
 

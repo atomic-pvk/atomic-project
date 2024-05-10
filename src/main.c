@@ -41,7 +41,7 @@ extern void initialise_monitor_handles(void);
 
 int main()
 {
-    main_tcp_echo_client_tasks();
+    main_udp_ntp_tasks();
     return 0;
 }
 
