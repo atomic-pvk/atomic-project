@@ -29,7 +29,7 @@ type NTPPacket struct {
 }
 
 func corruptNTPPacket(packet *NTPPacket) {
-	packet.Stratum = 0 // Invalid stratum
+	packet.Stratum = 17 // Invalid stratum
 }
 
 func handleConnection(conn *net.UDPConn, fixedTime uint64, corrupt bool) {
