@@ -46,8 +46,8 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
     // Array of hostname strings
     const char *pcHostNames[NMAX] = {"sth1.ntp.se",  // first one should be closest to user
-                                     "sth2.ntp.se", "svl1.ntp.se",       "mmo1.ntp.se",
-                                     "lul1.ntp.se", "time-a-g.nist.gov", "time-a-wwv.nist.gov"};
+                                     "sth2.ntp.se", "svl1.ntp.se", "mmo1.ntp.se",
+                                     "lul1.ntp.se"};  // , "time-a-g.nist.gov", "time-a-wwv.nist.gov"
 
     uint32_t NTP_server_IPs[NMAX];
     uint8_t DNSok;
@@ -60,7 +60,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
         {
             if (retry >= 10)
             {
-                FreeRTOS_printf(("\n\nDNS lookup failed, killing process.\n\n"));
+                // FreeRTOS_printf(("\n\nDNS lookup failed, killing process.\n\n"));
                 return;
             }
 
@@ -69,7 +69,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
 
             if (NTP_server_IPs[i] == 0)
             {
-                FreeRTOS_printf(("\n\nDNS lookup failed, trying again in 1 second. \n\n"));
+                // FreeRTOS_printf(("\n\nDNS lookup failed, trying again in 1 second. \n\n"));
                 retry++;
                 vTaskDelay(x1000ms);
             }
@@ -80,7 +80,7 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
             }
         }
     }
-    FreeRTOS_printf(("\n\nDNS lookup successful\n\n"));
+    // FreeRTOS_printf(("\n\nDNS lookup successful\n\n"));
 
     /* Setup destination address */
     xDestinationAddress.sin_family = FREERTOS_AF_INET4;  // or FREERTOS_AF_INET6 if the destination's IP is IPv6.
@@ -131,23 +131,20 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
     }
     c.jitter = LOG2D(s.precision);
     assoc_table_init(NTP_server_IPs);
-
-    // memset(r, 0, sizeof(ntp_r));
-
     /*
         get time from one NTP server, use as start reference
     */
     NTP1_server_IP = NTP_server_IPs[0];
     x->srcaddr = NTP1_server_IP;
     xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;
-    FreeRTOS_printf(("\n\n Getting first initial reference time from IP (which is %s): %lu.%lu.%lu.%lu \n\n",
-                     pcHostNames[0],
-                     NTP1_server_IP & 0xFF,            // Extract the fourth byte
-                     (NTP1_server_IP >> 8) & 0xFF,     // Extract the third byte
-                     (NTP1_server_IP >> 16) & 0xFF,    // Extract the second byte
-                     (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
+    // FreeRTOS_printf(("\n\n Getting first initial reference time from IP (which is %s): %lu.%lu.%lu.%lu \n\n",
+    //  pcHostNames[0],
+    //  NTP1_server_IP & 0xFF,            // Extract the fourth byte
+    //  (NTP1_server_IP >> 8) & 0xFF,     // Extract the third byte
+    //  (NTP1_server_IP >> 16) & 0xFF,    // Extract the second byte
+    //  (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
 
-    // send packet
+    prep_xmit(x);
     xmit_packet(x);
     recv_packet(r);
     x->xmt = r->xmt;
@@ -171,10 +168,11 @@ static void vNTPTaskSendUsingStandardInterface(void *pvParameters)
                              (NTP1_server_IP >> 16) & 0xFF,    // Extract the second byte
                              (NTP1_server_IP >> 24) & 0xFF));  // Extract the first byte
 
-            xmit_packet(x);  // send packet
-            recv_packet(r);  // receive packet
-            printTimestamp(r->rec, "r->rec");
+            prep_xmit(x);
+            xmit_packet(x);
+            recv_packet(r);
             x->xmt = r->xmt;
+            printTimestamp(r->rec, "r->rec");
 
             receive(r);  // handle the response
         }

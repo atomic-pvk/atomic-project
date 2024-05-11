@@ -110,9 +110,9 @@ void packet(struct ntp_p *p, /* peer structure pointer */
     // FreeRTOS_printf_wrapper_double("", delay);
     // FreeRTOS_printf(("\n\ndisp\n"));
     // FreeRTOS_printf_wrapper_double("", disp);
-    // // FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
-    // // FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
-    // // FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
+    // FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
+    // FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
+    // FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
     // FreeRTOS_printf(("I AM CALLING CLOCK_FILTER\n\n"));
     clock_filter(p, offset, delay, disp);
 }
@@ -191,7 +191,7 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
         // FreeRTOS_printf_wrapper_double("", subtract_uint64_t(f[0].t, p->t));
         // FreeRTOS_printf_wrapper_double("", f[0].t);
         // FreeRTOS_printf_wrapper_double("", p->t);
-        FreeRTOS_printf(("f[0].t - p->t <= 0\n"));
+        // FreeRTOS_printf(("f[0].t - p->t <= 0\n"));
         return;
     }
 
@@ -204,14 +204,14 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
      */
     if (fabs(p->offset - dtemp) > SGATE * p->jitter && (f[0].t - p->t) < 2 * s.poll)
     {
-        FreeRTOS_printf(("Popcorn spike found\n"));
+        // FreeRTOS_printf(("Popcorn spike found\n"));
         return;
     }
 
     p->t = f[0].t;
     if (p->burst == 0)
     {
-        FreeRTOS_printf(("p->burst == 0\n\n\n"));
+        // FreeRTOS_printf(("p->burst == 0\n\n\n"));
         assoc_table_update(p);
         clock_select();
     }
@@ -229,7 +229,6 @@ int fit(struct ntp_p *p /* peer structure pointer */
      * A stratum error occurs if (1) the server has never been
      * synchronized, (2) the server stratum is invalid.
      */
-    FreeRTOS_printf(("fit 1\n"));
     if (p->leap == NOSYNC || p->stratum >= MAXSTRAT) return (FALSE);
 
     /*
@@ -237,7 +236,6 @@ int fit(struct ntp_p *p /* peer structure pointer */
      * distance threshold plus an increment equal to one poll
      * interval.
      */
-    FreeRTOS_printf(("fit 2\n"));
 
     if (root_dist(p) > MAXDIST + PHI * (double)LOG2D(s.poll)) return (FALSE);
 
@@ -246,19 +244,19 @@ int fit(struct ntp_p *p /* peer structure pointer */
      * local peer or the remote peer is synchronized to the current
      * system peer.  Note this is the behavior for IPv4; for IPv6
      * the MD5 hash is used instead.
+     *
+     * Added a bypass for the second condition, as the previous
+     * implementation would not allow the system to synchronize with
+     * multiple different stratum 1 server using the same underlying timekeeping
+     * mechanism. - A
      */
-    FreeRTOS_printf(("fit 3\n"));
-    FreeRTOS_printf(("p->refid: %d\n", p->refid));
-    FreeRTOS_printf(("p->dstaddr: %d\n", p->dstaddr));
-    FreeRTOS_printf(("s.refid: %d\n", s.refid));
 
-    if (p->refid == p->dstaddr || p->refid == s.refid) return (FALSE);
+    // Adjusted condition for stratum 1 servers
+    if (p->stratum != 1 && (p->refid == p->dstaddr || p->refid == s.refid)) return (FALSE);
 
     /*
      * An unreachable error occurs if the server is unreachable.
      */
-    FreeRTOS_printf(("fit 4\n"));
-
     if (p->reach == 0) return (FALSE);
 
     return (TRUE);
@@ -605,19 +603,19 @@ void receive(struct ntp_r *r /* receive packet pointer */
     {
         if ((rOrgInSeconds == 0) && (rOrgFrac == 0))
         {
-            FreeRTOS_printf(("rOrgInSeconds == 0\n"));
+            // FreeRTOS_printf(("rOrgInSeconds == 0\n"));
             synch = FALSE; /* unsynchronized */
         }
 
         else if ((rOrgInSeconds != pXmtInSeconds) && (rOrgFrac != pXmtFrac))
         {
-            FreeRTOS_printf(("rOrgInSeconds != pXmtInSeconds\n"));
+            // FreeRTOS_printf(("rOrgInSeconds != pXmtInSeconds\n"));
             synch = FALSE; /* bogus packet */
         }
     }
     else
     {
-        FreeRTOS_printf(("r->mode == M_BCST\n"));
+        // FreeRTOS_printf(("r->mode == M_BCST\n"));
     }
 
     /*

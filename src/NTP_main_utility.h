@@ -22,6 +22,8 @@ digest md5(int keyid  // key identifier
 
 // Kernel Input/Output Interface
 
+void prep_xmit(ntp_x *);  // prepare packet
+
 // recv_packet - receive packet from network
 void recv_packet(ntp_r *);
 

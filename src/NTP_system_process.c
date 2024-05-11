@@ -41,13 +41,11 @@ void cull(int *n)
     memset(m2, 0, sizeof(m2));
     memset(m3, 0, sizeof(m3));
 
-    for (int index = 0; index < NMAX; index++)  // TODO remove -2
+    for (int index = 0; index < NMAX; index++)
     {
         p = assoc_table->peers[index];
         if (fit(p))
         {
-            FreeRTOS_printf(("true\n"));
-
             m1[idx].p = p;
             m1[idx].type = -1;
             m1[idx].edge = p->offset - root_dist(p);
@@ -168,21 +166,21 @@ void clock_select()
      * by stratum and then by root distance.  All other things being
      * equal, this is the order of preference.
      */
-    FreeRTOS_printf(("\ncluster alg\n"));
+    // FreeRTOS_printf(("\ncluster alg\n"));
     s.n = 0;
     for (i = 0; i < n; i++)
     {
-        FreeRTOS_printf(("\nedge | high | low\n"));
-        FreeRTOS_printf_wrapper_double("", s.m[i].edge);
-        FreeRTOS_printf_wrapper_double("", high);
-        FreeRTOS_printf_wrapper_double("", low);
+        // FreeRTOS_printf(("\nedge | high | low\n"));
+        // FreeRTOS_printf_wrapper_double("", s.m[i].edge);
+        // FreeRTOS_printf_wrapper_double("", high);
+        // FreeRTOS_printf_wrapper_double("", low);
         if (s.m[i].edge < low || s.m[i].edge > high) continue;
 
         p = s.m[i].p;
         s.v[s.n].p = p;
         s.v[s.n].metric = (double)(MAXDIST * p->stratum) + root_dist(p);
         s.n++;
-        FreeRTOS_printf(("\nsurvivor found\n"));
+        FreeRTOS_printf(("\n\nsurvivor found\n"));
         FreeRTOS_printf_wrapper_double("", s.m[i].edge);
     }
 
@@ -197,6 +195,7 @@ void clock_select()
         FreeRTOS_printf(("nsane survivors dead\n"));
         return;
     }
+    FreeRTOS_printf(("nsane survivors not dead\n"));
 
     /*
      * For each association p in turn, calculate the selection
@@ -256,12 +255,12 @@ void clock_select()
      */
     if (osys->stratum == s.v[0].p->stratum)
     {
-        FreeRTOS_printf(("s.p = osys\n"));
+        // FreeRTOS_printf(("s.p = osys\n"));
         s.p = osys;
     }
     else
     {
-        FreeRTOS_printf(("s.p = s.v[0].p\n"));
+        // FreeRTOS_printf(("s.p = s.v[0].p\n"));
         s.p = s.v[0].p;
     }
 
@@ -313,8 +312,15 @@ int accept(struct ntp_p *p /* peer structure pointer */
      * local peer or the remote peer is synchronized to the current
      * system peer.  Note this is the behavior for IPv4; for IPv6
      * the MD5 hash is used instead.
+     *
+     * Added a bypass for the second condition, as the previous
+     * implementation would not allow the system to synchronize with
+     * multiple different stratum 1 server using the same underlying timekeeping
+     * mechanism. - A
      */
-    if (p->refid == p->dstaddr || p->refid == s.refid) return (FALSE);
+
+    // Adjusted condition for stratum 1 servers
+    if (p->stratum != 1 && (p->refid == p->dstaddr || p->refid == s.refid)) return (FALSE);
 
     /*
      * An unreachable error occurs if the server is unreachable.
@@ -339,12 +345,12 @@ void clock_update(struct ntp_p *p /* peer structure pointer */
      * system peer change, avoid it.  We never use an old sample or
      * the same sample twice.
      */
-    FreeRTOS_printf(("CLOCK UPDATE\n"));
+    // FreeRTOS_printf(("CLOCK UPDATE\n"));
     if (s.t >= p->t)
     {
-        FreeRTOS_printf_wrapper_double("", s.t);
-        FreeRTOS_printf_wrapper_double("", p->t);
-        FreeRTOS_printf(("s.t >= p->t, kill\n"));
+        // FreeRTOS_printf_wrapper_double("", s.t);
+        // FreeRTOS_printf_wrapper_double("", p->t);
+        // FreeRTOS_printf(("s.t >= p->t, kill\n"));
         return;
     }
     /*
@@ -419,7 +425,7 @@ void clock_combine()
     struct ntp_p *p; /* peer structure pointer */
     double x, y, z, w;
     int i;
-    FreeRTOS_printf(("\nCLOCK COMBINE \n\n\n"));
+    // FreeRTOS_printf(("\nCLOCK COMBINE \n\n\n"));
 
     /*
      * Combine the offsets of the clustering algorithm survivors
@@ -443,6 +449,4 @@ void clock_combine()
     }
     s.offset = z / y;
     s.jitter = SQRT(w / y);
-    FreeRTOS_printf_wrapper_double("", s.offset);
-    FreeRTOS_printf_wrapper_double("", s.jitter);
 }

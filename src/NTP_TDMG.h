@@ -109,7 +109,7 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 
 #define PHI 15e-6 /* % frequency tolerance (15 ppm) */
 #define NSTAGE 8  /* clock register stages */
-#define NMAX 7    /* maximum number of peers (number of ntp servers) */
+#define NMAX 5    /* maximum number of peers (number of ntp servers) */
 #define NSANE 1   /* % minimum intersection survivors */
 #define NMIN 3    /* % minimum cluster survivors */
 
@@ -353,22 +353,22 @@ typedef struct ntp_v
  */
 typedef struct ntp_s
 {
-    tstamp t;             /* update time */
-    char leap;            /* leap indicator */
-    char stratum;         /* stratum */
-    char poll;            /* poll interval */
-    s_char precision;     /* precision */
-    double rootdelay;     /* root delay */
-    double rootdisp;      /* root dispersion */
-    tdist refid;          /* reference ID */
-    tstamp reftime;       /* reference time */
-    struct ntp_m m[NMAX]; /* chime list */
-    struct ntp_v v[NMAX]; /* survivor list */
-    struct ntp_p *p;      /* association ID */
-    double offset;        /* combined offset */
-    double jitter;        /* combined jitter */
-    int flags;            /* option flags */
-    int n;                /* number of survivors */
+    tstamp t;                 /* update time */
+    char leap;                /* leap indicator */
+    char stratum;             /* stratum */
+    char poll;                /* poll interval */
+    s_char precision;         /* precision */
+    double rootdelay;         /* root delay */
+    double rootdisp;          /* root dispersion */
+    tdist refid;              /* reference ID */
+    tstamp reftime;           /* reference time */
+    struct ntp_m m[NMAX * 5]; /* chime list */
+    struct ntp_v v[NMAX * 5]; /* survivor list */
+    struct ntp_p *p;          /* association ID */
+    double offset;            /* combined offset */
+    double jitter;            /* combined jitter */
+    int flags;                /* option flags */
+    int n;                    /* number of survivors */
 } ntp_s;
 
 // A.1.5.  Local Clock Data Structures

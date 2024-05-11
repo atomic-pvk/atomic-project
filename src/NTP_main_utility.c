@@ -68,17 +68,26 @@ digest md5(int keyid /* key identifier */
     return (/* MD5 digest */ 0);
 }
 
-// A.3.  Kernel Input/Output Interface
-
-void FreeRTOS_ntohl_array_32(uint32_t *array, size_t length)
+void prv_swap_fields(struct ntp_packet *pkt)
 {
-    for (size_t i = 0; i < length; i++)
-    {
-        array[i] = FreeRTOS_ntohl(array[i]);
-    }
+    /* NTP messages are big-endian */
+    pkt->rootDelay = FreeRTOS_htonl(pkt->rootDelay);
+    pkt->rootDispersion = FreeRTOS_htonl(pkt->rootDispersion);
+
+    pkt->refTm_s = FreeRTOS_htonl(pkt->refTm_s);
+    pkt->refTm_f = FreeRTOS_htonl(pkt->refTm_f);
+
+    pkt->origTm_s = FreeRTOS_htonl(pkt->origTm_s);
+    pkt->origTm_f = FreeRTOS_htonl(pkt->origTm_f);
+
+    pkt->rxTm_s = FreeRTOS_htonl(pkt->rxTm_s);
+    pkt->rxTm_f = FreeRTOS_htonl(pkt->rxTm_f);
+
+    pkt->txTm_s = FreeRTOS_htonl(pkt->txTm_s);
+    pkt->txTm_f = FreeRTOS_htonl(pkt->txTm_f);
 }
 
-void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
+void create_ntp_r(struct ntp_r *r, ntp_packet *pkt)
 {
     r->srcaddr = NTP1_server_IP;  // Set to zero if not known
     r->dstaddr = DSTADDR;         // Set to zero if not known
@@ -97,103 +106,97 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt, tstamp dst)
     r->poll = (char)pkt->poll;
     r->precision = (s_char)pkt->precision;
 
-    // we do this before ntohl
-    r->org = ((tstamp)pkt->origTm_s << 32) | (uint32_t)(pkt->origTm_f & 0xFFFFFFFF);
-    printTimestamp(r->org, "The original time is: ");
-
-    uint32_t temp[12];  // 384-bit data broken down into 32-bit chunks
-    memcpy(temp, pkt, sizeof(ntp_packet));
-    FreeRTOS_ntohl_array_32(temp, 12);
-    memcpy(pkt, temp, sizeof(ntp_packet));  // Copy the received packet to the receive packet struct
-
     r->rootdelay = pkt->rootDelay;
     r->rootdisp = pkt->rootDispersion;
     r->refid = pkt->refId;
 
-    FreeRTOS_printf_wrapper_double("The original time is: ", r->refid);
-
-    // Combine seconds and fractions into a single 64-bit NTP timestamp'
-    // FreeRTOS_printf(("All of the received data for the received packet r is:\n"));
+    // Combine seconds and fractions into a single 64-bit NTP timestamp
+    r->org = ((tstamp)pkt->origTm_s << 32) | (uint32_t)(pkt->origTm_f & 0xFFFFFFFF);
     r->reftime = ((tstamp)pkt->refTm_s << 32) | (uint32_t)(pkt->refTm_f & 0xFFFFFFFF);
     r->xmt = ((tstamp)pkt->txTm_s << 32) | (uint32_t)(pkt->txTm_f & 0xFFFFFFFF);
     r->rec = ((tstamp)pkt->rxTm_s << 32) | (uint32_t)(pkt->rxTm_f & 0xFFFFFFFF);
 
-    // FreeRTOS_printf(("\n\n received fraction; %d\n\n\n\n\n\n\n\n\n\n", pkt->txTm_f));
     // Set crypto fields to 0 or default values
     r->keyid = 0;
-    r->mac = 0;    // Zero out the MAC digest
+    r->mac = 0;  // Zero out the MAC digest
+
+    gettime(0);
+    tstamp dst = c.localTime;
     r->dst = dst;  // Set the timestamp to the ms passed since vTaskStartScheduler started
 }
 
-/*
- * Kernel interface to transmit and receive packets.  Details are
- * deliberately vague and depend on the operating system.
- *
- * recv_packet - receive packet from network
- */
 void recv_packet(ntp_r *r)
 {
-    ntp_packet *pkt = malloc(sizeof(ntp_packet));  // Allocate memory for the packet
-    memset(pkt, 0, sizeof(ntp_packet));            // Clear the packet struct
+    ntp_packet pkt;
     int32_t iReturned;
+
     struct freertos_sockaddr xSourceAddress;
     socklen_t xAddressLength = sizeof(xSourceAddress);
-    unsigned char bufferRecv[sizeof(ntp_packet)];
 
-    FreeRTOS_printf(("Receiving packet...\n"));
+    memset(r, 0, sizeof(ntp_r));  // Clear the receive packet struct
 
-    iReturned = FreeRTOS_recvfrom(xSocket, bufferRecv, sizeof(ntp_packet), 0, &xSourceAddress, &xAddressLength);
+    // FreeRTOS_printf(("Receiving packet...\n"));
+
+    iReturned = FreeRTOS_recvfrom(xSocket, &pkt, sizeof(ntp_packet), 0, &xSourceAddress, &xAddressLength);
 
     if (iReturned > 0)
     {
-        // get the time when the packet was received
-        gettime(0);
-        tstamp dst = c.localTime;
+        prv_swap_fields(&pkt);
 
-        memset(r, 0, sizeof(ntp_r));  // Clear the receive packet struct
-
-        uint32_t temp[12];                             // 384-bit data broken down into 32-bit chunks
-        memcpy(temp, bufferRecv, sizeof(ntp_packet));  // Intermittent buffer to store the received packet
-        memcpy(pkt, temp, sizeof(ntp_packet));         // Copy the received packet to the receive packet struct
-
-        FreeRTOS_printf(("Packet received\n"));
+        // FreeRTOS_printf(("Packet received\n"));
 
         // do conversion
         // ntp_packet -> ntp_r
-        create_ntp_r(r, pkt, dst);
-
-        free(pkt);  // Free the memory allocated for the packet
+        create_ntp_r(r, &pkt);
+        printTimestamp(r->org, "The original time is: ");
     }
     else
     {
-        FreeRTOS_printf(("Error receiving packet\n"));
-
-        free(pkt);                    // Free the memory allocated for the packet
-        memset(r, 0, sizeof(ntp_r));  // Clear the receive packet struct
+        // FreeRTOS_printf(("Error receiving packet\n"));
     }
 }
+void prep_xmit(ntp_x *x)
+{
+    x->leap = s.leap;
+    x->stratum = s.stratum;
 
-void translate_ntp_x_to_ntp_packet(ntp_x *x, ntp_packet *pkt)
+    // Root delay and dispersion can come from a server or client
+    x->rootdelay = s.rootdelay;
+    x->rootdisp = s.rootdisp;
+    x->refid = s.refid;
+
+    // Assuming tstamp is a type that can be split into seconds and fraction of a second
+    x->reftime = s.reftime;
+    x->org = x->xmt;
+    x->rec = c.localTime;
+    gettime(1);
+    x->xmt = c.localTime;
+}
+
+void prv_translate_ntp_x_to_ntp_packet(const ntp_x *x, ntp_packet *pkt)
 {
     // Combine leap, version, and mode into li_vn_mode
     pkt->li_vn_mode = (x->leap & 0x03) << 6 | (x->version & 0x07) << 3 | (x->mode & 0x07);
 
+    // Set stratum, poll, precision
     pkt->stratum = x->stratum;
     pkt->poll = x->poll;
     pkt->precision = x->precision;
+
+    // Root delay and dispersion can come from a server or client
     pkt->rootDelay = x->rootdelay;
     pkt->rootDispersion = x->rootdisp;
     pkt->refId = x->refid;
 
     // Assuming tstamp is a type that can be split into seconds and fraction of a second
-    pkt->refTm_s = x->reftime >> 32;
-    pkt->refTm_f = x->reftime & 0xFFFFFFFF;
-    pkt->origTm_s = x->org >> 32;
-    pkt->origTm_f = x->org & 0xFFFFFFFF;
-    pkt->rxTm_s = x->rec >> 32;
-    pkt->rxTm_f = x->rec & 0xFFFFFFFF;
-    pkt->txTm_s = x->xmt >> 32;
-    pkt->txTm_f = x->xmt & 0xFFFFFFFF;
+    pkt->refTm_s = (uint32_t)(x->reftime >> 32);
+    pkt->refTm_f = (uint32_t)(x->reftime & 0xFFFFFFFF);
+    pkt->origTm_s = (uint32_t)(x->org >> 32);
+    pkt->origTm_f = (uint32_t)(x->org & 0xFFFFFFFF);
+    pkt->rxTm_s = (uint32_t)(x->rec >> 32);
+    pkt->rxTm_f = (uint32_t)(x->rec & 0xFFFFFFFF);
+    pkt->txTm_s = (uint32_t)(x->xmt >> 32);
+    pkt->txTm_f = (uint32_t)(x->xmt & 0xFFFFFFFF);
 }
 
 /*
@@ -203,44 +206,36 @@ void xmit_packet(ntp_x *x /* transmit packet pointer */
 )
 {
     /* setup ntp_packet *pkt */
-    ntp_packet *pkt = malloc(sizeof(ntp_packet));  // Allocate memory for the packet
-    memset(pkt, 0, sizeof(ntp_packet));            // Clear the packet struct
+    ntp_packet pkt;  // Allocate memory for the packet
 
     // set xmit time to current time!
     gettime(0);
     x->xmt = c.localTime;
 
-    translate_ntp_x_to_ntp_packet(x, pkt);
-    unsigned char buffer[sizeof(ntp_packet)];
-    memcpy(buffer, pkt, sizeof(ntp_packet));  // Here the packet is fully prepared and can be sent
+    prv_translate_ntp_x_to_ntp_packet(x, &pkt);
+    prv_swap_fields(&pkt);
 
-    /* Send the string to the UDP socket.  ulFlags is set to 0, so the standard
-    semantics are used.  That means the data from cString[] is copied
-    into a network buffer inside FreeRTOS_sendto(), and cString[] can be
-    reused as soon as FreeRTOS_sendto() has returned. */
-    FreeRTOS_printf(("Sending packet...\n"));
+    // FreeRTOS_printf(("Sending packet...\n"));
 
     // Add the association to the table
     if (!assoc_table_add(x->srcaddr, x->mode, x->xmt))
     {
-        FreeRTOS_printf(("Error adding association to table\n"));
+        // FreeRTOS_printf(("Error adding association to table\n"));
     }
 
     int32_t iReturned;
     socklen_t xAddressLength = sizeof(xDestinationAddress);
 
-    iReturned = FreeRTOS_sendto(xSocket, buffer, sizeof(buffer), 0, &xDestinationAddress, xAddressLength);
+    iReturned = FreeRTOS_sendto(xSocket, &pkt, sizeof(ntp_packet), 0, &xDestinationAddress, xAddressLength);
 
-    if (iReturned == sizeof(buffer))
+    if (iReturned == sizeof(ntp_packet))
     {
-        FreeRTOS_printf(("Sent packet\n"));
+        // FreeRTOS_printf(("Sent packet\n"));
     }
     else
     {
-        FreeRTOS_printf(("Failed to send packet\n"));
+        // FreeRTOS_printf(("Failed to send packet\n"));
     }
-
-    free(pkt);  // Free the memory allocated for the packet
 }
 
 // A.4.  Kernel System Clock Interface

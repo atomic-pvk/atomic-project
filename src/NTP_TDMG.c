@@ -207,10 +207,10 @@ void gettime(int override)
     // calculate the difference between the current tick and the last tick
     TickType_t tickDifference = currentTick - c.lastTimeStampTick;
 
-    FreeRTOS_printf(("Tick diff\n"));
-    FreeRTOS_printf_wrapper_double("", tickDifference);
+    // FreeRTOS_printf(("Tick diff\n"));
+    // FreeRTOS_printf_wrapper_double("", tickDifference);
     if (tickDifference < 10 && !override) return;  // Ignore small differences
-    FreeRTOS_printf(("changing local time...\n\n"));
+    // FreeRTOS_printf(("changing local time...\n\n"));
 
     // calculate tickDifference / 1000 as integer division
     TickType_t numSecondsInTicks = tickDifference / 1000;
@@ -229,7 +229,7 @@ void gettime(int override)
     uint32_t tempFractions = currentFractions + newFractions;
     if (tempFractions < currentFractions)
     {  // Check for overflow using wrap-around condition
-        FreeRTOS_printf(("Overflow detected\n\n"));
+        // FreeRTOS_printf(("Overflow detected\n\n"));
         numSecondsInTicks++;  // Increment the seconds part due to overflow
     }
 
@@ -301,7 +301,7 @@ void FreeRTOS_printf_wrapper(const char *format, uint64_t value)
     char numberStr[MAX_UINT64_DIGITS];
     uint64_to_str(value, numberStr);
     sprintf(buffer, format, numberStr);
-    FreeRTOS_printf(("%s\n", buffer));
+    // FreeRTOS_printf(("%s\n", buffer));
 }
 
 #define MAX_DOUBLE_DIGITS 30  // A buffer size that should handle most cases
@@ -379,6 +379,6 @@ void print_uint64_as_32_parts(uint64_t number)
     uint32_t lower_part = (uint32_t)number;          // Extracts the lower 32 bits
     uint32_t upper_part = (uint32_t)(number >> 32);  // Shifts right by 32 bits and extracts the upper 32 bits
 
-    printf("Upper 32 bits: %u\n", upper_part);
-    printf("Lower 32 bits: %u\n", lower_part);
+    // printf("Upper 32 bits: %u\n", upper_part);
+    // printf("Lower 32 bits: %u\n", lower_part);
 }

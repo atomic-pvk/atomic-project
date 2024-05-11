@@ -19,14 +19,14 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
     int rval;
     double etemp, dtemp;
 
-    FreeRTOS_printf(("\n LOCAL CLOCK \n\n\n"));
+    // FreeRTOS_printf(("\n LOCAL CLOCK \n\n\n"));
 
     /*
      * If the offset is too large, give up and go home.
      */
     if (fabs(offset) > PANICT)
     {
-        FreeRTOS_printf(("Too large offset\n"));
+        // FreeRTOS_printf(("Too large offset\n"));
         return (PANIC);
     }
 
@@ -42,7 +42,7 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
     FreeRTOS_printf_wrapper_double("", fabs(offset));
     if (fabs(offset) > STEPT)
     {
-        FreeRTOS_printf(("fabs(offset) > STEPT\n"));
+        // FreeRTOS_printf(("fabs(offset) > STEPT\n"));
         switch (c.state)
         {
             /*
@@ -121,7 +121,7 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
     }
     else
     {
-        FreeRTOS_printf(("fabs(offset) <= STEPT\n"));
+        // FreeRTOS_printf(("fabs(offset) <= STEPT\n"));
         /*
          * Compute the clock jitter as the RMS of exponentially
          * weighted offset differences.  This is used by the
@@ -131,7 +131,7 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
         dtemp = SQUARE(max(fabs(offset - c.last), LOG2D(s.precision)));
         c.jitter = SQRT(etemp + (dtemp - etemp) / AVG);
 
-        FreeRTOS_printf(("c.state = %d\n", c.state));
+        // FreeRTOS_printf(("c.state = %d\n", c.state));
         switch (c.state)
         {
             /*
@@ -244,7 +244,7 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
             }
         }
     }
-    FreeRTOS_printf(("rval %d\n", rval));
+    // FreeRTOS_printf(("rval %d\n", rval));
     return (rval);
 }
 
@@ -258,7 +258,7 @@ void rstclock(int state,     /* new state */
               double t       /* new update time */
 )
 {
-    FreeRTOS_printf(("RSTCLOCK\n"));
+    // FreeRTOS_printf(("RSTCLOCK\n"));
     /*
      * Enter new state and set state variables.  Note, we use the
      * time of the last clock filter sample, which must be earlier
@@ -267,7 +267,7 @@ void rstclock(int state,     /* new state */
     c.state = state;
     c.last = c.offset = offset;
     s.t = t;
-    FreeRTOS_printf(("c.state = %d\n", c.state));
+    // FreeRTOS_printf(("c.state = %d\n", c.state));
 }
 
 // A.5.6.  Clock Adjust Process
