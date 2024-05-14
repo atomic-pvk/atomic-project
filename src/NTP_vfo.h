@@ -19,7 +19,7 @@
 #define PGATE 4         /* poll-adjust gate */
 
 int local_clock(struct ntp_p *, double); /* clock discipline */
-void rstclock(int, double, double);      /* clock state transition */
-void clock_adjust();                     /* one-second timer process */
+void rstclock(int, tstamp, double);      /* clock state transition */
+void clock_adjust(ntp_r *);              /* one-second timer process */
 
 #endif /* NTP_VFO_H */

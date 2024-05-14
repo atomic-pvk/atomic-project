@@ -3,75 +3,25 @@
 #include "NTPTask.h"
 #include "NTP_main_utility.h"
 
-// Socket_t xSocket;
-// struct freertos_sockaddr xDestinationAddress;
-
-// struct ntp_s s;
-// struct ntp_c c;
-
-// void ntp_init(ntp_r *r , ntp_x *x , const char *pcHostNames[], uint32_t *NTP_server_IPs) {
-void ntp_init()
-{
-    // const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
-    // const TickType_t x10000ms = 10000UL / portTICK_PERIOD_MS;
-
-    // uint8_t DNSok;
-
-    // for (int i = 0; i < NMAX; i++)
-    // {
-    //     DNSok = 0;
-    //     while (DNSok == 0)
-    //     {
-    //         /* get the IP of the NTP server with FreeRTOS_gethostbyname */
-    //         NTP_server_IPs[i] = FreeRTOS_gethostbyname(pcHostNames[i]);
-
-    //         if (NTP_server_IPs[i] == 0)
-    //         {
-    //             FreeRTOS_printf(("\n\nDNS lookup failed, trying again in 1 second. \n\n"));
-    //             vTaskDelay(x1000ms);
-    //         }
-    //         else
-    //         {
-    //             // print successful and the hostname
-    //             FreeRTOS_printf(("\n\nDNS lookup successful for %s\n\n", pcHostNames[i]));
-    //             DNSok = 1;
-    //         }
-    //     }
-    // }
-
-    // // struct ntp_p *p; /* peer structure pointer */
-
-    // memset(r, 0, sizeof(ntp_r));
-    // r->dstaddr = DSTADDR;
-    // r->version = VERSION;
-    // r->leap = NOSYNC;
-    // r->mode = MODE;
-    // r->stratum = MAXSTRAT;
-    // r->poll = MINPOLL;
-    // r->precision = PRECISION;
-
-    // memset(x, 0, sizeof(ntp_x));
-    // x->dstaddr = DSTADDR;
-    // x->version = VERSION;
-    // x->leap = NOSYNC;
-    // x->mode = MODE;
-    // x->stratum = MAXSTRAT;
-    // x->poll = MINPOLL;
-    // x->precision = PRECISION;
-
-    // memset(&s, sizeof(ntp_s), 0);
-    // s.leap = NOSYNC;
-    // s.stratum = MAXSTRAT;
-    // s.poll = MINPOLL;
-    // s.precision = PRECISION;
-    // s.p = NULL;
-
-    // memset(&c, sizeof(ntp_c), 0);
-}
-
+/**
+ * Initializes the association table with NTP peers.
+ *
+ * This function allocates memory for the association table and then mobilizes
+ * each NTP peer. The IP addresses of the NTP peers are provided in the
+ * NTP_server_IPs array.
+ *
+ * @param NTP_server_IPs An array of IP addresses for the NTP peers.
+ */
 void assoc_table_init(uint32_t *NTP_server_IPs)
 {
     assoc_table->peers = (ntp_p **)malloc(NMAX * sizeof(ntp_p));
+    if (assoc_table->peers == NULL)
+    {
+        // Handle memory allocation failure, e.g. by logging an error message and returning
+        FreeRTOS_printf(("Memory allocation failed for association table.\n"));
+        return;
+    }
+
     assoc_table->size = NMAX;
 
     for (int i = 0; i < NMAX; i++)
@@ -80,22 +30,54 @@ void assoc_table_init(uint32_t *NTP_server_IPs)
     }
 }
 
+/**
+ * Deinitializes the association table.
+ *
+ * This function demobilizes each NTP peer and then frees the memory for the
+ * association table.
+ */
+void assoc_table_deinit()
+{
+    for (int i = 0; i < assoc_table->size; i++)
+    {
+        free(assoc_table->peers[i]);
+    }
+
+    free(assoc_table->peers);
+    assoc_table->peers = NULL;
+    assoc_table->size = 0;
+}
+
+/**
+ * Adds or updates an NTP peer in the association table.
+ *
+ * @param srcaddr The source address of the NTP peer.
+ * @param hmode The host mode of the NTP peer.
+ * @param xmt The transmit timestamp of the NTP peer.
+ * @return 1 if an existing entry was updated, 0 otherwise.
+ */
 int assoc_table_add(uint32_t srcaddr, char hmode, tstamp xmt)
 {
     // Check for duplicate peers
     for (int i = 0; i < assoc_table->size; i++)
     {
         ntp_p *assoc = assoc_table->peers[i];
+
         if (assoc->srcaddr == srcaddr && assoc->hmode == hmode)
         {
             assoc->xmt = xmt;
-            assoc->t = xmt;
+            // assoc->t = c.t;
             return 1;  // Entry already exists
         }
     }
     return 0;
 }
 
+/**
+ * Updates an NTP peer in the association table.
+ *
+ * @param p The NTP peer with updated data.
+ */
 void assoc_table_update(ntp_p *p)
 {
     for (int i = 0; i < assoc_table->size; i++)
@@ -103,12 +85,19 @@ void assoc_table_update(ntp_p *p)
         ntp_p *assoc = assoc_table->peers[i];
         if (assoc->srcaddr == p->srcaddr && assoc->hmode == p->hmode)
         {
-            assoc = p;
+            // Copy the data from p to assoc
+            assoc_table->peers[i] = p;
             return;
         }
     }
 }
 
+/**
+ * Calculates the square root of a number using binary search.
+ *
+ * @param number The number to calculate the square root of.
+ * @return The square root of the number.
+ */
 double sqrt(double number)
 {
     double low = 0, high = number;
@@ -135,6 +124,13 @@ double sqrt(double number)
     return (low + high) / 2;
 }
 
+/**
+ * Subtracts two unsigned 64-bit integers and returns the result.
+ *
+ * @param x The first unsigned 64-bit integer.
+ * @param y The second unsigned 64-bit integer.
+ * @return The difference between x and y as a signed 64-bit integer.
+ */
 int64_t subtract_uint64_t(uint64_t x, uint64_t y)
 {
     int neg = 0;
@@ -172,6 +168,13 @@ int64_t subtract_uint64_t(uint64_t x, uint64_t y)
     return result;
 }
 
+/**
+ * Adds two int64_t numbers and returns the result.
+ *
+ * @param x The first int64_t number.
+ * @param y The second int64_t number.
+ * @return The sum of x and y as an int64_t number.
+ */
 int64_t add_int64_t(int64_t x, int64_t y)
 {
     int32_t xFrac = (int32_t)(x & 0xFFFFFFFF);
@@ -193,13 +196,24 @@ int64_t add_int64_t(int64_t x, int64_t y)
     return result;
 }
 
+/**
+ * Sets the current time to a new value.
+ *
+ *
+ * @param newTime The new time value to set.
+ */
 void settime(tstamp newTime)
 {
-    c.t = newTime;
+    c.t++;
     c.localTime = newTime;
     c.lastTimeStampTick = xTaskGetTickCount();
 }
 
+/**
+ * @brief Get the time from the current tick count.
+ *
+ * @param override Flag indicating whether to override small differences in tick count.
+ */
 void gettime(int override)
 {
     TickType_t currentTick = xTaskGetTickCount();
@@ -207,10 +221,10 @@ void gettime(int override)
     // calculate the difference between the current tick and the last tick
     TickType_t tickDifference = currentTick - c.lastTimeStampTick;
 
-    // FreeRTOS_printf(("Tick diff\n"));
-    // FreeRTOS_printf_wrapper_double("", tickDifference);
+    FreeRTOS_printf(("Tick diff\n"));
+    FreeRTOS_printf_wrapper_double("", tickDifference);
     if (tickDifference < 10 && !override) return;  // Ignore small differences
-    // FreeRTOS_printf(("changing local time...\n\n"));
+    FreeRTOS_printf(("changing local time...\n\n"));
 
     // calculate tickDifference / 1000 as integer division
     TickType_t numSecondsInTicks = tickDifference / 1000;
@@ -243,21 +257,20 @@ void gettime(int override)
     c.localTime = newTimeStamp;
 }
 
+/**
+ * Prints a timestamp and a comment to the console.
+ *
+ * @param timestamp The timestamp to print.
+ * @param comment The comment to print with the timestamp.
+ */
 void printTimestamp(tstamp timestamp, const char *comment)
 {
     // Extract the whole seconds and fractional part from the timestamp
-    // uint32_t seconds = (uint32_t)(timestamp >> 32);
-    // uint32_t fractions = (uint32_t)(timestamp & 0xFFFFFFFF);
-    // double fractionAsSecond = fractions / (double)0xFFFFFFFF;
-    time_t seconds = (time_t)((timestamp >> 32) - 2208988800ull);
+    time_t seconds = (time_t)((timestamp >> 32) - 2208988800ull);  // Convert NTP epoch to Unix epoch
     uint32_t fractions = (timestamp & 0xFFFFFFFF);
 
-    // double fractionAsSecond = fractions / (double)0xFFFFFFFF;
-    double fractionAsSecond = (double)fractions / FRAC;  // / 4294967296.0 = 2^32
-
-    // time_t timeInSeconds = (time_t)((r->rec >> 32) - 2208988800ull);
-    // uint32_t frac = (uint32_t)(r->rec & 0xFFFFFFFF);
-    // FreeRTOS_printf(("\n\n Time according to %s: %s.%u\n", pcHostNames[i], ctime(&timeInSeconds), frac));
+    // Convert fractions to a fraction of a second
+    double fractionAsSecond = (double)fractions / FRAC;  // FRAC is presumably defined as 0xFFFFFFFF or 4294967296.0
 
     // Print the timestamp with the comment
     FreeRTOS_printf(("%s Timestamp: %s. seconds\n", comment, ctime(&seconds)));
@@ -266,6 +279,12 @@ void printTimestamp(tstamp timestamp, const char *comment)
 
 #define MAX_UINT64_DIGITS 20  // Maximum digits in uint64_t
 
+/**
+ * Converts a 64-bit unsigned integer to a string.
+ *
+ * @param value The number to convert.
+ * @param str The output string. This must be large enough to hold all digits of the number plus a null terminator.
+ */
 void uint64_to_str(uint64_t value, char *str)
 {
     char temp[MAX_UINT64_DIGITS];
@@ -295,17 +314,29 @@ void uint64_to_str(uint64_t value, char *str)
     str[j] = '\0';  // Null-terminate string
 }
 
+/**
+ * A wrapper around the FreeRTOS_printf function that allows printing a 64-bit unsigned integer.
+ *
+ * @param format The format string for the message. This should contain one %s specifier where the number will be
+ * inserted.
+ * @param value The number to print.
+ */
 void FreeRTOS_printf_wrapper(const char *format, uint64_t value)
 {
-    char buffer[MAX_UINT64_DIGITS + 50];  // Additional space for message text
     char numberStr[MAX_UINT64_DIGITS];
-    uint64_to_str(value, numberStr);
-    sprintf(buffer, format, numberStr);
-    // FreeRTOS_printf(("%s\n", buffer));
+    uint64_to_str(value, numberStr);       // Convert the number to a string
+    FreeRTOS_printf((format, numberStr));  // Print the formatted message
 }
 
 #define MAX_DOUBLE_DIGITS 30  // A buffer size that should handle most cases
 
+/**
+ * Converts a double value to a string with a specified precision.
+ *
+ * @param value The double value to convert.
+ * @param str The output string. This must be large enough to hold all digits of the number plus a null terminator.
+ * @param precision The number of digits after the decimal point.
+ */
 void double_to_str(double value, char *str, int precision)
 {
     if (precision > 9) precision = 9;  // Limit precision to 9 digits for simplicity
@@ -367,18 +398,30 @@ void double_to_str(double value, char *str, int precision)
     str[index] = '\0';  // Null-terminate the string
 }
 
+/**
+ * A wrapper around the FreeRTOS_printf function that allows printing a double value.
+ *
+ * @param format The format string for the message. This should contain one %s specifier where the number will be
+ * inserted.
+ * @param value The double value to print.
+ */
 void FreeRTOS_printf_wrapper_double(const char *format, double value)
 {
     char buffer[MAX_DOUBLE_DIGITS + 50];  // Additional space for message text
-    double_to_str(value, buffer, 6);      // Example with 6 decimal places
+    double_to_str(value, buffer, 10);     // Example with 6 decimal places
     FreeRTOS_printf(("%s\n", buffer));
 }
 
+/**
+ * Prints a 64-bit unsigned integer as two 32-bit parts.
+ *
+ * @param number The 64-bit unsigned integer to print.
+ */
 void print_uint64_as_32_parts(uint64_t number)
 {
     uint32_t lower_part = (uint32_t)number;          // Extracts the lower 32 bits
     uint32_t upper_part = (uint32_t)(number >> 32);  // Shifts right by 32 bits and extracts the upper 32 bits
 
-    // printf("Upper 32 bits: %u\n", upper_part);
-    // printf("Lower 32 bits: %u\n", lower_part);
+    printf("Upper 32 bits: %u\n", upper_part);
+    printf("Lower 32 bits: %u\n", lower_part);
 }

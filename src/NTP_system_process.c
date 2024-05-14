@@ -4,10 +4,16 @@
 #include "NTP_peer.h"
 #include "NTP_vfo.h"
 
-// A.5.5.  System Process
-
-// A.5.5.1.  clock_select()
-// Comparison function to sort ntp_m by edge value (ascending)
+/**
+ * This function is a comparator for the qsort function. It compares two ntp_m structures.
+ *
+ * @param a - The first void pointer that will be cast to an ntp_m structure.
+ * @param b - The second void pointer that will be cast to an ntp_m structure.
+ *
+ * @return - It returns -1 if the edge of the first structure is less than the edge of the second,
+ *           1 if the edge of the first structure is greater than the edge of the second,
+ *           and 0 if the edges of both structures are equal.
+ */
 int compare_ntp_m(const void *a, const void *b)
 {
     struct ntp_m *elem1 = (struct ntp_m *)a;
@@ -18,67 +24,59 @@ int compare_ntp_m(const void *a, const void *b)
     return 0;
 }
 
+/**
+ * This function is used to cull the falsetickers from the server population, leaving only the truechimers.
+ * The correctness interval for association p is the interval from offset - root_dist() to offset + root_dist().
+ * The function constructs a chime list of tuples (p, type, edge) and sorts the list by edge from lowest to highest.
+ *
+ * @param n - The pointer to an integer that will be incremented by 3 for each peer that passes the fit function.
+ */
 void cull(int *n)
 {
+    int i = 0;
     struct ntp_p *p;
-    int idx = 0;
 
-    /*
-     * We first cull the falsetickers from the server population,
-     * leaving only the truechimers.  The correctness interval for
-     * association p is the interval from offset - root_dist() to
-     * offset + root_dist().  The object of the game is to find a
-     * majority clique; that is, an intersection of correctness
-     * intervals numbering more than half the server population.
-     *
-     * First, construct the chime list of tuples (p, type, edge) as
-     * shown below, then sort the list by edge from lowest to
-     * highest.
-     */
-
-    struct ntp_m m1[NMAX], m2[NMAX], m3[NMAX];
-    memset(m1, 0, sizeof(m1));
-    memset(m2, 0, sizeof(m2));
-    memset(m3, 0, sizeof(m3));
+    FreeRTOS_printf(("\n\ncull\n\n"));
 
     for (int index = 0; index < NMAX; index++)
     {
         p = assoc_table->peers[index];
         if (fit(p))
         {
-            m1[idx].p = p;
-            m1[idx].type = -1;
-            m1[idx].edge = p->offset - root_dist(p);
+            s.m[i].p = p;
+            s.m[i].type = -1;
+            s.m[i].edge = p->offset - root_dist(p);
+            i++;
 
-            m2[idx].p = p;
-            m2[idx].type = 0;
-            m2[idx].edge = p->offset;
+            s.m[i].p = p;
+            s.m[i].type = 0;
+            s.m[i].edge = p->offset;
+            i++;
 
-            m3[idx].p = p;
-            m3[idx].type = +1;
-            m3[idx].edge = p->offset + root_dist(p);
-
-            *n += 3;
-            idx++;
+            s.m[i].p = p;
+            s.m[i].type = +1;
+            s.m[i].edge = p->offset + root_dist(p);
+            i++;
         }
     }
 
-    qsort(m1, idx, sizeof(struct ntp_m), compare_ntp_m);
-    qsort(m2, idx, sizeof(struct ntp_m), compare_ntp_m);
-    qsort(m3, idx, sizeof(struct ntp_m), compare_ntp_m);
+    qsort(&s.m, i, sizeof(struct ntp_m), compare_ntp_m);
 
-    for (int i = 0; i < idx; i++)
+    FreeRTOS_printf(("\n\nadded\n\n"));
+    for (int index = 0; index < i; index++)
     {
-        s.m[i] = m1[i];
-        s.m[i + idx] = m2[i];
-        s.m[i + idx * 2] = m3[i];
+        FreeRTOS_printf_wrapper_double("\n\n%s\n\n", s.m[index].edge);
     }
-    for (int i = 0; i < *n; i++)
-    {
-        FreeRTOS_printf_wrapper_double("", s.m[i].edge);
-    }
+    *n = i;
 }
 
+/**
+ * Finds the largest contiguous intersection of correctness intervals.
+ *
+ * @param n The number of correctness intervals.
+ * @param low Pointer to store the lower endpoint of the intersection.
+ * @param high Pointer to store the higher endpoint of the intersection.
+ */
 void intersection(int n, double *low, double *high)
 {
     /*
@@ -141,8 +139,14 @@ void intersection(int n, double *low, double *high)
     }
 }
 
-/*
- * clock_select() - find the best clocks
+/**
+ * Selects the best clock from the list of survivors based on the clustering algorithm.
+ * The survivors are selected based on their correctness interval extents and clustering metrics.
+ * At least NSANE survivors are required to satisfy the correctness assertions.
+ * For each association, the selection jitter is calculated as the square root of the sum of squares
+ * of the offset differences between the associations.
+ * The function continues to discard the survivor with maximum selection jitter until a termination condition is met.
+ * Finally, the best clock is picked based on the old system peer and the first survivor on the list.
  */
 void clock_select()
 {
@@ -157,8 +161,6 @@ void clock_select()
     cull(&n);
 
     intersection(n, &low, &high);
-
-    // n = 0;
 
     /*
      * Clustering algorithm.  Construct a list of survivors (p,
@@ -180,8 +182,8 @@ void clock_select()
         s.v[s.n].p = p;
         s.v[s.n].metric = (double)(MAXDIST * p->stratum) + root_dist(p);
         s.n++;
-        FreeRTOS_printf(("\n\nsurvivor found\n"));
-        FreeRTOS_printf_wrapper_double("", s.m[i].edge);
+        // FreeRTOS_printf(("\n\nsurvivor found\n"));
+        // FreeRTOS_printf_wrapper_double("", s.m[i].edge);
     }
 
     /*
@@ -195,7 +197,6 @@ void clock_select()
         FreeRTOS_printf(("nsane survivors dead\n"));
         return;
     }
-    FreeRTOS_printf(("nsane survivors not dead\n"));
 
     /*
      * For each association p in turn, calculate the selection
@@ -264,14 +265,24 @@ void clock_select()
         s.p = s.v[0].p;
     }
 
-    memset(s.m, 0, sizeof(s.m));  // Clear temporary response data
+    // memset(s.m, 0, sizeof(s.m));  // Clear temporary response data
 
     // FreeRTOS_printf(("calling clock update\n"));
     clock_update(s.p);
 }
 
-/*
- * root_dist() - calculate root distance
+/**
+ * This function calculates the root synchronization distance for a given peer.
+ * The root synchronization distance is the maximum error due to all causes of the local clock relative to the primary
+ * server.
+ *
+ * @param p - A pointer to the peer structure for which the root synchronization distance is to be calculated.
+ *
+ * @return - The function returns the root synchronization distance, which is calculated as half the total delay plus
+ * total dispersion plus peer jitter. The total delay is the maximum of MINDISP and the sum of the root delay and delay
+ * for the peer. The total dispersion is the sum of the root dispersion and dispersion for the peer. The peer jitter is
+ * added as is. Finally, a term proportional to the product of the constant PHI and the difference between the current
+ * time and the peer's time is added.
  */
 double root_dist(struct ntp_p *p /* peer structure pointer */
 )
@@ -282,11 +293,10 @@ double root_dist(struct ntp_p *p /* peer structure pointer */
      * It is defined as half the total delay plus total dispersion
      * plus peer jitter.
      */
+
     return (max(MINDISP, p->rootdelay + p->delay) / 2 + p->rootdisp + p->disp +
             PHI * LFP2D(subtract_uint64_t(c.t, p->t)) + p->jitter);
 }
-
-// A.5.5.3.  accept()
 
 /*
  * accept() - test if association p is acceptable for synchronization
@@ -330,8 +340,6 @@ int accept(struct ntp_p *p /* peer structure pointer */
     return (TRUE);
 }
 
-// A.5.5.4.  clock_update()
-
 /*
  * clock_update() - update the system clock
  */
@@ -345,12 +353,11 @@ void clock_update(struct ntp_p *p /* peer structure pointer */
      * system peer change, avoid it.  We never use an old sample or
      * the same sample twice.
      */
-    // FreeRTOS_printf(("CLOCK UPDATE\n"));
-    if (s.t >= p->t)
+    FreeRTOS_printf_wrapper_double("s.t: ", s.t);
+    FreeRTOS_printf_wrapper_double("p->t: ", p->t);
+    if (s.t > p->t)
     {
-        // FreeRTOS_printf_wrapper_double("", s.t);
-        // FreeRTOS_printf_wrapper_double("", p->t);
-        // FreeRTOS_printf(("s.t >= p->t, kill\n"));
+        FreeRTOS_printf(("s.t > p->t, kill\n"));
         return;
     }
     /*
@@ -360,6 +367,8 @@ void clock_update(struct ntp_p *p /* peer structure pointer */
     s.t = p->t;
     clock_combine();
 
+    // FreeRTOS_printf(("calling local\n"));
+    // FreeRTOS_printf_wrapper_double("", s.offset);
     switch (local_clock(p, s.offset))
     {
         /*
@@ -415,10 +424,10 @@ void clock_update(struct ntp_p *p /* peer structure pointer */
     }
 }
 
-// A.5.5.5.  clock_combine()
-
-/*
- * clock_combine() - combine offsets
+/**
+ * This function combines the offsets of the survivors from the clustering algorithm using a weighted average.
+ * The weight is determined by the root distance. It also computes the selection jitter as the weighted RMS difference
+ * between the first survivor and the remaining survivors.
  */
 void clock_combine()
 {
@@ -445,8 +454,15 @@ void clock_combine()
         x = root_dist(p);
         y += 1 / x;
         z += p->offset / x;
-        w += SQUARE(p->offset - s.v[0].p->offset) / x;
+        w += SQUARE(fabs(p->offset - s.v[0].p->offset)) / x;
+        printf("combine: %d\n\n\n\n\n\n\n", i);
+        FreeRTOS_printf_wrapper_double("combine: p->offset: ", z);
+        FreeRTOS_printf_wrapper_double("combine: p->offset: ", p->offset);
+        FreeRTOS_printf_wrapper_double("combine: p->offset: ", x);
     }
+    FreeRTOS_printf_wrapper_double("combine: p->offset: ", z);
+    FreeRTOS_printf_wrapper_double("combine: p->offset: ", y);
+    FreeRTOS_printf_wrapper_double("combine: p->offset: ", z / y);
     s.offset = z / y;
     s.jitter = SQRT(w / y);
 }

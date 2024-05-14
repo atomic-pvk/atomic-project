@@ -5,8 +5,12 @@
 #include "NTP_main_utility.h"
 #include "NTP_poll.h"
 
-/*
- * local_clock() - discipline the local clock
+/**
+ * local_clock - Discipline the local clock based on offset and state.
+ *
+ * @p: Pointer to the peer structure.
+ * @offset: Clock offset from combine().
+ * @return: Result code indicating the adjustment status.
  */
 int                          /* return code */
 local_clock(struct ntp_p *p, /* peer structure pointer */
@@ -42,7 +46,7 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
     FreeRTOS_printf_wrapper_double("", fabs(offset));
     if (fabs(offset) > STEPT)
     {
-        // FreeRTOS_printf(("fabs(offset) > STEPT\n"));
+        FreeRTOS_printf(("fabs(offset) > STEPT\n"));
         switch (c.state)
         {
             /*
@@ -121,17 +125,23 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
     }
     else
     {
-        // FreeRTOS_printf(("fabs(offset) <= STEPT\n"));
+        FreeRTOS_printf(("fabs(offset) <= STEPT\n"));
         /*
          * Compute the clock jitter as the RMS of exponentially
          * weighted offset differences.  This is used by the
          * poll-adjust code.
          */
         etemp = SQUARE(c.jitter);
-        dtemp = SQUARE(max(fabs(offset - c.last), LOG2D(s.precision)));
-        c.jitter = SQRT(etemp + (dtemp - etemp) / AVG);
-
         // FreeRTOS_printf(("c.state = %d\n", c.state));
+        dtemp = SQUARE(max(fabs(offset - c.last), LOG2D(s.precision)));
+        // FreeRTOS_printf(("c.state = %d\n", c.state));
+        // FreeRTOS_printf_wrapper_double("etemp", offset);
+        // FreeRTOS_printf_wrapper_double("etemp", c.last);
+        // FreeRTOS_printf_wrapper_double("etemp", etemp);
+        // FreeRTOS_printf_wrapper_double("dtemp", dtemp);
+        c.jitter = SQRT((etemp + (dtemp - etemp)) / AVG);
+
+        FreeRTOS_printf(("c.state = %d\n", c.state));
         switch (c.state)
         {
             /*
@@ -248,36 +258,37 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
     return (rval);
 }
 
-// A.5.5.7.  rstclock()
-
-/*
- * rstclock() - clock state machine
+/**
+ * rstclock - Update the clock state machine.
+ *
+ * @state: New state for the clock.
+ * @offset: New offset value.
+ * @t: New update time.
  */
-void rstclock(int state,     /* new state */
-              double offset, /* new offset */
-              double t       /* new update time */
+void rstclock(int state,    /* new state */
+              tstamp t,     /* new update time */
+              double offset /* new offset */
 )
 {
-    // FreeRTOS_printf(("RSTCLOCK\n"));
     /*
      * Enter new state and set state variables.  Note, we use the
      * time of the last clock filter sample, which must be earlier
      * than the current time.
      */
     c.state = state;
+    FreeRTOS_printf(("c.state = %d\n", c.state));
+    FreeRTOS_printf_wrapper_double("offset", offset);
+    FreeRTOS_printf_wrapper_double("t: \n", t);
     c.last = c.offset = offset;
     s.t = t;
-    // FreeRTOS_printf(("c.state = %d\n", c.state));
+    c.t++;
 }
 
-// A.5.6.  Clock Adjust Process
-
-// A.5.6.1.  clock_adjust()
-
-/*
- * clock_adjust() - runs at one-second intervals
+/**
+ * clock_adjust - Periodic clock adjustment function.
+ * Runs at one-second intervals to adjust the local clock.
  */
-void clock_adjust()
+void clock_adjust(ntp_r *r)
 {
     double dtemp;
 
@@ -300,7 +311,13 @@ void clock_adjust()
      * at the longer poll intervals.
      */
     dtemp = c.offset / (PLL * min(LOG2D(s.poll), ALLAN));
+    FreeRTOS_printf(("coffset \n"));
+    FreeRTOS_printf_wrapper_double("c.offset", c.offset);
+    FreeRTOS_printf_wrapper_double("PLL * min(LOG2D(s.poll), ALLAN)", PLL * min(LOG2D(s.poll), ALLAN));
     c.offset -= dtemp;
+    FreeRTOS_printf_wrapper_double("c.offset", dtemp);
+    FreeRTOS_printf_wrapper_double("c.offset", c.offset);
+    FreeRTOS_printf_wrapper_double("c.offset", c.freq + dtemp);
 
     /*
      * This is the kernel adjust time function, usually implemented
@@ -312,11 +329,25 @@ void clock_adjust()
      * Peer timer.  Call the poll() routine when the poll timer
      * expires.
      */
-    while (/* all associations */ 0)
-    {
-        struct ntp_p *p; /* dummy peer structure pointer */
 
-        if (c.t >= p->nextdate) poll(p);
+    // Check for duplicate peers
+    for (int i = 0; i < NMAX; i++)
+    {
+        ntp_p *assoc = assoc_table->peers[i];
+
+        uint32_t c_t_low = (uint32_t)(c.t & 0xFFFFFFFF);
+
+        // FreeRTOS_printf(("peer %d\n", i));
+        // FreeRTOS_printf_wrapper_double("c_t_low", c_t_low);
+        // FreeRTOS_printf_wrapper_double("assoc->nextdate", assoc->nextdate);
+
+        if (c_t_low >= assoc->nextdate)
+        {
+            FreeRTOS_printf(("Polling peer %d\n", i));
+            poll(assoc);
+            recv_packet(r);  // Receive response
+            receive(r);
+        }
     }
 
     /*

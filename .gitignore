@@ -58,3 +58,4 @@ FreeRTOS/*
 
 # VS Code
 .vscode
+src/qemu.log

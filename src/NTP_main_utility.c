@@ -3,8 +3,18 @@
 #include "NTPTask.h"
 #include "NTP_peer.h"
 
-static struct ntp_p *p; /* peer structure pointer */
-
+/**
+ * This function creates a new NTP peer structure and initializes it.
+ *
+ * @param srcaddr - The IP source address.
+ * @param dstaddr - The IP destination address.
+ * @param version - The NTP version.
+ * @param mode - The host mode.
+ * @param keyid - The key identifier.
+ * @param flags - The peer flags.
+ *
+ * @return A pointer to the new NTP peer structure, or NULL if the memory allocation failed.
+ */
 struct ntp_p *mobilize(uint32_t srcaddr, /* IP source address, change from ipaddr to uint32_t */
                        uint32_t dstaddr, /* IP destination address, change from ipaddr to uint32_t */
                        int version,      /* version */
@@ -13,13 +23,13 @@ struct ntp_p *mobilize(uint32_t srcaddr, /* IP source address, change from ipadd
                        int flags         /* peer flags */
 )
 {
-    struct ntp_p *p; /* peer process pointer */
+    struct ntp_p *p = calloc(1, sizeof(struct ntp_p)); /* allocate and zero-initialize association memory */
 
-    /*
-     * Allocate and initialize association memory
-     */
-    p = malloc(sizeof(struct ntp_p));
-    memset(p, 0, sizeof(ntp_p));
+    if (p == NULL)
+    {
+        return NULL; /* return NULL if memory allocation failed */
+    }
+
     p->srcaddr = srcaddr;
     p->dstaddr = dstaddr;
     p->version = version;
@@ -28,11 +38,16 @@ struct ntp_p *mobilize(uint32_t srcaddr, /* IP source address, change from ipadd
     p->hpoll = MINPOLL;
     clear(p, X_INIT);
     p->flags = flags;
-    return (p);
+
+    return p;
 }
 
-/*
- * find_assoc() - find a matching association
+/**
+ * This function searches for a matching association in the association table.
+ *
+ * @param r - A pointer to the received NTP packet.
+ *
+ * @return A pointer to the matching association, or NULL if no match is found.
  */
 struct
     ntp_p /* peer structure pointer or NULL */
@@ -68,7 +83,16 @@ digest md5(int keyid /* key identifier */
     return (/* MD5 digest */ 0);
 }
 
-void prv_swap_fields(struct ntp_packet *pkt)
+/**
+ * This function swaps the byte order of the fields in an NTP packet.
+ *
+ * @param pkt - A pointer to the NTP packet.
+ *
+ * The function uses the FreeRTOS_htonl function to perform the byte order swap. This function converts a 32-bit number
+ * from host byte order to network byte order. Network byte order is big-endian, so this function is necessary when
+ * sending data over the network on a little-endian system.
+ */
+static void prv_swap_fields(struct ntp_packet *pkt)
 {
     /* NTP messages are big-endian */
     pkt->rootDelay = FreeRTOS_htonl(pkt->rootDelay);
@@ -87,21 +111,22 @@ void prv_swap_fields(struct ntp_packet *pkt)
     pkt->txTm_f = FreeRTOS_htonl(pkt->txTm_f);
 }
 
-void create_ntp_r(struct ntp_r *r, ntp_packet *pkt)
+/**
+ * This function creates and initializes an NTP receive structure from an NTP packet.
+ *
+ * @param r - A pointer to the NTP receive structure to be initialized.
+ * @param pkt - A pointer to the NTP packet.
+ */
+static void prv_create_ntp_r(struct ntp_r *r, ntp_packet *pkt)
 {
     r->srcaddr = NTP1_server_IP;  // Set to zero if not known
     r->dstaddr = DSTADDR;         // Set to zero if not known
 
     // Extract version, leap, and mode from li_vn_mode
-    // pkt->li_vn_mode = FreeRTOS_ntohl(pkt->li_vn_mode) << 24;
-    r->leap = (pkt->li_vn_mode >> 6) & 0x3;     // Extract bits 0-1
-    r->version = (pkt->li_vn_mode >> 3) & 0x7;  // Extract bits 2-4
-    r->mode = (pkt->li_vn_mode) & 0x7;          // Extract bits 5-7
+    r->leap = (pkt->li_vn_mode >> 6) & 0x3;     // Extract bits 0-1. li, Leap indicator.
+    r->version = (pkt->li_vn_mode >> 3) & 0x7;  // Extract bits 2-4. vn, Version number of the protocol.
+    r->mode = (pkt->li_vn_mode) & 0x7;          // Extract bits 5-7. mode, Client will pick mode 3 for client
 
-    // uint8_t li_vn_mode;      // Eight bits. li, vn, and mode.
-    //                          // li.   Two bits.   Leap indicator.
-    //                          // vn.   Three bits. Version number of the protocol.
-    //                          // mode. Three bits. Client will pick mode 3 for client
     r->stratum = ((char)pkt->stratum);
     r->poll = (char)pkt->poll;
     r->precision = (s_char)pkt->precision;
@@ -125,6 +150,11 @@ void create_ntp_r(struct ntp_r *r, ntp_packet *pkt)
     r->dst = dst;  // Set the timestamp to the ms passed since vTaskStartScheduler started
 }
 
+/**
+ * This function receives an NTP packet, converts it to an NTP receive structure, and prints the original timestamp.
+ *
+ * @param r - A pointer to the NTP receive structure to be filled.
+ */
 void recv_packet(ntp_r *r)
 {
     ntp_packet pkt;
@@ -135,7 +165,7 @@ void recv_packet(ntp_r *r)
 
     memset(r, 0, sizeof(ntp_r));  // Clear the receive packet struct
 
-    // FreeRTOS_printf(("Receiving packet...\n"));
+    FreeRTOS_printf(("Receiving packet...\n"));
 
     iReturned = FreeRTOS_recvfrom(xSocket, &pkt, sizeof(ntp_packet), 0, &xSourceAddress, &xAddressLength);
 
@@ -143,26 +173,31 @@ void recv_packet(ntp_r *r)
     {
         prv_swap_fields(&pkt);
 
-        // FreeRTOS_printf(("Packet received\n"));
+        FreeRTOS_printf(("Packet received\n"));
 
         // do conversion
         // ntp_packet -> ntp_r
-        create_ntp_r(r, &pkt);
-        printTimestamp(r->org, "The original time is: ");
+        prv_create_ntp_r(r, &pkt);
     }
     else
     {
-        // FreeRTOS_printf(("Error receiving packet\n"));
+        FreeRTOS_printf(("Error receiving packet\n"));
     }
 }
+
+/**
+ * This function prepares an NTP transmit structure for sending.
+ *
+ * @param x - A pointer to the NTP transmit structure to be prepared.
+ */
 void prep_xmit(ntp_x *x)
 {
     x->leap = s.leap;
     x->stratum = s.stratum;
 
     // Root delay and dispersion can come from a server or client
-    x->rootdelay = s.rootdelay;
-    x->rootdisp = s.rootdisp;
+    x->rootdelay = D2FP(s.rootdelay);
+    x->rootdisp = D2FP(s.rootdisp);
     x->refid = s.refid;
 
     // Assuming tstamp is a type that can be split into seconds and fraction of a second
@@ -173,7 +208,13 @@ void prep_xmit(ntp_x *x)
     x->xmt = c.localTime;
 }
 
-void prv_translate_ntp_x_to_ntp_packet(const ntp_x *x, ntp_packet *pkt)
+/**
+ * Translates the fields of an ntp_x structure to an ntp_packet structure.
+ *
+ * @param x The ntp_x structure containing the fields to be translated.
+ * @param pkt The ntp_packet structure to store the translated fields.
+ */
+static void prv_translate_ntp_x_to_ntp_packet(const ntp_x *x, ntp_packet *pkt)
 {
     // Combine leap, version, and mode into li_vn_mode
     pkt->li_vn_mode = (x->leap & 0x03) << 6 | (x->version & 0x07) << 3 | (x->mode & 0x07);
@@ -199,8 +240,12 @@ void prv_translate_ntp_x_to_ntp_packet(const ntp_x *x, ntp_packet *pkt)
     pkt->txTm_f = (uint32_t)(x->xmt & 0xFFFFFFFF);
 }
 
-/*
- * xmit_packet - transmit packet to network
+/**
+ * @brief Transmits an NTP packet.
+ *
+ * This function transmits an NTP packet using the provided transmit packet pointer.
+ *
+ * @param x Pointer to the transmit packet.
  */
 void xmit_packet(ntp_x *x /* transmit packet pointer */
 )
@@ -208,19 +253,22 @@ void xmit_packet(ntp_x *x /* transmit packet pointer */
     /* setup ntp_packet *pkt */
     ntp_packet pkt;  // Allocate memory for the packet
 
-    // set xmit time to current time!
+    xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;
+    x->srcaddr = NTP1_server_IP;
+
+    // set xmit time to current time
     gettime(0);
     x->xmt = c.localTime;
 
     prv_translate_ntp_x_to_ntp_packet(x, &pkt);
     prv_swap_fields(&pkt);
 
-    // FreeRTOS_printf(("Sending packet...\n"));
+    FreeRTOS_printf(("Sending packet...\n"));
 
     // Add the association to the table
     if (!assoc_table_add(x->srcaddr, x->mode, x->xmt))
     {
-        // FreeRTOS_printf(("Error adding association to table\n"));
+        FreeRTOS_printf(("Error adding association to table\n"));
     }
 
     int32_t iReturned;
@@ -230,15 +278,13 @@ void xmit_packet(ntp_x *x /* transmit packet pointer */
 
     if (iReturned == sizeof(ntp_packet))
     {
-        // FreeRTOS_printf(("Sent packet\n"));
+        FreeRTOS_printf(("Sent packet\n"));
     }
     else
     {
-        // FreeRTOS_printf(("Failed to send packet\n"));
+        FreeRTOS_printf(("Failed to send packet\n"));
     }
 }
-
-// A.4.  Kernel System Clock Interface
 
 /*
  * System clock utility functions
@@ -253,42 +299,90 @@ void xmit_packet(ntp_x *x /* transmit packet pointer */
  */
 #define JAN_1970 2208988800UL /* 1970 - 1900 in seconds */
 
-/*
- * step_time() - step system time to given offset value
+/**
+ * @brief Updates the local time based on a specified offset in seconds.
+ *
+ * @param offset_seconds Offset in seconds to be applied to the local time.
  */
-void step_time(double offset /* clock offset */
-)
+static void prv_update_localTime(double offset_seconds, int isAdjustment /* 0 for step, 1 for adjust */)
 {
-    struct timeval unix_time;
-    tstamp time;
+    if (xSemaphoreTake(timeMutex, portMAX_DELAY))
+    {
+        // printf("Updating local time\n");
+        // TickType_t currentTick = xTaskGetTickCount();
+        // FreeRTOS_printf_wrapper_double("Offset in ticks: ", currentTick);
+        // TickType_t offsetTicks = (TickType_t)(offset_seconds * configTICK_RATE_HZ);
+        // FreeRTOS_printf_wrapper_double("Offset in ticks: ", D2LFP(offset_seconds));
+        // FreeRTOS_printf_wrapper_double("Offset in ticks: ", offsetTicks);
 
-    /*
-     * Convert from double to native format (signed) and add to the
-     * current time.  Note the addition is done in native format to
-     * avoid overflow or loss of precision.
-     */
-    // gettimeofday(&unix_time, NULL);
-    time = D2LFP(offset) + U2LFP(unix_time);
-    unix_time.tv_sec = time >> 32;
-    unix_time.tv_usec = (long)(((time - unix_time.tv_sec) << 32) / FRAC * 1e6);
-    // settimeofday(&unix_time, NULL);
+        // // Calculate the number of seconds in the tick difference
+        // TickType_t numSecondsInTicks = offsetTicks / configTICK_RATE_HZ;
+
+        // // Calculate the remaining fraction of ticks converted to NTP fractions
+        // TickType_t remainingTicks = offsetTicks % configTICK_RATE_HZ;
+        // uint32_t newFractions = (uint32_t)(((double)remainingTicks / configTICK_RATE_HZ) * FRAC);
+        // FreeRTOS_printf_wrapper_double("Offset in ticks: ", newFractions);
+
+        // Extract current fractions and seconds from the last known local time
+        uint32_t currentFractions = (uint32_t)(c.localTime & 0xFFFFFFFF);
+        uint32_t newFractions = (uint32_t)(D2LFP(offset_seconds));
+        uint32_t currentSeconds = (uint32_t)(c.localTime >> 32);
+
+        uint32_t tempFractions;
+        if (isAdjustment)
+        {
+            tempFractions = currentFractions + newFractions;
+            if (tempFractions < currentFractions)
+            {                      // Handle overflow
+                currentSeconds++;  // Increment the seconds part due to overflow
+            }
+        }
+        else
+        {
+            tempFractions = currentFractions - newFractions;
+            if (tempFractions > currentFractions)
+            {                      // Handle underflow
+                currentSeconds--;  // Decrement the seconds part due to underflow
+            }
+        }
+        // FreeRTOS_printf_wrapper_double("", currentFractions);
+        // FreeRTOS_printf_wrapper_double("", newFractions);
+
+        // Construct the new timestamp
+        uint64_t newTimeStamp = ((uint64_t)currentSeconds << 32) | (tempFractions & 0xFFFFFFFF);
+
+        // Update the control structure with the new tick and local time
+        c.localTime = newTimeStamp;
+
+        // Optionally print the updated time for debugging
+        // printTimestamp(c.localTime, "Updated time:");
+
+        xSemaphoreGive(timeMutex);
+    }
 }
 
-/*
- * adjust_time() - slew system clock to given offset value
+/**
+ * @brief Steps the time by applying the given clock offset.
+ *
+ * This function updates the local time by applying the provided clock offset.
+ *
+ * @param offset The clock offset to apply.
  */
-void adjust_time(double offset /* clock offset */
-)
+void step_time(double offset)
 {
-    struct timeval unix_time;
-    tstamp time;
+    double ntp_time = (offset);
+    prv_update_localTime(ntp_time, 0);
+}
 
-    /*
-     * Convert from double to native format (signed) and add to the
-     * current time.
-     */
-    time = D2LFP(offset);
-    unix_time.tv_sec = time >> 32;
-    unix_time.tv_usec = (long)(((time - unix_time.tv_sec) << 32) / FRAC * 1e6);
-    // adjtime(&unix_time, NULL);
+/**
+ * Adjusts the system time by the given offset.
+ *
+ * @param offset The clock offset to adjust the time by.
+ */
+void adjust_time(double offset)
+{
+    FreeRTOS_printf(("Adjusting time by:\n"));
+    FreeRTOS_printf_wrapper_double("", offset);
+    double ntp_time = (offset);
+    prv_update_localTime(offset, 1);
 }

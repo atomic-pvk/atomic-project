@@ -15,7 +15,7 @@ run() {
 run "./setup_network.sh"
 run "cd src"
 run "make clean"
-run "make -j"
+run "make -j > /dev/null"
 
 QEMU_MAC_ADDRESS="52:54:00:12:34:AD"
 CMD="qemu-system-arm -machine mps2-an385 -cpu cortex-m3 \

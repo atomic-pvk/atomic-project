@@ -1,12 +1,16 @@
-
 #include "NTP_poll.h"
 
 #include "NTPTask.h"
 #include "NTP_main_utility.h"
 #include "NTP_peer.h"
-// A.5.7.1.  poll()
-/*
- * poll() - determine when to send a packet for association p->
+
+/**
+ * @brief Executes the poll routine for a given NTP peer.
+ *
+ * This routine is called when the current time catches up to the next poll time for the peer.
+ * It updates the next execution time for the peer and performs the necessary actions based on the peer's mode.
+ *
+ * @param p Pointer to the NTP peer structure.
  */
 void poll(struct ntp_p *p)  // peer structure pointer
 {
@@ -39,6 +43,7 @@ void poll(struct ntp_p *p)  // peer structure pointer
      */
     if (p->hmode == M_CLNT && p->flags & P_MANY)
     {
+        printf("\n\n\npoll phmode\n\n\n");
         p->outdate = c.t;
         if (p->unreach > BEACON)
         {
@@ -57,6 +62,7 @@ void poll(struct ntp_p *p)  // peer structure pointer
     }
     if (p->burst == 0)
     {
+        printf("\n\n\npoll 0\n\n\n");
         /*
          * We are not in a burst.  Shift the reachability
          * register to the left.  Hopefully, some time before
@@ -66,9 +72,14 @@ void poll(struct ntp_p *p)  // peer structure pointer
         oreach = p->reach;
         p->outdate = c.t;
         p->reach = p->reach << 1;
-        if (!(p->reach & 0x7)) clock_filter(p, 0, 0, MAXDISP);
+        if (!(p->reach & 0x7))
+        {
+            printf("\n\n\npoll 1\n\n\n");
+            clock_filter(p, 0, 0, MAXDISP);
+        }
         if (!p->reach)
         {
+            printf("\n\n\npoll 2\n\n\n");
             /*
              * The server is unreachable, so bump the
              * unreach counter.  If the unreach threshold
@@ -89,6 +100,7 @@ void poll(struct ntp_p *p)  // peer structure pointer
         }
         else
         {
+            printf("\n\n\npoll 3\n\n\n");
             /*
              * The server is reachable.  Set the poll
              * interval to the system poll interval.  Send a
@@ -101,6 +113,7 @@ void poll(struct ntp_p *p)  // peer structure pointer
     }
     else
     {
+        printf("\n\n\npoll 4\n\n\n");
         /*
          * If in a burst, count it down.  When the reply comes
          * back the clock_filter() routine will call
@@ -108,17 +121,20 @@ void poll(struct ntp_p *p)  // peer structure pointer
          */
         p->burst--;
     }
+    printf("\n\n\npoll 5\n\n\n");
     /*
      * Do not transmit if in broadcast client mode.
      */
     if (p->hmode != M_BCLN) peer_xmit(p);
     poll_update(p, hpoll);
+    printf("\n\n\npoll end\n\n\n");
 }
 
-// A.5.7.2.  poll_update()
-
-/*
- * poll_update() - update the poll interval for association p
+/**
+ * Updates the poll interval for a given NTP peer.
+ *
+ * @param p - Pointer to the peer structure.
+ * @param poll - The poll interval in log2 seconds.
  *
  * Note: This routine is called by both the packet() and poll() routine.
  * Since the packet() routine is executed when a network packet arrives
@@ -129,6 +145,8 @@ void poll(struct ntp_p *p)  // peer structure pointer
 void poll_update(struct ntp_p *p, /* peer structure pointer */
                  int poll)        /* poll interval (log2 s) */
 {
+    static double last_nextdate = 0; /* keep track of the last assigned nextdate */
+
     /*
      * This routine is called by both the poll() and packet()
      * routines to determine the next poll time.  If within a burst
@@ -155,28 +173,40 @@ void poll_update(struct ntp_p *p, /* peer structure pointer */
         p->nextdate = p->outdate + (1 << max(min(p->ppoll, p->hpoll), MINPOLL));
     }
 
+    /* Ensure nextdate is at least 5 seconds later than the last one */
+    if (p->nextdate <= p->nextdate + 5 && last_nextdate <= (5 * (NMAX)))
+    {
+        p->nextdate += last_nextdate;
+        last_nextdate += 5;
+    }
+
+    /* Update last_nextdate */
+
     /*
      * It might happen that the due time has already passed.  If so,
      * make it one second in the future.
      */
-    if (p->nextdate <= c.t) p->nextdate = c.t + 1;
+    if (p->nextdate <= c.t) p->nextdate = add_int64_t(c.t, 1);
+    // FreeRTOS_printf_wrapper_double("poll_update: p->nextdate: ", p->nextdate);
+    // printf("\n\n\npoll_update end\n\n\n");
 }
 
-// A.5.7.3.  peer_xmit()
-
-/*
- * transmit() - transmit a packet for association p
+/**
+ * Transmits an NTP packet to a peer.
+ *
+ * @param p Pointer to the peer structure.
  */
-void peer_xmit(struct ntp_p *p  // peer structure pointer)
-)
+void peer_xmit(struct ntp_p *p)
 {
     struct ntp_x x; /* transmit packet */
 
     /*
      * Initialize header and transmit timestamp
      */
-    x.srcaddr = p->dstaddr;
-    x.dstaddr = p->srcaddr;
+    NTP1_server_IP = p->srcaddr;
+
+    x.srcaddr = p->srcaddr;
+    x.dstaddr = p->dstaddr;
     x.leap = s.leap;
     x.version = p->version;
     x.mode = p->hmode;
@@ -192,9 +222,12 @@ void peer_xmit(struct ntp_p *p  // peer structure pointer)
     x.reftime = s.reftime;
     x.org = p->org;
     x.rec = p->rec;
-    // gettime(0);
+    gettime(0);
     x.xmt = c.t;
     p->xmt = x.xmt;
+
+    FreeRTOS_printf(("\n\nSending to : %lu.%lu.%lu.%lu\n\n", (x.srcaddr & 0xFF), ((x.srcaddr >> 8) & 0xFF),
+                     ((x.srcaddr >> 16) & 0xFF), ((x.srcaddr >> 24) & 0xFF)));
 
     /*
      * If the key ID is nonzero, send a valid MAC using the key ID
@@ -203,12 +236,12 @@ void peer_xmit(struct ntp_p *p  // peer structure pointer)
      * packet; just reset the association and stop until the problem
      * is fixed.
      */
-    if (p->keyid)
-        if (/* p->keyid invalid */ 0)
-        {
-            clear(p, X_NKEY);
-            return;
-        }
-    x.dgst = md5(p->keyid);
+    // if (p->keyid)
+    //     if (/* p->keyid invalid */ 0)
+    //     {
+    //         clear(p, X_NKEY);
+    //         return;
+    //     }
+    // x.dgst = md5(p->keyid);
     xmit_packet(&x);
 }

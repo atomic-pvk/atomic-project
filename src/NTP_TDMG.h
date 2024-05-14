@@ -7,10 +7,6 @@ G Global Constants
 */
 #ifndef NTP_TDMG_H
 #define NTP_TDMG_H
-// A.1.1.  Definitions, Constants, Parameters
-
-// TODO
-// #include "FreeRTOS_IP_Common.h"
 
 #include <math.h>     /* avoids complaints about sqrt() */
 #include <stdlib.h>   /* for malloc() and friends */
@@ -19,6 +15,7 @@ G Global Constants
 
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
+#include "semphr.h"
 
 /*
  * Data types
@@ -49,8 +46,6 @@ typedef uint64_t
 typedef uint32_t tdist; /* NTP short format */
 
 typedef uint32_t ipaddr; /* IPv4 or IPv6 address */
-// TODO use freertos ipaddr
-//  extern IP_Address;
 
 typedef uint32_t digest; /* md5 digest */
 typedef int8_t s_char;   /* precision and poll interval (log2) */
@@ -66,12 +61,12 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 /*
  * Timestamp conversion macroni
  */
-#define FRIC 65536.                 /* 2^16 as a double */
-#define D2FP(r) ((tdist)((r)*FRIC)) /* NTP short */
+#define FRIC 65536.                   /* 2^16 as a double */
+#define D2FP(r) ((tdist)((r) * FRIC)) /* NTP short */
 #define FP2D(r) ((double)(r) / FRIC)
 
-#define FRAC 4294967296.              /* 2^32 as a double */
-#define D2LFP(a) ((tstamp)((a)*FRAC)) /* NTP timestamp */
+#define FRAC 4294967296.                /* 2^32 as a double */
+#define D2LFP(a) ((tstamp)((a) * FRAC)) /* NTP timestamp */
 #define LFP2D(a) ((double)(a) / FRAC)
 #define U2LFP(a) (((unsigned long long)((a).tv_sec + JAN_1970) << 32) + (unsigned long long)((a).tv_usec / 1e6 * FRAC))
 
@@ -185,12 +180,6 @@ typedef int8_t s_char;   /* precision and poll interval (log2) */
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) < (b) ? (b) : (a))
 
-/* Global variable */
-// extern struct ntp_s s;
-// extern struct ntp_c c;
-
-// A.1.2.  Packet Data Structures
-
 /*
  * The receive and transmit packets may contain an optional message
  * authentication code (MAC) consisting of a key identifier (keyid) and
@@ -256,8 +245,6 @@ typedef struct ntp_x
     int keyid;        /* key ID */
     digest dgst;      /* message digest */
 } ntp_x;
-
-// A.1.3.  Association Data Structures
 
 /*
  * Filter stage structure.  Note the t member in this and other
@@ -327,29 +314,33 @@ typedef struct ntp_p
     int nextdate;         /* next poll time */
 } ntp_p;
 
-// A.1.4.  System Data Structures
-
 /*
- * Chime list.  This is used by the intersection algorithm.
+ * Chime list structure based on Marzullo's algorithm, used in the intersection algorithm of NTP.
+ *
+ * This structure represents an entry in the chime list.
  */
 typedef struct ntp_m
-{                    /* m is for Marzullo */
-    struct ntp_p *p; /* peer structure pointer */
-    int type;        /* high +1, mid 0, low -1 */
-    double edge;     /* correctness interval edge */
+{
+    struct ntp_p *p;
+    int type;
+    double edge;
 } ntp_m;
 
 /*
- * Survivor list.  This is used by the clustering algorithm.
+ * Survivor list structure used in the clustering algorithm of NTP.
+ *
+ * This structure represents an entry in the survivor list.
  */
 typedef struct ntp_v
 {
-    struct ntp_p *p; /* peer structure pointer */
-    double metric;   /* sort metric */
+    struct ntp_p *p;
+    double metric;
 } ntp_v;
 
 /*
- * System structure
+ * NTP peer structure based on RFC 5905.
+ *
+ * This structure represents an NTP peer in the system.
  */
 typedef struct ntp_s
 {
@@ -371,10 +362,10 @@ typedef struct ntp_s
     int n;                    /* number of survivors */
 } ntp_s;
 
-// A.1.5.  Local Clock Data Structures
-
 /*
- * Local clock structure
+ * Local clock structure based on RFC 5905.
+ *
+ * This structure represents the local clock in an NTP system.
  */
 typedef struct ntp_c
 {
@@ -390,28 +381,6 @@ typedef struct ntp_c
     TickType_t lastTimeStampTick; /* freertos tick*/
 } ntp_c;
 
-typedef struct ntp_packet
-{
-    uint8_t li_vn_mode;       // Eight bits. li, vn, and mode.
-                              // li.   Two bits.   Leap indicator.
-                              // vn.   Three bits. Version number of the protocol.
-                              // mode. Three bits. Client will pick mode 3 for client.
-    uint8_t stratum;          // Eight bits. Stratum level of the local clock.
-    uint8_t poll;             // Eight bits. Maximum interval between successive messages.
-    uint8_t precision;        // Eight bits. Precision of the local clock.
-    uint32_t rootDelay;       // 32 bits. Total round trip delay time.
-    uint32_t rootDispersion;  // 32 bits. Max error aloud from primary clock source.
-    uint32_t refId;           // 32 bits. Reference clock identifier.
-    uint32_t refTm_s;         // 32 bits. Reference time-stamp seconds.
-    uint32_t refTm_f;         // 32 bits. Reference time-stamp fraction of a second.
-    uint32_t origTm_s;        // 32 bits. Originate time-stamp seconds.
-    uint32_t origTm_f;        // 32 bits. Originate time-stamp fraction of a second.
-    uint32_t rxTm_s;          // 32 bits. Received time-stamp seconds.
-    uint32_t rxTm_f;          // 32 bits. Received time-stamp fraction of a second.
-    uint32_t txTm_s;          // 32 bits. Transmit time-stamp seconds.
-    uint32_t txTm_f;          // 32 bits. Transmit time-stamp fraction of a second.
-} ntp_packet;
-
 // Association Data Structures used in the assoc table to find associations between peers and addresses
 typedef struct Assoc_table
 {
@@ -422,9 +391,6 @@ typedef struct Assoc_table
 void assoc_table_init(uint32_t *);
 int assoc_table_add(uint32_t, char, tstamp);
 void assoc_table_update(ntp_p *);
-
-// void ntp_init(ntp_r *, ntp_x *, const char *[], uint32_t *);
-void ntp_init();
 
 double sqrt(double number);
 

@@ -1,18 +1,5 @@
 #include "NTP_peer.h"
 
-// A.5.1.1.  packet()
-
-double log2d(int a)
-{
-    if (a < 0)
-    {
-        return 1.0 / (1L << -a);
-    }
-    else
-    {
-        return (double)(1L << a);
-    }
-}
 /*
  * Dispatch matrix
  *              active  passv  client server bcast */
@@ -24,9 +11,13 @@ int table[7][5] = {
     /* server  */ {DSCRD, DSCRD, DSCRD, DSCRD, DSCRD},
     /* bcast   */ {DSCRD, DSCRD, DSCRD, DSCRD, DSCRD},
     /* bclient */ {DSCRD, DSCRD, DSCRD, DSCRD, PROC}};
-/*
- * packet() - process packet and compute offset, delay, and
- * dispersion.
+
+/**
+ * This function processes a received NTP packet and updates the peer structure accordingly.
+ * It calculates the offset, delay, and dispersion of the received packet and passes them to the clock filter.
+ *
+ * @param p - A pointer to the peer structure to be updated.
+ * @param r - A pointer to the received packet.
  */
 void packet(struct ntp_p *p, /* peer structure pointer */
             struct ntp_r *r  /* receive packet pointer */
@@ -50,6 +41,7 @@ void packet(struct ntp_p *p, /* peer structure pointer */
         p->stratum = r->stratum;
     p->pmode = r->mode;
     p->ppoll = r->poll;
+    p->rootdelay = FP2D(r->rootdelay);
     p->rootdisp = FP2D(r->rootdisp);
     p->refid = r->refid;
     p->reftime = r->reftime;
@@ -92,36 +84,26 @@ void packet(struct ntp_p *p, /* peer structure pointer */
     else
     {
         offset = LFP2D(add_int64_t(subtract_uint64_t(r->rec, r->org), subtract_uint64_t(r->dst, r->xmt))) / 2;
+        FreeRTOS_printf(("offset: %f\n", offset));
+        FreeRTOS_printf_wrapper_double("offset: ", offset);
 
         delay = max(LFP2D(subtract_uint64_t((subtract_uint64_t(r->dst, r->org)), (subtract_uint64_t(r->rec, r->xmt)))),
                     LOG2D(s.precision));
         disp = LOG2D(r->precision) + LOG2D(s.precision) + LFP2D(PHI * subtract_uint64_t(r->dst, r->org));
     }
-    double local_delay = (r->dst - r->org) - (r->xmt - r->rec);
-    p->rootdelay = r->rootdelay + delay;
 
-    // FreeRTOS_printf(("\n\ntesting\n"));
-    // FreeRTOS_printf_wrapper_double("", LFP2D(PHI * subtract_uint64_t(r->dst, r->org)));
-    // FreeRTOS_printf_wrapper_double(
-    //     "", LOG2D(r->precision) + LOG2D(s.precision) + LFP2D(PHI * subtract_uint64_t(r->dst, r->org)));
-    // FreeRTOS_printf(("\n\noffset\n"));
-    // FreeRTOS_printf_wrapper_double("", offset);
-    // FreeRTOS_printf(("\n\ndelay\n"));
-    // FreeRTOS_printf_wrapper_double("", delay);
-    // FreeRTOS_printf(("\n\ndisp\n"));
-    // FreeRTOS_printf_wrapper_double("", disp);
-    // FreeRTOS_printf(("\n\n\n lets see if offset is working: %d\n\n\n", offset)); // = 0
-    // FreeRTOS_printf(("\n\n\ndelay is %d\n\n\n", delay));
-    // FreeRTOS_printf(("\n\n\ndisp is %d\n\n\n", disp));
-    // FreeRTOS_printf(("I AM CALLING CLOCK_FILTER\n\n"));
     clock_filter(p, offset, delay, disp);
 }
 
-// A.5.2.  clock_filter()
-
-/*
- * clock_filter(p, offset, delay, dispersion) - select the best from the
- * latest eight delay/offset samples.
+/**
+ * This function implements the clock filter algorithm for NTP.
+ * It takes a new sample (offset, delay, dispersion) and updates the peer structure accordingly.
+ * The function also maintains a sorted list of the eight most recent samples and calculates the peer jitter.
+ *
+ * @param p - A pointer to the peer structure to be updated.
+ * @param offset - The clock offset of the new sample.
+ * @param delay - The roundtrip delay of the new sample.
+ * @param disp - The dispersion of the new sample.
  */
 void clock_filter(struct ntp_p *p, /* peer structure pointer */
                   double offset,   /* clock offset */
@@ -144,9 +126,8 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
      * place the (offset, delay, disp, time) in the vacated
      * rightmost tuple.
      */
-    gettime(1);  // update c.localTime to the current time
-    double tmpDisp = LFP2D(
-        PHI * (subtract_uint64_t(c.localTime, p->t)));  // this is a static value so it should only be calculated once
+    double tmpDisp =
+        LFP2D(PHI * (subtract_uint64_t(c.t, p->t)));  // this is a static value so it should only be calculated once
 
     for (i = 1; i < NSTAGE; i++)
     {
@@ -154,7 +135,7 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
         p->f[i].disp += tmpDisp;
         f[i] = p->f[i];
     }
-    p->f[0].t = c.localTime;
+    p->f[0].t = c.t;
     p->f[0].offset = offset;
     p->f[0].delay = delay;
     p->f[0].disp = disp;
@@ -175,7 +156,7 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
         unsigned int denominator = 1 << exp;
         double result = f[i].disp / denominator;
         p->disp += result;
-        p->jitter += SQUARE(f[i].offset - f[0].offset);
+        p->jitter += SQUARE(fabs(f[i].offset - f[0].offset));
     }
 
     p->jitter = max(sqrt(p->jitter), LOG2D(s.precision));
@@ -188,10 +169,7 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
 
     if (subtract_uint64_t(f[0].t, p->t) <= 0 && s.leap != NOSYNC)
     {
-        // FreeRTOS_printf_wrapper_double("", subtract_uint64_t(f[0].t, p->t));
-        // FreeRTOS_printf_wrapper_double("", f[0].t);
-        // FreeRTOS_printf_wrapper_double("", p->t);
-        // FreeRTOS_printf(("f[0].t - p->t <= 0\n"));
+        FreeRTOS_printf(("f[0].t - p->t <= 0, killing\n"));
         return;
     }
 
@@ -202,16 +180,15 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
      * less than twice the system poll interval, dump the spike.
      * Otherwise, and if not in a burst, shake out the truechimers.
      */
-    if (fabs(p->offset - dtemp) > SGATE * p->jitter && (f[0].t - p->t) < 2 * s.poll)
+    if (fabs(p->offset - dtemp) > SGATE * p->jitter && (subtract_uint64_t(f[0].t, p->t)) < 2 * s.poll)
     {
-        // FreeRTOS_printf(("Popcorn spike found\n"));
+        FreeRTOS_printf(("Popcorn spike found, killing\n"));
         return;
     }
 
     p->t = f[0].t;
     if (p->burst == 0)
     {
-        // FreeRTOS_printf(("p->burst == 0\n\n\n"));
         assoc_table_update(p);
         clock_select();
     }
@@ -219,8 +196,10 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
     return;
 }
 
-/*
- * fit() - test if association p is acceptable for synchronization
+/**
+ * This function checks if a given NTP peer is acceptable for synchronization.
+ *
+ * @param p - A pointer to the peer structure to be checked.
  */
 int fit(struct ntp_p *p /* peer structure pointer */
 )
@@ -236,7 +215,6 @@ int fit(struct ntp_p *p /* peer structure pointer */
      * distance threshold plus an increment equal to one poll
      * interval.
      */
-
     if (root_dist(p) > MAXDIST + PHI * (double)LOG2D(s.poll)) return (FALSE);
 
     /*
@@ -262,9 +240,12 @@ int fit(struct ntp_p *p /* peer structure pointer */
     return (TRUE);
 }
 
-/*
+/**
  * clear() - reinitialize for persistent association, demobilize
  * for ephemeral association.
+ *
+ * @param p - A pointer to the peer structure to be cleared.
+ * @param kiss - The kiss code indicating the reason for clearing the peer.
  */
 void clear(struct ntp_p *p, /* peer structure pointer */
            int kiss         /* kiss code */
@@ -306,11 +287,9 @@ void clear(struct ntp_p *p, /* peer structure pointer */
      * clients have just been stirred up after a long absence of the
      * broadcast server.
      */
-    p->outdate = p->t = c.localTime;
+    p->outdate = p->t = c.t;
     p->nextdate = p->outdate + (random() & ((1 << MINPOLL) - 1));
 }
-
-// A.5.3.  fast_xmit()
 
 /*
  * fast_xmit() - transmit a reply packet for receive packet r
@@ -354,6 +333,7 @@ void fast_xmit(struct ntp_r *r, /* receive packet pointer */
      * MAC.  Use the key ID in the received packet and the key in
      * the local key cache.
      */
+    FreeRTOS_printf(("fast_xmit: auth = %d\n", auth));
     if (auth != A_NONE)
     {
         if (auth == A_CRYPTO)
@@ -368,8 +348,6 @@ void fast_xmit(struct ntp_r *r, /* receive packet pointer */
     }
     xmit_packet(&x);
 }
-
-// A.5.4.  access()
 
 /*
  * access() - determine access restrictions
@@ -544,11 +522,8 @@ void receive(struct ntp_r *r /* receive packet pointer */
             if (!(s.flags & S_BCSTENAB)) return; /* broadcast not enabled */
 
             p = mobilize(r->srcaddr, r->dstaddr, r->version, M_BCLN, r->keyid, P_EPHEM);
-            break; /* processing continues *
+            break; /* processing continues */
 
-/*
-* Process packet.  Placeholdler only.
-*/
         case PROC:
             // p = mobilize(r->srcaddr, r->dstaddr, r->version, M_SERV,
             //              r->keyid, P_EPHEM); // TODO //
@@ -603,13 +578,13 @@ void receive(struct ntp_r *r /* receive packet pointer */
     {
         if ((rOrgInSeconds == 0) && (rOrgFrac == 0))
         {
-            // FreeRTOS_printf(("rOrgInSeconds == 0\n"));
+            FreeRTOS_printf(("rOrgInSeconds == 0\n"));
             synch = FALSE; /* unsynchronized */
         }
 
         else if ((rOrgInSeconds != pXmtInSeconds) && (rOrgFrac != pXmtFrac))
         {
-            // FreeRTOS_printf(("rOrgInSeconds != pXmtInSeconds\n"));
+            FreeRTOS_printf(("rOrgInSeconds != pXmtInSeconds\n"));
             synch = FALSE; /* bogus packet */
         }
     }
