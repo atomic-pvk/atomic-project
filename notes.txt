@@ -3,27 +3,14 @@ Changed clear function in NTP_peer.c to use custom type MAXDISPAlg reason being 
 1 (s) to 40 (s) +. I compromised and changed the init to use MAXDISPAlg and changed the value of MAXDIST to allow more room for error. - A
 memory has become an issue, pain - A
 
-Peer 1
-3.251393191 <-- start, 1
-0.003314148 <-- mid, 0
--3.244764894 <-- end, -1
+* This condition has changed in NTP_system_process.c for the function clock_update().
+if (s.t >= p->t)
+    {
+        return;
+    }
+changed to:
+if (s.t > p->t)
+    {
 
-Peer 2
-3.304096626
-0.056017500
--3.192061627
-
-Peer 3
-3.300839186
-0.052760523
--3.195318139
-
--3.244455466
--3.197687856
--3.196481739
-0.003622554
-0.050389711
-0.051596086
-3.251700574
-3.298467278
-3.299673910
+        return;
+    }

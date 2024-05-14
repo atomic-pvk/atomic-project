@@ -184,6 +184,7 @@ static void vNTPTask(void *pvParameters)
     // Cleanup allocated memory (typically not reached in FreeRTOS tasks)
     free(r);
     free(x);
+    assoc_table_deinit();
 }
 
 // static void vNTPTaskInterrupt(void *pvParameters)
