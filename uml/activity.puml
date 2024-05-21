@@ -1,0 +1,23 @@
+@startuml
+
+start
+
+:Initialize FreeRTOS scheduler;
+:Setup network;
+:Trigger NTP client task;
+
+:Initialize data structures;
+:Fetch initial reference time from selected NTP server; 
+:Set received time to local time;
+
+while (true)
+
+    if (Time to sync?) then (Yes)
+        :Do stuff;
+    else (No)
+        :Wait;
+    endif
+
+endwhile
+
+@enduml
