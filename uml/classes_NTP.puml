@@ -4,60 +4,35 @@ skinparam linetype ortho
 ' Classes definition
 class NTPTask {
     + void vStartNTPClientTasks_SingleTasks(uint16_t, UBaseType_t)
-    + static void vNTPTaskSendUsingStandardInterface(void*)
 }
 
 class NTP_main_utility {
-    + struct ntp_p* mobilize(uint32_t, uint32_t, int, int, int, int)
     + struct ntp_p* find_assoc(struct ntp_r*)
     + digest md5(int)
-    + void FreeRTOS_ntohl_array_32(uint32_t*, size_t)
-    + void create_ntp_r(struct ntp_r*, ntp_packet*, tstamp)
     + struct ntp_r* recv_packet()
-    + void translate_ntp_x_to_ntp_packet(ntp_x*, ntp_packet*)
     + void xmit_packet(struct ntp_x*)
-    + void step_time(double)
-    + void adjust_time(double)
 }
 
 class NTP_TDMG {
     + void assoc_table_init(Assoc_table*, uint32_t*)
-    + int assoc_table_add(Assoc_table*, uint32_t, char, tstamp)
-    + void assoc_table_update(ntp_p*)
-    + double sqrt(double)
-    + int64_t subtract_uint64_t(uint64_t, uint64_t)
-    + int64_t add_int64_t(int64_t, int64_t)
     + void settime(tstamp)
-    + tstamp gettime(int)
-    + void printTimestamp(tstamp, const char*)
-    + void uint64_to_str(uint64_t, char*)
-    + void FreeRTOS_printf_wrapper(const char*, uint64_t)
-    + void double_to_str(double, char*, int)
-    + void FreeRTOS_printf_wrapper_double(const char*, double)
-    + void print_uint64_as_32_parts(uint64_t)
+    + tstamp gettime()
 }
 
 class NTP_peer {
-    + double log2d(int)
     + void packet(struct ntp_p*, struct ntp_r*)
     + void clock_filter(struct ntp_p*, double, double, double)
-    + int fit(struct ntp_p*)
     + void clear(struct ntp_p*)
-    + void fast_xmit(struct ntp_r*, int, int)
     + int access(struct ntp_r*)
     + void receive(struct ntp_r*)
 }
 
 class NTP_poll {
-    + void poll(struct ntp_p*)
     + void poll_update(struct ntp_p*, int)
 }
 
 class NTP_system_process {
-    + int compare_ntp_m(const void*, const void*)
     + void clock_select()
-    + double root_dist(struct ntp_p*)
-    + int accept(struct ntp_p*)
     + void clock_update(struct ntp_p*)
     + void clock_combine()
 }
