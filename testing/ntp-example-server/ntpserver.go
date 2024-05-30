@@ -92,7 +92,7 @@ func main() {
 
 	fmt.Println("NTP Server started on", port)
 
-	fixedDate := time.Date(2002, time.September, 11, 14, 14, 0, 0, time.UTC)
+	fixedDate := time.Date(2002, time.June, 23, 6, 30, 0, 0, time.UTC)
 	fixedUnix := fixedDate.Unix()
 	fixedNTP := (uint64(fixedUnix) + NTP_EPOCH_OFFSET) << 32 // Shift left to put into the upper 32 bits
 
