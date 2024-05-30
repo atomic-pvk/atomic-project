@@ -221,10 +221,10 @@ void gettime(int override)
     // calculate the difference between the current tick and the last tick
     TickType_t tickDifference = currentTick - c.lastTimeStampTick;
 
-    FreeRTOS_printf(("Tick diff\n"));
-    FreeRTOS_printf_wrapper_double("", tickDifference);
+    // FreeRTOS_printf(("Tick diff\n"));
+    // FreeRTOS_printf_wrapper_double("", tickDifference);
     if (tickDifference < 10 && !override) return;  // Ignore small differences
-    FreeRTOS_printf(("changing local time...\n\n"));
+    // FreeRTOS_printf(("changing local time...\n"));
 
     // calculate tickDifference / 1000 as integer division
     TickType_t numSecondsInTicks = tickDifference / 1000;
@@ -243,7 +243,7 @@ void gettime(int override)
     uint32_t tempFractions = currentFractions + newFractions;
     if (tempFractions < currentFractions)
     {  // Check for overflow using wrap-around condition
-        // FreeRTOS_printf(("Overflow detected\n\n"));
+        // FreeRTOS_printf(("Overflow detected\n"));
         numSecondsInTicks++;  // Increment the seconds part due to overflow
     }
 

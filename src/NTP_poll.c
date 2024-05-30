@@ -226,7 +226,7 @@ void peer_xmit(struct ntp_p *p)
     x.xmt = c.t;
     p->xmt = x.xmt;
 
-    FreeRTOS_printf(("\n\nSending to : %lu.%lu.%lu.%lu\n\n", (x.srcaddr & 0xFF), ((x.srcaddr >> 8) & 0xFF),
+    FreeRTOS_printf(("Sending to : %lu.%lu.%lu.%lu\n\n", (x.srcaddr & 0xFF), ((x.srcaddr >> 8) & 0xFF),
                      ((x.srcaddr >> 16) & 0xFF), ((x.srcaddr >> 24) & 0xFF)));
 
     /*

@@ -98,7 +98,7 @@ extern void vLoggingPrintf(const char* pcFormatString, ...);
  * call to FreeRTOS_gethostbyname() will return immediately, without even creating
  * a socket. */
 #define ipconfigUSE_DNS_CACHE (1)
-#define ipconfigDNS_CACHE_NAME_LENGTH (20)
+#define ipconfigDNS_CACHE_NAME_LENGTH (30)
 #define ipconfigDNS_CACHE_ENTRIES (4)
 #define ipconfigDNS_REQUEST_ATTEMPTS (2)
 

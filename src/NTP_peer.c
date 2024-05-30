@@ -36,9 +36,14 @@ void packet(struct ntp_p *p, /* peer structure pointer */
      */
     p->leap = r->leap;
     if (r->stratum == 0)
+    {
+        FreeRTOS_printf((" Invalid stratum level (%d), setting to MAXSTRAT\n", r->stratum));
         p->stratum = MAXSTRAT;
+    }
     else
+    {
         p->stratum = r->stratum;
+    }
     p->pmode = r->mode;
     p->ppoll = r->poll;
     p->rootdelay = FP2D(r->rootdelay);
@@ -52,10 +57,15 @@ void packet(struct ntp_p *p, /* peer structure pointer */
      */
     if (p->leap == NOSYNC || p->stratum >= MAXSTRAT)
     {
+        FreeRTOS_printf(("leap == NOSYNC || stratum >= MAXSTRAT, discarding packet\n"));
         return; /* unsynchronized */
     }
 
-    if (r->rootdelay / 2 + r->rootdisp >= MAXDISP || p->reftime > r->xmt) return; /* invalid header values */
+    if (r->rootdelay / 2 + r->rootdisp >= MAXDISP || p->reftime > r->xmt)
+    {
+        FreeRTOS_printf(("invalid header values, discarding packet\n"));
+        return; /* invalid header values */
+    }
 
     poll_update(p, p->hpoll);
     p->reach |= 1;
@@ -84,13 +94,20 @@ void packet(struct ntp_p *p, /* peer structure pointer */
     else
     {
         offset = LFP2D(add_int64_t(subtract_uint64_t(r->rec, r->org), subtract_uint64_t(r->dst, r->xmt))) / 2;
-        FreeRTOS_printf(("offset: %f\n", offset));
-        FreeRTOS_printf_wrapper_double("offset: ", offset);
-
         delay = max(LFP2D(subtract_uint64_t((subtract_uint64_t(r->dst, r->org)), (subtract_uint64_t(r->rec, r->xmt)))),
                     LOG2D(s.precision));
         disp = LOG2D(r->precision) + LOG2D(s.precision) + LFP2D(PHI * subtract_uint64_t(r->dst, r->org));
     }
+    FreeRTOS_printf(("offset: \n"));
+    FreeRTOS_printf_wrapper_double("offset: %f\n", offset);
+
+    FreeRTOS_printf(("delay: \n"));
+    FreeRTOS_printf_wrapper_double("delay: %f\n", delay);
+
+    FreeRTOS_printf(("disp: \n"));
+    FreeRTOS_printf_wrapper_double("disp: %f\n", disp);
+
+    FreeRTOS_printf(("Updating poll interval\n"));
 
     clock_filter(p, offset, delay, disp);
 }
@@ -115,7 +132,7 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
     double dtemp;
     int i;
 
-    // FreeRTOS_printf(("\n\n\nCLOCK_FILTER\n\n\n"));
+    // FreeRTOS_printf(("\nCLOCK_FILTER\n\n"));
 
     /*
      * The clock filter contents consist of eight tuples (offset,
@@ -169,7 +186,7 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
 
     if (subtract_uint64_t(f[0].t, p->t) <= 0 && s.leap != NOSYNC)
     {
-        FreeRTOS_printf(("f[0].t - p->t <= 0, killing\n"));
+        FreeRTOS_printf(("f[0].t - p->t <= 0, discarding packet\n"));
         return;
     }
 
@@ -182,13 +199,14 @@ void clock_filter(struct ntp_p *p, /* peer structure pointer */
      */
     if (fabs(p->offset - dtemp) > SGATE * p->jitter && (subtract_uint64_t(f[0].t, p->t)) < 2 * s.poll)
     {
-        FreeRTOS_printf(("Popcorn spike found, killing\n"));
+        FreeRTOS_printf(("Popcorn spike found, discarding packet\n"));
         return;
     }
 
     p->t = f[0].t;
     if (p->burst == 0)
     {
+        FreeRTOS_printf(("Updating association table\n"));
         assoc_table_update(p);
         clock_select();
     }
@@ -378,6 +396,8 @@ void receive(struct ntp_r *r /* receive packet pointer */
     int has_mac;     /* size of MAC */
     int synch;       /* synchronized switch */
 
+    FreeRTOS_printf(("Checking access and authorization\n"));
+
     /*
      * Check access control lists.  The intent here is to implement
      * a whitelist of those IP addresses specifically accepted
@@ -385,14 +405,22 @@ void receive(struct ntp_r *r /* receive packet pointer */
      * rejected.  There could be different lists for authenticated
      * clients and unauthenticated clients.
      */
-    if (!access(r)) return; /* access denied */
+    if (!access(r))
+    {
+        FreeRTOS_printf(("Access denied\n"));
+        return; /* access denied */
+    }
 
     /*
      * The version must not be in the future.  Format checks include
      * packet length, MAC length and extension field lengths, if
      * present.
      */
-    if (r->version > VERSION /* or format error */) return; /* format error */
+    if (r->version > VERSION /* or format error */)
+    {
+        FreeRTOS_printf(("Received ntp version does not match the local version\n"));
+        return; /* format error */
+    }
 
     /*
      * Authentication is conditioned by two switches that can be
@@ -437,7 +465,17 @@ void receive(struct ntp_r *r /* receive packet pointer */
      * Find association and dispatch code.  If there is no
      * association to match, the value of p->hmode is assumed NULL.
      */
+    FreeRTOS_printf(("Finding association...\n"));
     p = find_assoc(r);
+    if (p == NULL)
+    {
+        FreeRTOS_printf(("Association not found\n"));
+    }
+    else
+    {
+        FreeRTOS_printf(("Association found\n"));
+    }
+    FreeRTOS_printf(("Check for sender and receiver mode combination\n"));
     switch (table[(unsigned int)(p->hmode)][(unsigned int)(r->mode) - 1])  // PACKET MODE IS INDEXED FROM 1
     {                                                                      // WHEN TABLE IS INDEXED FROM 0
 
@@ -467,13 +505,21 @@ void receive(struct ntp_r *r /* receive packet pointer */
              * synchronized or if our stratum is above the
              * manycaster.
              */
-            if (s.leap == NOSYNC || s.stratum > r->stratum) return;
+            if (s.leap == NOSYNC || s.stratum > r->stratum)
+            {
+                FreeRTOS_printf(("s.leap == NOSYNC || s.stratum > r->stratum\n"));
+                return;
+            }
 
             /*
              * Respond only if authentication is OK.  Note that the
              * unicast address is used, not the multicast.
              */
-            if (AUTH(p->flags & P_NOTRUST, auth)) fast_xmit(r, M_SERV, auth);
+            if (AUTH(p->flags & P_NOTRUST, auth))
+            {
+                FreeRTOS_printf(("AUTH(p->flags & P_NOTRUST, auth)\n"));
+                fast_xmit(r, M_SERV, auth);
+            }
             return;
 
         /*
@@ -485,7 +531,11 @@ void receive(struct ntp_r *r /* receive packet pointer */
          * match, the server packet is authentic.  Details omitted.
          */
         case MANY:
-            if (!AUTH(p->flags & (P_NOTRUST | P_NOPEER), auth)) return; /* authentication error */
+            if (!AUTH(p->flags & (P_NOTRUST | P_NOPEER), auth))
+            {
+                FreeRTOS_printf(("authentication failed\n"));
+                return; /* authentication error */
+            }
 
             p = mobilize(r->srcaddr, r->dstaddr, r->version, M_CLNT, r->keyid, P_EPHEM);
             break;
@@ -500,11 +550,13 @@ void receive(struct ntp_r *r /* receive packet pointer */
             if (!AUTH(p->flags & P_NOTRUST, auth))
             {
                 if (auth == A_ERROR) fast_xmit(r, M_SACT, A_CRYPTO);
+                FreeRTOS_printf(("crypto-NAK packet sent\n"));
                 return; /* crypto-NAK packet sent */
             }
             if (!AUTH(p->flags & P_NOPEER, auth))
             {
                 fast_xmit(r, M_SACT, auth);
+                FreeRTOS_printf(("M_SACT packet sent\n"));
                 return; /* M_SACT packet sent */
             }
             p = mobilize(r->srcaddr, r->dstaddr, r->version, M_PASV, r->keyid, P_EPHEM);
@@ -517,9 +569,17 @@ void receive(struct ntp_r *r /* receive packet pointer */
          * initial volley feature in the reference implementation.
          */
         case NEWBC:
-            if (!AUTH(p->flags & (P_NOTRUST | P_NOPEER), auth)) return; /* authentication error */
+            if (!AUTH(p->flags & (P_NOTRUST | P_NOPEER), auth))
+            {
+                FreeRTOS_printf(("authentication failed\n"));
+                return; /* authentication error */
+            }
 
-            if (!(s.flags & S_BCSTENAB)) return; /* broadcast not enabled */
+            if (!(s.flags & S_BCSTENAB))
+            {
+                FreeRTOS_printf(("broadcast not enabled\n"));
+                return; /* broadcast not enabled */
+            }
 
             p = mobilize(r->srcaddr, r->dstaddr, r->version, M_BCLN, r->keyid, P_EPHEM);
             break; /* processing continues */
@@ -527,6 +587,7 @@ void receive(struct ntp_r *r /* receive packet pointer */
         case PROC:
             // p = mobilize(r->srcaddr, r->dstaddr, r->version, M_SERV,
             //              r->keyid, P_EPHEM); // TODO //
+            FreeRTOS_printf(("Receiver is client and sender is server\n"));
             break; /* processing continues */
 
         /*
@@ -535,6 +596,7 @@ void receive(struct ntp_r *r /* receive packet pointer */
          * toss it.
          */
         case ERR:
+            FreeRTOS_printf(("Invalid mode combination, discarding packet\n"));
             clear(p, X_ERROR);
             return; /* invalid mode combination */
 
@@ -542,6 +604,7 @@ void receive(struct ntp_r *r /* receive packet pointer */
          * No match; just discard the packet.
          */
         case DSCRD:
+            FreeRTOS_printf(("orphan abandoned\n"));
             return; /* orphan abandoned */
     }
     /*
@@ -553,6 +616,7 @@ void receive(struct ntp_r *r /* receive packet pointer */
 
     if (rXmtInSeconds == 0 && rXmtFrac == 0) return; /* invalid timestamp */
 
+    FreeRTOS_printf(("Checking if paket is bogus...\n"));
     /*
      * If the transmit timestamp duplicates a previous one, the
      * packet is a replay.
@@ -562,6 +626,7 @@ void receive(struct ntp_r *r /* receive packet pointer */
 
     if ((rXmtInSeconds == pXmtInSeconds) && (rXmtFrac == pXmtFrac))
     {
+        FreeRTOS_printf(("Duplicate packet, discarding \n"));
         return; /* duplicate packet */
     }
 
@@ -590,7 +655,7 @@ void receive(struct ntp_r *r /* receive packet pointer */
     }
     else
     {
-        // FreeRTOS_printf(("r->mode == M_BCST\n"));
+        FreeRTOS_printf(("r->mode == M_BCST\n"));
     }
 
     /*
@@ -599,7 +664,11 @@ void receive(struct ntp_r *r /* receive packet pointer */
      */
     p->org = r->xmt;
     p->rec = r->dst;
-    if (!synch) return; /* unsynch */
+    if (!synch)
+    {
+        FreeRTOS_printf(("!synch, discarding packet\n"));
+        return; /* unsynch */
+    }
 
     /*
      * The timestamps are valid and the receive packet matches the
@@ -609,6 +678,7 @@ void receive(struct ntp_r *r /* receive packet pointer */
      */
     if (auth == A_CRYPTO)
     {
+        FreeRTOS_printf(("auth == A_CRYPTO, discarding packet\n"));
         clear(p, X_CRYPTO);
         return; /* crypto-NAK */
     }
@@ -619,12 +689,17 @@ void receive(struct ntp_r *r /* receive packet pointer */
      * to avoid a bait-and-switch attack, which was possible in past
      * versions.
      */
-    if (!AUTH(p->keyid || (p->flags & P_NOTRUST), auth)) return; /* bad auth */
+    if (!AUTH(p->keyid || (p->flags & P_NOTRUST), auth))
+    {
+        FreeRTOS_printf(("!AUTH, discarding packet\n"));
+        return; /* bad auth */
+    }
 
     /*
      * Everything possible has been done to validate the timestamps
      * and prevent bad guys from disrupting the protocol or
      * injecting bogus data.  Earn some revenue.
      */
+    FreeRTOS_printf(("Packet is not bogus.\n"));
     packet(p, r);
 }

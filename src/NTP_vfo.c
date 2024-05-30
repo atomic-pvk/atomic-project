@@ -23,14 +23,14 @@ local_clock(struct ntp_p *p, /* peer structure pointer */
     int rval;
     double etemp, dtemp;
 
-    // FreeRTOS_printf(("\n LOCAL CLOCK \n\n\n"));
+    // FreeRTOS_printf(("\n LOCAL CLOCK \n\n"));
 
     /*
      * If the offset is too large, give up and go home.
      */
     if (fabs(offset) > PANICT)
     {
-        // FreeRTOS_printf(("Too large offset\n"));
+        FreeRTOS_printf(("Too large offset\n"));
         return (PANIC);
     }
 
@@ -275,10 +275,11 @@ void rstclock(int state,    /* new state */
      * time of the last clock filter sample, which must be earlier
      * than the current time.
      */
+    FreeRTOS_printf(("Changing local clock state and offset\n"));
     c.state = state;
-    FreeRTOS_printf(("c.state = %d\n", c.state));
-    FreeRTOS_printf_wrapper_double("offset", offset);
-    FreeRTOS_printf_wrapper_double("t: \n", t);
+    // FreeRTOS_printf(("c.state = %d\n", c.state));
+    // FreeRTOS_printf_wrapper_double("offset", offset);
+    // FreeRTOS_printf_wrapper_double("t: \n", t);
     c.last = c.offset = offset;
     s.t = t;
     c.t++;
@@ -311,13 +312,13 @@ void clock_adjust(ntp_r *r)
      * at the longer poll intervals.
      */
     dtemp = c.offset / (PLL * min(LOG2D(s.poll), ALLAN));
-    FreeRTOS_printf(("coffset \n"));
-    FreeRTOS_printf_wrapper_double("c.offset", c.offset);
-    FreeRTOS_printf_wrapper_double("PLL * min(LOG2D(s.poll), ALLAN)", PLL * min(LOG2D(s.poll), ALLAN));
+    // FreeRTOS_printf(("coffset \n"));
+    // FreeRTOS_printf_wrapper_double("c.offset", c.offset);
+    // FreeRTOS_printf_wrapper_double("PLL * min(LOG2D(s.poll), ALLAN)", PLL * min(LOG2D(s.poll), ALLAN));
     c.offset -= dtemp;
-    FreeRTOS_printf_wrapper_double("c.offset", dtemp);
-    FreeRTOS_printf_wrapper_double("c.offset", c.offset);
-    FreeRTOS_printf_wrapper_double("c.offset", c.freq + dtemp);
+    // FreeRTOS_printf_wrapper_double("c.offset", dtemp);
+    // FreeRTOS_printf_wrapper_double("c.offset", c.offset);
+    // FreeRTOS_printf_wrapper_double("c.offset", c.freq + dtemp);
 
     /*
      * This is the kernel adjust time function, usually implemented
@@ -347,6 +348,7 @@ void clock_adjust(ntp_r *r)
             poll(assoc);
             recv_packet(r);  // Receive response
             receive(r);
+            printTimestamp(c.localTime, "current time\n\n");
         }
     }
 

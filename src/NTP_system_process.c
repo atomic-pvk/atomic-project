@@ -36,7 +36,7 @@ void cull(int *n)
     int i = 0;
     struct ntp_p *p;
 
-    FreeRTOS_printf(("\n\ncull\n\n"));
+    FreeRTOS_printf(("Culling falsechimes\n"));
 
     for (int index = 0; index < NMAX; index++)
     {
@@ -62,7 +62,7 @@ void cull(int *n)
 
     qsort(&s.m, i, sizeof(struct ntp_m), compare_ntp_m);
 
-    FreeRTOS_printf(("\n\nadded\n\n"));
+    FreeRTOS_printf(("Truechimes added\n"));
     for (int index = 0; index < i; index++)
     {
         FreeRTOS_printf_wrapper_double("\n\n%s\n\n", s.m[index].edge);
@@ -86,6 +86,7 @@ void intersection(int n, double *low, double *high)
      * are limited to the range +-(2 ^ 30) < +-2e9 by the timestamp
      * calculations.
      */
+    FreeRTOS_printf(("Finding largest contiguous intersection of correctness intervals \n"));
     int i, allow, found, chime; /* used by intersection algorithm */
     *low = 2e9;
     *high = -2e9;
@@ -157,6 +158,7 @@ void clock_select()
     osys = s.p;
     s.p = NULL;
     n = 0;
+    FreeRTOS_printf(("Perform selection algorithm\n"));
 
     cull(&n);
 
@@ -168,7 +170,7 @@ void clock_select()
      * by stratum and then by root distance.  All other things being
      * equal, this is the order of preference.
      */
-    // FreeRTOS_printf(("\ncluster alg\n"));
+    FreeRTOS_printf(("Clustering algorithm\n"));
     s.n = 0;
     for (i = 0; i < n; i++)
     {
@@ -182,8 +184,8 @@ void clock_select()
         s.v[s.n].p = p;
         s.v[s.n].metric = (double)(MAXDIST * p->stratum) + root_dist(p);
         s.n++;
-        // FreeRTOS_printf(("\n\nsurvivor found\n"));
-        // FreeRTOS_printf_wrapper_double("", s.m[i].edge);
+        FreeRTOS_printf(("survivor found\n"));
+        FreeRTOS_printf_wrapper_double("", s.m[i].edge);
     }
 
     /*
@@ -194,7 +196,7 @@ void clock_select()
      */
     if (s.n < NSANE)
     {
-        FreeRTOS_printf(("nsane survivors dead\n"));
+        FreeRTOS_printf(("survivors dead\n"));
         return;
     }
 
@@ -256,18 +258,17 @@ void clock_select()
      */
     if (osys->stratum == s.v[0].p->stratum)
     {
-        // FreeRTOS_printf(("s.p = osys\n"));
+        FreeRTOS_printf(("s.p = osys\n"));
         s.p = osys;
     }
     else
     {
-        // FreeRTOS_printf(("s.p = s.v[0].p\n"));
+        FreeRTOS_printf(("s.p = s.v[0].p\n"));
         s.p = s.v[0].p;
     }
 
     // memset(s.m, 0, sizeof(s.m));  // Clear temporary response data
 
-    // FreeRTOS_printf(("calling clock update\n"));
     clock_update(s.p);
 }
 
@@ -353,11 +354,11 @@ void clock_update(struct ntp_p *p /* peer structure pointer */
      * system peer change, avoid it.  We never use an old sample or
      * the same sample twice.
      */
-    FreeRTOS_printf_wrapper_double("s.t: ", s.t);
-    FreeRTOS_printf_wrapper_double("p->t: ", p->t);
     if (s.t > p->t)
     {
-        FreeRTOS_printf(("s.t > p->t, kill\n"));
+        FreeRTOS_printf_wrapper_double("s.t: ", s.t);
+        FreeRTOS_printf_wrapper_double("p->t: ", p->t);
+        FreeRTOS_printf(("s.t > p->t, discarding packet\n"));
         return;
     }
     /*
@@ -406,6 +407,7 @@ void clock_update(struct ntp_p *p /* peer structure pointer */
          * default .01 s in the reference implementation.
          */
         case SLEW:
+            FreeRTOS_printf(("Set new time\n"));
             s.leap = p->leap;
             s.stratum = p->stratum + 1;
             s.refid = p->refid;
@@ -434,7 +436,7 @@ void clock_combine()
     struct ntp_p *p; /* peer structure pointer */
     double x, y, z, w;
     int i;
-    // FreeRTOS_printf(("\nCLOCK COMBINE \n\n\n"));
+    // FreeRTOS_printf(("\nCLOCK COMBINE \n\n"));
 
     /*
      * Combine the offsets of the clustering algorithm survivors
@@ -455,14 +457,16 @@ void clock_combine()
         y += 1 / x;
         z += p->offset / x;
         w += SQUARE(fabs(p->offset - s.v[0].p->offset)) / x;
-        printf("combine: %d\n\n\n\n\n\n\n", i);
-        FreeRTOS_printf_wrapper_double("combine: p->offset: ", z);
-        FreeRTOS_printf_wrapper_double("combine: p->offset: ", p->offset);
-        FreeRTOS_printf_wrapper_double("combine: p->offset: ", x);
     }
-    FreeRTOS_printf_wrapper_double("combine: p->offset: ", z);
-    FreeRTOS_printf_wrapper_double("combine: p->offset: ", y);
-    FreeRTOS_printf_wrapper_double("combine: p->offset: ", z / y);
+
+    // FreeRTOS_printf(("combine: p->offset z: \n"));
+    // FreeRTOS_printf_wrapper_double("combine: p->offset: ", z);
+
+    // FreeRTOS_printf(("combine: p->offset y: \n"));
+    // FreeRTOS_printf_wrapper_double("combine: p->offset: ", y);
+
+    // FreeRTOS_printf(("combine: p->offset z / y: \n"));
+    // FreeRTOS_printf_wrapper_double("combine: p->offset: ", z / y);
     s.offset = z / y;
     s.jitter = SQRT(w / y);
 }

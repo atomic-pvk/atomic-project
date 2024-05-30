@@ -178,6 +178,7 @@ void recv_packet(ntp_r *r)
         // do conversion
         // ntp_packet -> ntp_r
         prv_create_ntp_r(r, &pkt);
+        c.localTime = r->rec;
     }
     else
     {
@@ -192,6 +193,7 @@ void recv_packet(ntp_r *r)
  */
 void prep_xmit(ntp_x *x)
 {
+    FreeRTOS_printf(("Preparing packet for send \n"));
     x->leap = s.leap;
     x->stratum = s.stratum;
 
@@ -381,8 +383,8 @@ void step_time(double offset)
  */
 void adjust_time(double offset)
 {
-    FreeRTOS_printf(("Adjusting time by:\n"));
-    FreeRTOS_printf_wrapper_double("", offset);
+    // FreeRTOS_printf(("Adjusting time by:\n"));
+    // FreeRTOS_printf_wrapper_double("", offset);
     double ntp_time = (offset);
     prv_update_localTime(offset, 1);
 }

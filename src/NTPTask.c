@@ -24,6 +24,7 @@ void vStartNTPClientTasks_SingleTasks(uint16_t usTaskStackSize, UBaseType_t uxTa
 {
     BaseType_t x;
 
+    FreeRTOS_printf(("Starting NTPTask. \n"));
     // Create the NTP client task
     xTaskCreate(vNTPTask,        /* Task function */
                 "NTPSyncTask",   /* Task name */
@@ -62,19 +63,19 @@ static void init_network_and_DNS(const char *pcHostNames[], uint32_t NTP_server_
 
             if (NTP_server_IPs[i] == 0)
             {
-                FreeRTOS_printf(("\n\nDNS lookup failed, retrying in 1 second. \n\n"));
+                FreeRTOS_printf(("DNS lookup failed, retrying in 1 second. \n"));
                 vTaskDelay(x1000ms);  // Retry delay
             }
             else
             {
-                FreeRTOS_printf(("\n\nDNS lookup successful for %s\n\n", pcHostNames[i]));
+                FreeRTOS_printf(("DNS lookup successful for %s\n\n", pcHostNames[i]));
                 break;
             }
 
             // Exit if max retries reached
             if (retry == 9)
             {
-                FreeRTOS_printf(("\n\nDNS lookup failed after multiple attempts. Exiting task.\n\n"));
+                FreeRTOS_printf(("DNS lookup failed after multiple attempts. Exiting task.\n"));
                 return;
             }
         }
@@ -94,13 +95,17 @@ static void vNTPTask(void *pvParameters)
     const TickType_t x1000ms = 1000UL / portTICK_PERIOD_MS;
     const TickType_t x10000ms = 10000UL / portTICK_PERIOD_MS;
 
+    // test demo server ntp-pvk-atomic.hejduk.se
     const char *pcHostNames[NMAX] = {"sth1.ntp.se", "sth2.ntp.se", "svl1.ntp.se", "mmo1.ntp.se", "lul1.ntp.se"};
 
     // Array to store resolved IP addresses of NTP servers
     uint32_t NTP_server_IPs[NMAX] = {0};
+    FreeRTOS_printf(("Initializing network and dns \n"));
     init_network_and_DNS(pcHostNames, NTP_server_IPs);
+    FreeRTOS_printf(("Initializing mutex \n"));
     initTimeMutex();
 
+    FreeRTOS_printf(("Initializing datastructures \n"));
     // Allocate and initialize NTP packet structures
     struct ntp_r *r = malloc(sizeof(ntp_r));
     struct ntp_x *x = calloc(1, sizeof(ntp_x));  // Zero-initialized
@@ -133,9 +138,11 @@ static void vNTPTask(void *pvParameters)
     }
 
     c.jitter = LOG2D(s.precision);
+    FreeRTOS_printf(("Initializing association table \n"));
     assoc_table_init(NTP_server_IPs);
 
     // Initialize time with the first NTP server
+    FreeRTOS_printf(("Initializing time with the first NTP server \n"));
     NTP1_server_IP = NTP_server_IPs[0];
     xDestinationAddress.sin_address.ulIP_IPv4 = NTP1_server_IP;
     x->srcaddr = NTP1_server_IP;
@@ -148,30 +155,34 @@ static void vNTPTask(void *pvParameters)
     settime(x->xmt);
     gettime(1);
 
+    FreeRTOS_printf(("Starting synchronization loop\n"));
     for (int i = 0; i < NMAX; i++)
     {
         // Update destination address with current NTP server
         NTP1_server_IP = NTP_server_IPs[i];
 
-        FreeRTOS_printf(("\n\nGetting time from IP (%s): %lu.%lu.%lu.%lu\n\n", pcHostNames[i], (NTP1_server_IP & 0xFF),
+        FreeRTOS_printf(("Getting time from IP (%s): %lu.%lu.%lu.%lu\n\n", pcHostNames[i], (NTP1_server_IP & 0xFF),
                          ((NTP1_server_IP >> 8) & 0xFF), ((NTP1_server_IP >> 16) & 0xFF),
                          ((NTP1_server_IP >> 24) & 0xFF)));
 
         prep_xmit(x);    // Prepare NTP packet
         xmit_packet(x);  // Send request
         recv_packet(r);  // Receive response
+        FreeRTOS_printf(("Start the algorithms\n"));
 
         // Process the received response
         receive(r);
         vTaskDelay(x1000ms);  // Delay before next init
     }
+    FreeRTOS_printf(("Synchronization loop finished\n"));
+
     // return;
 
     // Main NTP client loop
+    FreeRTOS_printf(("Start polling loop\n"));
     for (;;)
     {
         // gettime(1);  // Get current time
-        printTimestamp(c.localTime, "current time\n\n");
 
         clock_adjust(r);  // Adjust the clock
 
@@ -200,9 +211,9 @@ static void vNTPTask(void *pvParameters)
 //     }
 //     for (;;)
 //     {
-//         FreeRTOS_printf(("\n\nAdjust clock\n\n"));
+//         FreeRTOS_printf(("Adjust clock\n"));
 //         clock_adjust();  // Adjust the clock
-//         FreeRTOS_printf(("\n\nAdjusted clock\n\n"));
+//         FreeRTOS_printf(("Adjusted clock\n"));
 
 //         vTaskDelay(x100ms);  // Delay before next adjustment
 //     }
