@@ -41,6 +41,19 @@ func handleConnection(conn *net.UDPConn, fixedTime uint64, corrupt bool) {
 			continue
 		}
 
+		var rxTimestamp uint64
+		var txTimestamp uint64
+
+		if corrupt {
+			currentUnix := time.Now().Unix()
+			currentNTP := (uint64(currentUnix) + NTP_EPOCH_OFFSET) << 32
+			rxTimestamp = currentNTP
+			txTimestamp = currentNTP
+		} else {
+			rxTimestamp = fixedTime
+			txTimestamp = fixedTime
+		}
+
 		// Correct LiVnMode field
 		li := byte(0)   // Leap Indicator: 0
 		vn := byte(4)   // Version Number: 4
@@ -51,8 +64,8 @@ func handleConnection(conn *net.UDPConn, fixedTime uint64, corrupt bool) {
 			LiVnMode:    liVnMode,
 			Stratum:     1,
 			Precision:   0xFA,
-			RxTimestamp: fixedTime,
-			TxTimestamp: fixedTime,
+			RxTimestamp: rxTimestamp,
+			TxTimestamp: txTimestamp,
 		}
 
 		if corrupt {
