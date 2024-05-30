@@ -41,10 +41,16 @@ func handleConnection(conn *net.UDPConn, fixedTime uint64, corrupt bool) {
 			continue
 		}
 
+		// Correct LiVnMode field
+		li := byte(0)   // Leap Indicator: 0
+		vn := byte(4)   // Version Number: 4
+		mode := byte(4) // Mode: 4 (Server)
+		liVnMode := li<<6 | vn<<3 | mode
+
 		packet := &NTPPacket{
-			LiVnMode:  0x23,
-			Stratum:   1,
-			Precision: 0xFA,
+			LiVnMode:    liVnMode,
+			Stratum:     1,
+			Precision:   0xFA,
 			RxTimestamp: fixedTime,
 			TxTimestamp: fixedTime,
 		}
@@ -107,4 +113,3 @@ func main() {
 
 	handleConnection(conn, fixedNTP, corrupt)
 }
-
